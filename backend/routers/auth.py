@@ -20,7 +20,6 @@ async def get_current_user_from_token(
     token: str = Security(API_KEY_HEADER), db: Session = Depends(get_db)
 ):
     try:
-        # Remove 'Bearer ' prefix if present
         token = token.replace("Bearer ", "")
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         username = payload.get("sub")
@@ -37,28 +36,15 @@ async def get_current_user_from_token(
 
 @router.post("/create", response_model=AuthResponse)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    """Create a new user or return existing user with the given username"""
-    # Check if username already exists
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
-        # If user exists, generate new token and return
-        token = jwt.encode(
-            {
-                "sub": existing_user.username,
-                "exp": datetime.utcnow() + timedelta(days=30),
-            },
-            SECRET_KEY,
-            algorithm="HS256",
-        )
-        return AuthResponse(user=existing_user, token=token)
+        raise HTTPException(status_code=400, detail="User already exists")
 
-    # Create new user
     new_user = User(username=user.username)
     db.add(new_user)
     try:
         db.commit()
         db.refresh(new_user)
-        # Generate token for new user
         token = jwt.encode(
             {"sub": new_user.username, "exp": datetime.utcnow() + timedelta(days=30)},
             SECRET_KEY,

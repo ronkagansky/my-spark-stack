@@ -1,9 +1,29 @@
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, WebSocket, WebSocketException
 from typing import Dict, List
 from datetime import datetime
 from openai import OpenAI
+from enum import Enum
+from asyncio import create_task
+from pydantic import BaseModel
 import os
+import aiohttp
+import asyncio
 
+
+class SandboxStatus(str, Enum):
+    BUILDING = "CREATING"
+    READY = "READY"
+
+
+class SandboxStatusResponse(BaseModel):
+    for_type: str = "sandbox_status"
+    status: SandboxStatus
+    tunnels: Dict[int, str]
+
+
+from sandbox.sandbox import DevSandbox
+from db.database import get_db
+from db.models import Project
 
 router = APIRouter(tags=["websockets"])
 
@@ -16,12 +36,19 @@ project_connections: Dict[int, List[WebSocket]] = {}
 
 @router.websocket("/api/ws/project-chat/{project_id}")
 async def websocket_endpoint(websocket: WebSocket, project_id: int):
+    db = next(get_db())
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if project is None:
+        raise WebSocketException(code=404, reason="Project not found")
+
     await websocket.accept()
 
     # Add connection to project's connection list
     if project_id not in project_connections:
         project_connections[project_id] = []
     project_connections[project_id].append(websocket)
+
+    sandbox_task = create_task(create_sandbox(websocket, project_id))
 
     try:
         while True:
@@ -70,8 +97,41 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
-        # Remove connection from project's connection list
+        sandbox_task.cancel()
         project_connections[project_id].remove(websocket)
         if not project_connections[project_id]:
             del project_connections[project_id]
         await websocket.close()
+
+
+async def _wait_for_up(url: str) -> bool:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                return response.status < 500  # Accept any non-server error response
+    except:
+        return False
+
+
+async def create_sandbox(websocket: WebSocket, project_id: int):
+    await websocket.send_json(
+        SandboxStatusResponse(status=SandboxStatus.BUILDING, tunnels={}).model_dump()
+    )
+
+    sandbox = await DevSandbox.get_or_create(project_id)
+
+    while True:
+        tunnels = await sandbox.sb.tunnels.aio()
+        tunnel_url = tunnels[3000].url
+        if await _wait_for_up(tunnel_url):
+            break
+
+        await asyncio.sleep(3)
+
+    tunnels = await sandbox.sb.tunnels.aio()
+    await websocket.send_json(
+        SandboxStatusResponse(
+            status=SandboxStatus.READY,
+            tunnels={port: tunnel.url for port, tunnel in tunnels.items()},
+        ).model_dump()
+    )

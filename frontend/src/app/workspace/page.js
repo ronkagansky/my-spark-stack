@@ -15,8 +15,12 @@ export default function WorkspacePage() {
   const [projectId, setProjectId] = useState(null);
   const [webSocketService, setWebSocketService] = useState(null);
   const [projectTitle, setProjectTitle] = useState('New Chat');
+  const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
+  const [status, setStatus] = useState({
+    status: 'Disconnected',
+    color: 'bg-gray-500',
+  });
 
-  // Consolidated WebSocket initialization
   const initializeWebSocket = async (wsProjectId) => {
     const ws = new ProjectWebSocketService(wsProjectId);
 
@@ -25,37 +29,35 @@ export default function WorkspacePage() {
         ws.connect();
         ws.ws.onopen = () => resolve();
         ws.ws.onerror = (error) => reject(error);
-
-        // Add timeout for connection
+        ws.ws.onclose = () => {
+          setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
+          setProjectPreviewUrl(null);
+        };
         setTimeout(
           () => reject(new Error('WebSocket connection timeout')),
           5000
         );
       });
 
-      const handleMessage = (data) => {
-        setMessages((prev) => {
-          if (data.is_chunk && prev.length > 0) {
-            const lastMessage = prev[prev.length - 1];
-            if (lastMessage.type === 'assistant') {
-              return [
-                ...prev.slice(0, -1),
-                { ...lastMessage, content: lastMessage.content + data.content },
-              ];
-            }
-          }
-          return [
-            ...prev,
-            {
-              type: data.type,
-              content: data.content,
-              timestamp: data.timestamp,
-            },
-          ];
-        });
+      setStatus({ status: 'Setting up', color: 'bg-yellow-500' });
+
+      const handleSocketMessage = (data) => {
+        console.log('handleMessage', data);
+        if (data.for_type === 'sandbox_status') {
+          handleSandboxStatus(data);
+        }
       };
 
-      ws.addListener(handleMessage);
+      const handleSandboxStatus = (data) => {
+        if (data.status === 'READY') {
+          setStatus({ status: 'Ready', color: 'bg-green-500' });
+          setProjectPreviewUrl(data.tunnels[3000]);
+        } else if (data.status === 'BUILDING') {
+          setStatus({ status: 'Setting up', color: 'bg-yellow-500' });
+        }
+      };
+
+      ws.addListener(handleSocketMessage);
       setWebSocketService(ws);
 
       return ws;
@@ -65,7 +67,6 @@ export default function WorkspacePage() {
     }
   };
 
-  // Updated project ID effect
   useEffect(() => {
     if (projectId) {
       let ws;
@@ -75,9 +76,7 @@ export default function WorkspacePage() {
         })
         .catch((error) => {
           console.error('Failed to initialize WebSocket:', error);
-          // Handle connection error (e.g., show user notification)
         });
-
       return () => {
         if (ws) {
           ws.disconnect();
@@ -86,7 +85,6 @@ export default function WorkspacePage() {
     }
   }, [projectId]);
 
-  // Updated handleSendMessage
   const handleSendMessage = async (message) => {
     if (!message.trim()) return;
 
@@ -118,14 +116,11 @@ export default function WorkspacePage() {
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Handle error (e.g., show user notification)
     }
   };
 
-  // Add this new effect to load project details
   useEffect(() => {
     const loadProjectDetails = async () => {
-      // Extract project ID from URL
       const pathParts = window.location.pathname.split('/');
       const urlProjectId = pathParts[pathParts.length - 1];
 
@@ -141,7 +136,7 @@ export default function WorkspacePage() {
     };
 
     loadProjectDetails();
-  }, []); // Run once on component mount
+  }, []);
 
   return (
     <div className="flex h-screen bg-background">
@@ -160,10 +155,12 @@ export default function WorkspacePage() {
           messages={messages}
           onSendMessage={handleSendMessage}
           projectTitle={projectTitle}
+          status={status}
         />
         <Preview
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
+          projectPreviewUrl={projectPreviewUrl}
         />
       </div>
     </div>

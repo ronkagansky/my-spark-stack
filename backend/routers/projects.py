@@ -13,7 +13,6 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 @router.get("", response_model=List[ProjectResponse])
 async def get_user_projects(
     current_user: User = Depends(get_current_user_from_token),
-    db: Session = Depends(get_db),
 ):
     return current_user.projects
 

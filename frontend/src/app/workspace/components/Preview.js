@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import Editor from '@monaco-editor/react';
 
 const exampleFiles = [
   'confirmation.tsx',
@@ -18,8 +19,40 @@ const exampleFiles = [
   'layout.tsx',
 ];
 
-export function Preview({ isOpen, onClose }) {
-  const [selectedFile, setSelectedFile] = useState('confirmation.tsx');
+export function Preview({ isOpen, onClose, projectPreviewUrl }) {
+  const [selectedFile, setSelectedFile] = useState('preview');
+
+  const renderContent = () => {
+    if (selectedFile === 'preview') {
+      if (projectPreviewUrl) {
+        return (
+          <iframe
+            src={projectPreviewUrl}
+            className="w-full h-full border-0"
+            title="Project Preview"
+          />
+        );
+      }
+      return (
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          No preview available
+        </div>
+      );
+    }
+
+    return (
+      <Editor
+        height="100%"
+        defaultLanguage="typescript"
+        defaultValue=""
+        theme="vs-dark"
+        options={{
+          readOnly: true,
+          minimap: { enabled: false },
+        }}
+      />
+    );
+  };
 
   return (
     <div
@@ -29,7 +62,11 @@ export function Preview({ isOpen, onClose }) {
     >
       <div className="p-4 pl-16 md:pl-4 border-b flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm">
+          <Button
+            variant={selectedFile === 'preview' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setSelectedFile('preview')}
+          >
             Preview
           </Button>
           <DropdownMenu>
@@ -66,7 +103,7 @@ export function Preview({ isOpen, onClose }) {
       </div>
       <div className="p-4">
         <div className="rounded-lg border bg-muted/40 h-[calc(100vh-8rem)]">
-          {/* Preview content will go here */}
+          {renderContent()}
         </div>
       </div>
     </div>

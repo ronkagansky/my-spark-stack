@@ -1,3 +1,5 @@
+import { API_URL } from '@/lib/api';
+
 export class ProjectWebSocketService {
   constructor(projectId) {
     this.ws = null;
@@ -6,7 +8,7 @@ export class ProjectWebSocketService {
   }
 
   connect() {
-    const wsUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const wsUrl = API_URL;
     const wsProtocol = wsUrl.startsWith('https') ? 'wss://' : 'ws://';
     const baseUrl = wsUrl.replace(/^https?:\/\//, '');
 
