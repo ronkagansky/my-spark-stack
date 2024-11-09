@@ -7,3 +7,4 @@ psycopg2-binary
 alembic==1.14.0
 openai==1.54.3
 uvicorn[standard]
+python-jose[cryptography]==3.3.0

@@ -12,7 +12,6 @@ class User(Base):
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-
     projects = relationship(
         "Project", back_populates="owner", cascade="all, delete-orphan"
     )
@@ -23,7 +22,6 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
-    description = Column(Text, nullable=True)
     owner_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
@@ -31,5 +29,4 @@ class Project(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
     owner = relationship("User", back_populates="projects")
