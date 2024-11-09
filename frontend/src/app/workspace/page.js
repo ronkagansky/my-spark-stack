@@ -1,0 +1,103 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/context/user-context';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { SendIcon, XIcon } from 'lucide-react';
+
+export default function WorkspacePage() {
+  const router = useRouter();
+  const { user } = useUser();
+  const [message, setMessage] = useState('');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Redirect to auth if no user
+  useEffect(() => {
+    const username = localStorage.getItem('username');
+    if (!username) {
+      router.push('/auth');
+    }
+  }, [router]);
+
+  return (
+    <div className="flex h-screen bg-background">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col md:flex-row">
+        {/* Chat section */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 overflow-auto p-4">
+            {/* Messages will go here */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded bg-primary/10 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="mt-1 prose prose-sm max-w-none">
+                    Fork of AI Calendly Clone was forked. Continue chatting to
+                    ask questions about or make changes to it.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="border-t p-4">
+            <form className="flex gap-4" onSubmit={(e) => e.preventDefault()}>
+              <Input
+                placeholder="Ask a follow up..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit" size="icon">
+                <SendIcon className="h-4 w-4" />
+              </Button>
+            </form>
+          </div>
+        </div>
+
+        {/* Preview section - make it slide in from the right on mobile */}
+        <div
+          className={`${
+            isPreviewOpen ? 'translate-x-0' : 'translate-x-full'
+          } md:translate-x-0 fixed md:static right-0 top-0 h-screen w-full md:w-[600px] border-l bg-background transition-transform duration-200 ease-in-out z-30`}
+        >
+          <div className="p-4 border-b flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm">
+                Preview
+              </Button>
+              <Button variant="ghost" size="sm">
+                confirmation.tsx
+              </Button>
+            </div>
+            {/* Add close button for mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setIsPreviewOpen(false)}
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-4">
+            <div className="rounded-lg border bg-muted/40 h-[calc(100vh-8rem)]">
+              {/* Preview content will go here */}
+            </div>
+          </div>
+        </div>
+
+        {/* Add preview toggle button for mobile */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="fixed bottom-4 right-4 md:hidden z-40"
+          onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+        >
+          {isPreviewOpen ? 'Hide Preview' : 'Show Preview'}
+        </Button>
+      </div>
+    </div>
+  );
+}
