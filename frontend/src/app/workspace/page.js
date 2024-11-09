@@ -37,14 +37,33 @@ export default function WorkspacePage() {
       ws.connect();
 
       const handleMessage = (data) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: data.type,
-            content: data.content,
-            timestamp: data.timestamp,
-          },
-        ]);
+        setMessages((prev) => {
+          // If this is a chunk and we have previous messages
+          if (data.is_chunk && prev.length > 0) {
+            const lastMessage = prev[prev.length - 1];
+
+            // If the last message is from the assistant, append the chunk
+            if (lastMessage.type === 'assistant') {
+              return [
+                ...prev.slice(0, -1),
+                {
+                  ...lastMessage,
+                  content: lastMessage.content + data.content,
+                },
+              ];
+            }
+          }
+
+          // For non-chunks or new assistant messages, add as new message
+          return [
+            ...prev,
+            {
+              type: data.type,
+              content: data.content,
+              timestamp: data.timestamp,
+            },
+          ];
+        });
       };
 
       ws.addListener(handleMessage);
