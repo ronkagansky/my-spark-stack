@@ -13,10 +13,11 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
-# Install Node.js for serving frontend
+# Install Node.js and Nginx
 RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend requirements and install dependencies
@@ -36,18 +37,21 @@ COPY --from=frontend-builder /app/frontend/next.config.mjs /app/frontend/
 WORKDIR /app/frontend
 RUN npm install --production
 
-# Back to app root
-WORKDIR /app
+# Configure Nginx
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create start script
+# Modify start script to include nginx
 RUN echo '#!/bin/bash\n\
-    cd /app/frontend && npm start & \n\
-    cd /app && uvicorn main:app --host 0.0.0.0 --port $PORT\n\
-    ' > /app/start.sh && chmod +x /app/start.sh
+    service nginx start\n\
+    cd /app/frontend && npm start --port 3000 & \n\
+    cd /app && uvicorn main:app --host 0.0.0.0 --port 8000 --ws auto\n\
+    wait' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose port 80 for Nginx
+EXPOSE 80
 
 # Set environment variables
-ENV PORT=8000
 ENV NODE_ENV=production
 
-# Add uvicorn configuration for WebSocket support
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--ws", "auto"]
+# Use the start script instead of direct uvicorn command
+CMD ["/app/start.sh"]
