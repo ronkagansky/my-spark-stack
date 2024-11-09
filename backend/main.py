@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 import os
 from modal import Sandbox, forward
 import json
@@ -60,6 +60,9 @@ SAMPLE_RESPONSES = [
 # Add these constants at the top with other imports
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
 API_KEY_HEADER = APIKeyHeader(name="Authorization")
+
+# Add a dictionary to store project websocket connections
+project_connections: Dict[int, List[WebSocket]] = {}
 
 
 # Add this function after the imports
@@ -189,9 +192,15 @@ async def create_project(
     return new_project
 
 
-@app.websocket("/api/ws/chat")
-async def websocket_endpoint(websocket: WebSocket):
+@app.websocket("/api/ws/chat/{project_id}")
+async def websocket_endpoint(websocket: WebSocket, project_id: int):
     await websocket.accept()
+
+    # Add connection to project's connection list
+    if project_id not in project_connections:
+        project_connections[project_id] = []
+    project_connections[project_id].append(websocket)
+
     try:
         while True:
             data = await websocket.receive_text()
@@ -200,11 +209,18 @@ async def websocket_endpoint(websocket: WebSocket):
                 "type": "assistant",
                 "content": random.choice(SAMPLE_RESPONSES),
                 "timestamp": datetime.utcnow().isoformat(),
+                "project_id": project_id,
             }
-            await websocket.send_json(response)
+            # Send response to all connections for this project
+            for connection in project_connections[project_id]:
+                await connection.send_json(response)
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
+        # Remove connection from project's connection list
+        project_connections[project_id].remove(websocket)
+        if not project_connections[project_id]:
+            del project_connections[project_id]
         await websocket.close()
 
 

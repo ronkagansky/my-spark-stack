@@ -1,56 +1,53 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 class ApiClient {
+  async _post(endpoint, data) {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      throw new Error(`API error: ${res.statusText}`);
+    }
+
+    return res.json();
+  }
+
+  async _get(endpoint) {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`API error: ${res.statusText}`);
+    }
+
+    return res.json();
+  }
+
   async createAccount(username) {
-    const res = await fetch(`${API_URL}/api/auth/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to create account: ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    return data;
+    const data = await this._post('/api/auth/create', { username });
+    localStorage.setItem('token', data.token);
+    return data.user;
   }
 
-  async getCurrentUser(username) {
-    const res = await fetch(`${API_URL}/api/auth/me?username=${username}`);
-
-    if (!res.ok) {
-      throw new Error(`Failed to get user: ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    return data;
+  async getCurrentUser() {
+    return this._get('/api/auth/me');
   }
 
-  async getUserProjects(username) {
-    const res = await fetch(`${API_URL}/projects/${username}`);
-
-    if (!res.ok) {
-      throw new Error(`Failed to get projects: ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    return data;
+  async getUserProjects() {
+    return this._get('/api/projects');
   }
 
-  async createProject(username, project) {
-    const res = await fetch(`${API_URL}/projects/create?username=${username}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(project),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to create project: ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    return data;
+  async createProject(project) {
+    return this._post('/api/projects', project);
   }
 }
 

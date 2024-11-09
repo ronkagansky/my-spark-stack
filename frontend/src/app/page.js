@@ -7,8 +7,8 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const username = localStorage.getItem('username');
-    if (username) {
+    const token = localStorage.getItem('token');
+    if (token) {
       router.push('/workspace');
     } else {
       router.push('/auth');

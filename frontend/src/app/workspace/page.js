@@ -12,7 +12,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { webSocketService } from '@/lib/websocket';
+import { ProjectWebSocketService } from '@/lib/project-websocket';
+import { api } from '@/lib/api';
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function WorkspacePage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState('confirmation.tsx');
   const [messages, setMessages] = useState([]);
+  const [projectId, setProjectId] = useState(null);
+  const [webSocketService, setWebSocketService] = useState(null);
 
   const exampleFiles = [
     'confirmation.tsx',
@@ -31,27 +34,50 @@ export default function WorkspacePage() {
   ];
 
   useEffect(() => {
-    // Connect WebSocket when component mounts
-    webSocketService.connect();
+    if (projectId) {
+      const ws = new ProjectWebSocketService(projectId);
+      ws.connect();
 
-    // Add message listener
-    const handleMessage = (data) => {
-      setMessages((prev) => [...prev, data]);
-    };
+      const handleMessage = (data) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: data.type,
+            content: data.content,
+            timestamp: data.timestamp,
+          },
+        ]);
+      };
 
-    webSocketService.addListener(handleMessage);
+      ws.addListener(handleMessage);
+      setWebSocketService(ws);
 
-    // Cleanup
-    return () => {
-      webSocketService.removeListener(handleMessage);
-    };
-  }, []);
+      return () => {
+        ws.removeListener(handleMessage);
+        ws.disconnect();
+      };
+    }
+  }, [projectId]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    // Add user message to chat
+    if (!projectId) {
+      try {
+        const project = await api.createProject({
+          name: 'AI Calendly Clone',
+          description: 'A chat session about the AI Calendly Clone project',
+        });
+        setProjectId(project.id);
+      } catch (error) {
+        console.error('Failed to create project:', error);
+        return;
+      }
+    }
+
+    if (!webSocketService) return;
+
     const userMessage = {
       type: 'user',
       content: message,
@@ -59,13 +85,11 @@ export default function WorkspacePage() {
     };
     setMessages((prev) => [...prev, userMessage]);
 
-    // Send message through WebSocket
     webSocketService.sendMessage({
       type: 'message',
       content: message,
     });
 
-    // Clear input
     setMessage('');
   };
 

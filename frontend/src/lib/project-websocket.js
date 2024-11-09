@@ -1,12 +1,18 @@
-class WebSocketService {
-  constructor() {
+export class ProjectWebSocketService {
+  constructor(projectId) {
     this.ws = null;
     this.listeners = new Set();
+    this.projectId = projectId;
   }
 
   connect() {
-    // In production, use wss:// and your production URL
-    this.ws = new WebSocket('ws://localhost:8000/ws/chat');
+    const wsUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const wsProtocol = wsUrl.startsWith('https') ? 'wss://' : 'ws://';
+    const baseUrl = wsUrl.replace(/^https?:\/\//, '');
+
+    this.ws = new WebSocket(
+      `${wsProtocol}${baseUrl}/api/ws/chat/${this.projectId}`
+    );
 
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -22,6 +28,13 @@ class WebSocketService {
     this.ws.onerror = (error) => {
       console.error('WebSocket error:', error);
     };
+  }
+
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
   }
 
   sendMessage(message) {
@@ -44,5 +57,3 @@ class WebSocketService {
     this.listeners.forEach((listener) => listener(data));
   }
 }
-
-export const webSocketService = new WebSocketService();

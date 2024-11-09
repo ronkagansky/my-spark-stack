@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { webSocketService } from '../lib/websocket';
+import { webSocketService } from '../lib/project-websocket';
 
 const UserContext = createContext({
   user: null,
@@ -13,28 +13,10 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const username = localStorage.getItem('username');
-    if (username) {
-      api
-        .getCurrentUser(username)
-        .then(setUser)
-        .catch(() => {
-          localStorage.removeItem('username');
-        });
+    if (localStorage.getItem('token')) {
+      api.getCurrentUser().then(setUser);
     }
   }, []);
-
-  useEffect(() => {
-    if (user) {
-      webSocketService.connect();
-    }
-
-    return () => {
-      if (webSocketService.ws) {
-        webSocketService.ws.close();
-      }
-    };
-  }, [user]);
 
   const createAccount = async (username) => {
     const user = await api.createAccount(username);
