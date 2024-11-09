@@ -3,58 +3,47 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@/context/user-context';
 import { Button } from '@/components/ui/button';
-import { PaperclipIcon, SendIcon, XIcon, ChevronDownIcon } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { ProjectWebSocketService } from '@/lib/project-websocket';
 import { api } from '@/lib/api';
-import { Textarea } from '@/components/ui/textarea';
+import { Chat } from './components/Chat';
+import { Preview } from './components/Preview';
 
 export default function WorkspacePage() {
   const { addProject } = useUser();
-  const [message, setMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState('confirmation.tsx');
   const [messages, setMessages] = useState([]);
   const [projectId, setProjectId] = useState(null);
   const [webSocketService, setWebSocketService] = useState(null);
+  const [projectTitle, setProjectTitle] = useState('New Chat');
 
-  const exampleFiles = [
-    'confirmation.tsx',
-    'calendar.tsx',
-    'booking.tsx',
-    'settings.tsx',
-    'layout.tsx',
-  ];
+  // Consolidated WebSocket initialization
+  const initializeWebSocket = async (wsProjectId) => {
+    const ws = new ProjectWebSocketService(wsProjectId);
 
-  useEffect(() => {
-    if (projectId) {
-      const ws = new ProjectWebSocketService(projectId);
-      ws.connect();
+    try {
+      await new Promise((resolve, reject) => {
+        ws.connect();
+        ws.ws.onopen = () => resolve();
+        ws.ws.onerror = (error) => reject(error);
+
+        // Add timeout for connection
+        setTimeout(
+          () => reject(new Error('WebSocket connection timeout')),
+          5000
+        );
+      });
 
       const handleMessage = (data) => {
         setMessages((prev) => {
-          // If this is a chunk and we have previous messages
           if (data.is_chunk && prev.length > 0) {
             const lastMessage = prev[prev.length - 1];
-
-            // If the last message is from the assistant, append the chunk
             if (lastMessage.type === 'assistant') {
               return [
                 ...prev.slice(0, -1),
-                {
-                  ...lastMessage,
-                  content: lastMessage.content + data.content,
-                },
+                { ...lastMessage, content: lastMessage.content + data.content },
               ];
             }
           }
-
-          // For non-chunks or new assistant messages, add as new message
           return [
             ...prev,
             {
@@ -69,25 +58,36 @@ export default function WorkspacePage() {
       ws.addListener(handleMessage);
       setWebSocketService(ws);
 
+      return ws;
+    } catch (error) {
+      console.error('WebSocket connection failed:', error);
+      throw error;
+    }
+  };
+
+  // Updated project ID effect
+  useEffect(() => {
+    if (projectId) {
+      let ws;
+      initializeWebSocket(projectId)
+        .then((websocket) => {
+          ws = websocket;
+        })
+        .catch((error) => {
+          console.error('Failed to initialize WebSocket:', error);
+          // Handle connection error (e.g., show user notification)
+        });
+
       return () => {
-        ws.removeListener(handleMessage);
-        ws.disconnect();
+        if (ws) {
+          ws.disconnect();
+        }
       };
     }
   }, [projectId]);
 
-  // Add useEffect to check URL for project ID on mount
-  useEffect(() => {
-    const pathParts = window.location.pathname.split('/');
-    const urlProjectId = pathParts[pathParts.length - 1];
-
-    if (urlProjectId && urlProjectId !== 'workspace') {
-      setProjectId(urlProjectId);
-    }
-  }, []);
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
+  // Updated handleSendMessage
+  const handleSendMessage = async (message) => {
     if (!message.trim()) return;
 
     const userMessage = {
@@ -96,67 +96,56 @@ export default function WorkspacePage() {
       timestamp: new Date().toISOString(),
     };
 
-    if (!projectId) {
-      try {
+    try {
+      if (!projectId) {
+        const projectName = new Date().toLocaleDateString();
         const project = await api.createProject({
-          name: new Date().toLocaleDateString(),
+          name: projectName,
           description: `Chat session started on ${new Date().toLocaleDateString()}`,
         });
-        setProjectId(project.id);
-        addProject(project);
 
-        // Add this: Update URL with new project ID
+        setProjectId(project.id);
+        setProjectTitle(project.name);
+        addProject(project);
         window.history.pushState({}, '', `/workspace/${project.id}`);
 
-        const ws = new ProjectWebSocketService(project.id);
-
-        // Wait for WebSocket connection to be established
-        await new Promise((resolve, reject) => {
-          ws.connect();
-          ws.ws.onopen = () => resolve();
-          ws.ws.onerror = () =>
-            reject(new Error('WebSocket connection failed'));
-        });
-
-        const handleMessage = (data) => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: data.type,
-              content: data.content,
-              timestamp: data.timestamp,
-            },
-          ]);
-        };
-
-        ws.addListener(handleMessage);
-        setWebSocketService(ws);
-
+        const ws = await initializeWebSocket(project.id);
         setMessages((prev) => [...prev, userMessage]);
-        ws.sendMessage({
-          type: 'message',
-          content: message,
-        });
-      } catch (error) {
-        console.error('Failed to create project:', error);
-        return;
+        ws.sendMessage({ type: 'message', content: message });
+      } else {
+        setMessages((prev) => [...prev, userMessage]);
+        webSocketService.sendMessage({ type: 'message', content: message });
       }
-    } else {
-      setMessages((prev) => [...prev, userMessage]);
-      webSocketService.sendMessage({
-        type: 'message',
-        content: message,
-      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Handle error (e.g., show user notification)
     }
-
-    setMessage('');
   };
+
+  // Add this new effect to load project details
+  useEffect(() => {
+    const loadProjectDetails = async () => {
+      // Extract project ID from URL
+      const pathParts = window.location.pathname.split('/');
+      const urlProjectId = pathParts[pathParts.length - 1];
+
+      if (urlProjectId && urlProjectId !== 'workspace') {
+        try {
+          const project = await api.getProject(urlProjectId);
+          setProjectId(urlProjectId);
+          setProjectTitle(project.name);
+        } catch (error) {
+          console.error('Failed to load project details:', error);
+        }
+      }
+    };
+
+    loadProjectDetails();
+  }, []); // Run once on component mount
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Main content */}
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Preview toggle for mobile - moved to top right */}
         <div className="md:hidden fixed top-4 right-4 z-40">
           <Button
             variant="outline"
@@ -167,101 +156,15 @@ export default function WorkspacePage() {
           </Button>
         </div>
 
-        {/* Chat section - adjusted padding for mobile */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-auto p-4 pt-16 md:pt-4">
-            {/* Messages will go here */}
-            <div className="space-y-4">
-              {/* Chat messages */}
-              {messages.map((msg, index) => (
-                <div key={index} className="flex items-start gap-4">
-                  <div
-                    className={`w-8 h-8 rounded ${
-                      msg.type === 'user' ? 'bg-blue-500/10' : 'bg-primary/10'
-                    } flex-shrink-0`}
-                  />
-                  <div className="flex-1">
-                    <div className="mt-1 prose prose-sm max-w-none">
-                      {msg.content}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="border-t p-4">
-            <form className="flex flex-col gap-4" onSubmit={handleSendMessage}>
-              <div className="flex gap-4">
-                <Textarea
-                  placeholder="Ask a follow up..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="flex-1 min-h-[80px]"
-                  rows={3}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" size="icon" variant="ghost">
-                  <PaperclipIcon className="h-4 w-4" />
-                </Button>
-                <Button type="submit" size="icon">
-                  <SendIcon className="h-4 w-4" />
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        {/* Preview section */}
-        <div
-          className={`${
-            isPreviewOpen ? 'translate-x-0' : 'translate-x-full'
-          } md:translate-x-0 fixed md:static right-0 top-0 h-screen w-full md:w-[600px] border-l bg-background transition-transform duration-200 ease-in-out z-30`}
-        >
-          <div className="p-4 pl-16 md:pl-4 border-b flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                Preview
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    {selectedFile}
-                    <ChevronDownIcon className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {exampleFiles.map((file) => (
-                    <DropdownMenuItem
-                      key={file}
-                      onClick={() => setSelectedFile(file)}
-                    >
-                      {file}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            {/* Add close button for mobile */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="md:hidden"
-              onClick={() => setIsPreviewOpen(false)}
-            >
-              <XIcon className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="p-4">
-            <div className="rounded-lg border bg-muted/40 h-[calc(100vh-8rem)]">
-              {/* Preview content will go here */}
-            </div>
-          </div>
-        </div>
+        <Chat
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          projectTitle={projectTitle}
+        />
+        <Preview
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+        />
       </div>
     </div>
   );

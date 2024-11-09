@@ -10,8 +10,15 @@ export class ProjectWebSocketService {
     const wsProtocol = wsUrl.startsWith('https') ? 'wss://' : 'ws://';
     const baseUrl = wsUrl.replace(/^https?:\/\//, '');
 
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No authentication token found');
+      return;
+    }
+
     this.ws = new WebSocket(
-      `${wsProtocol}${baseUrl}/api/ws/chat/${this.projectId}`
+      `${wsProtocol}${baseUrl}/api/ws/project-chat/${this.projectId}`
     );
 
     this.ws.onmessage = (event) => {
@@ -19,10 +26,12 @@ export class ProjectWebSocketService {
       this.notifyListeners(data);
     };
 
-    this.ws.onclose = () => {
-      console.log('WebSocket connection closed');
-      // Attempt to reconnect after 5 seconds
-      setTimeout(() => this.connect(), 5000);
+    this.ws.onclose = (event) => {
+      console.log('WebSocket connection closed', event.code, event.reason);
+      // Only attempt to reconnect if it wasn't closed due to auth errors
+      if (![4001, 4003].includes(event.code)) {
+        setTimeout(() => this.connect(), 5000);
+      }
     };
 
     this.ws.onerror = (error) => {

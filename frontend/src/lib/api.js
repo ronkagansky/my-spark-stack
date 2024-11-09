@@ -46,6 +46,10 @@ class ApiClient {
     return this._get('/api/projects');
   }
 
+  async getProject(projectId) {
+    return this._get(`/api/projects/${projectId}`);
+  }
+
   async createProject(project) {
     return this._post('/api/projects', project);
   }

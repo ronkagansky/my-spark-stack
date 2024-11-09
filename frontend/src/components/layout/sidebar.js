@@ -56,7 +56,6 @@ export const Sidebar = () => {
 
           {/* Projects List - Updated with onClick handler */}
           <div className="flex-1 overflow-y-auto p-4">
-            <h2 className="text-lg font-semibold mb-4">Recent Projects</h2>
             <div className="space-y-2">
               {projects.map((project) => (
                 <div
