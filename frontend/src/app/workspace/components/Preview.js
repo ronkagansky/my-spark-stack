@@ -2,57 +2,17 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { XIcon, ChevronDownIcon } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import Editor from '@monaco-editor/react';
+import { XIcon } from 'lucide-react';
+import { PreviewTab } from './PreviewTab';
+import { EditorTab } from './EditorTab';
 
-const exampleFiles = [
-  'confirmation.tsx',
-  'calendar.tsx',
-  'booking.tsx',
-  'settings.tsx',
-  'layout.tsx',
-];
-
-export function Preview({ isOpen, onClose, projectPreviewUrl }) {
-  const [selectedFile, setSelectedFile] = useState('preview');
-
-  const renderContent = () => {
-    if (selectedFile === 'preview') {
-      if (projectPreviewUrl) {
-        return (
-          <iframe
-            src={projectPreviewUrl}
-            className="w-full h-full border-0"
-            title="Project Preview"
-          />
-        );
-      }
-      return (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          No preview available
-        </div>
-      );
-    }
-
-    return (
-      <Editor
-        height="100%"
-        defaultLanguage="typescript"
-        defaultValue=""
-        theme="vs-dark"
-        options={{
-          readOnly: true,
-          minimap: { enabled: false },
-        }}
-      />
-    );
-  };
+export function Preview({
+  isOpen,
+  onClose,
+  projectPreviewUrl,
+  projectFileTree,
+}) {
+  const [selectedTab, setSelectedTab] = useState('preview');
 
   return (
     <div
@@ -63,34 +23,19 @@ export function Preview({ isOpen, onClose, projectPreviewUrl }) {
       <div className="p-4 pl-16 md:pl-4 border-b flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
-            variant={selectedFile === 'preview' ? 'default' : 'ghost'}
+            variant={selectedTab === 'preview' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setSelectedFile('preview')}
+            onClick={() => setSelectedTab('preview')}
           >
             Preview
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                {selectedFile}
-                <ChevronDownIcon className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {exampleFiles.map((file) => (
-                <DropdownMenuItem
-                  key={file}
-                  onClick={() => setSelectedFile(file)}
-                >
-                  {file}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            variant={selectedTab === 'editor' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setSelectedTab('editor')}
+          >
+            Editor
+          </Button>
         </div>
         <Button
           variant="ghost"
@@ -103,7 +48,11 @@ export function Preview({ isOpen, onClose, projectPreviewUrl }) {
       </div>
       <div className="p-4">
         <div className="rounded-lg border bg-muted/40 h-[calc(100vh-8rem)]">
-          {renderContent()}
+          {selectedTab === 'preview' ? (
+            <PreviewTab projectPreviewUrl={projectPreviewUrl} />
+          ) : (
+            <EditorTab projectFileTree={projectFileTree} />
+          )}
         </div>
       </div>
     </div>

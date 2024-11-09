@@ -1,13 +1,13 @@
 from fastapi import APIRouter, WebSocket, WebSocketException
 from typing import Dict, List
-from datetime import datetime
-from openai import OpenAI
 from enum import Enum
 from asyncio import create_task
 from pydantic import BaseModel
-import os
-import aiohttp
-import asyncio
+
+from sandbox.sandbox import DevSandbox
+from agents.agent import Agent, ChatMessage, parse_file_changes
+from db.database import get_db
+from db.models import Project
 
 
 class SandboxStatus(str, Enum):
@@ -21,14 +21,21 @@ class SandboxStatusResponse(BaseModel):
     tunnels: Dict[int, str]
 
 
-from sandbox.sandbox import DevSandbox
-from db.database import get_db
-from db.models import Project
+class SandboxFileTreeResponse(BaseModel):
+    for_type: str = "sandbox_file_tree"
+    paths: List[str]
+
+
+class ChatChunkResponse(BaseModel):
+    for_type: str = "chat_chunk"
+    content: str
+
+
+class ChatRequest(BaseModel):
+    chat: List[ChatMessage]
+
 
 router = APIRouter(tags=["websockets"])
-
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Store project websocket connections
 project_connections: Dict[int, List[WebSocket]] = {}
@@ -48,54 +55,40 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
         project_connections[project_id] = []
     project_connections[project_id].append(websocket)
 
-    sandbox_task = create_task(create_sandbox(websocket, project_id))
+    agent = Agent(project)
+    sandbox_task = create_task(create_sandbox(websocket, agent, project_id))
 
     try:
         while True:
-            data = await websocket.receive_text()
+            raw_data = await websocket.receive_text()
+            data = ChatRequest.model_validate_json(raw_data)
 
-            # Create streaming chat completion
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",  # or your preferred model
-                messages=[{"role": "user", "content": data}],
-                stream=True,
+            total_content = ""
+            async for partial_message in agent.step(data.chat):
+                total_content += partial_message.delta_content
+                response = ChatChunkResponse(content=partial_message.delta_content)
+                for connection in project_connections[project_id]:
+                    await connection.send_json(response.model_dump())
+
+            if agent.sandbox:
+                changes = parse_file_changes(agent.sandbox, total_content)
+                print("applying changes", changes)
+                try:
+                    await agent.sandbox.write_file_contents(
+                        [(change.path, change.content) for change in changes]
+                    )
+                except Exception as e:
+                    print("error applying changes", e)
+
+            await websocket.send_json(
+                SandboxFileTreeResponse(
+                    paths=await agent.sandbox.get_file_paths()
+                ).model_dump()
             )
 
-            # Stream the response chunks
-            collected_content = []
-            for chunk in response:
-                if chunk.choices[0].delta.content is not None:
-                    content = chunk.choices[0].delta.content
-                    collected_content.append(content)
-
-                    # Send each chunk as it arrives
-                    chunk_response = {
-                        "type": "assistant",
-                        "content": content,
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "project_id": project_id,
-                        "is_chunk": True,
-                    }
-
-                    # Send chunk to all connections for this project
-                    for connection in project_connections[project_id]:
-                        await connection.send_json(chunk_response)
-
-            # Send final complete message
-            final_response = {
-                "type": "assistant",
-                "content": "".join(collected_content),
-                "timestamp": datetime.utcnow().isoformat(),
-                "project_id": project_id,
-                "is_chunk": False,
-            }
-
-            # Send final message to all connections
-            for connection in project_connections[project_id]:
-                await connection.send_json(final_response)
-
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        # TODO: Handle error
+        pass
     finally:
         sandbox_task.cancel()
         project_connections[project_id].remove(websocket)
@@ -104,29 +97,17 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
         await websocket.close()
 
 
-async def _wait_for_up(url: str) -> bool:
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                return response.status < 500  # Accept any non-server error response
-    except:
-        return False
-
-
-async def create_sandbox(websocket: WebSocket, project_id: int):
+async def create_sandbox(websocket: WebSocket, agent: Agent, project_id: int):
     await websocket.send_json(
         SandboxStatusResponse(status=SandboxStatus.BUILDING, tunnels={}).model_dump()
     )
 
     sandbox = await DevSandbox.get_or_create(project_id)
+    agent.set_sandbox(sandbox)
+    await sandbox.wait_for_up()
 
-    while True:
-        tunnels = await sandbox.sb.tunnels.aio()
-        tunnel_url = tunnels[3000].url
-        if await _wait_for_up(tunnel_url):
-            break
-
-        await asyncio.sleep(3)
+    paths = await sandbox.get_file_paths()
+    await websocket.send_json(SandboxFileTreeResponse(paths=paths).model_dump())
 
     tunnels = await sandbox.sb.tunnels.aio()
     await websocket.send_json(

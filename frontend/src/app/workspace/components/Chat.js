@@ -1,20 +1,61 @@
 'use client';
 
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
-import { PaperclipIcon, SendIcon } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
+import { SendIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import rehypeRaw from 'rehype-raw';
 
-export function Chat({ messages, onSendMessage, projectTitle, status }) {
+const FileUpdate = (props) => {
+  return (
+    <div className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md">
+      Updated {props.children}
+    </div>
+  );
+};
+const components = {
+  'file-update': FileUpdate,
+};
+
+export function Chat({
+  connected,
+  messages,
+  onSendMessage,
+  projectTitle,
+  status,
+}) {
   const [message, setMessage] = useState('');
+
+  const fixCodeBlocks = (content) => {
+    content = content.replace(
+      /```[\w.]+\n[#/]+ (\S+)\n[\s\S]+?```/g,
+      '<file-update>$1</file-update>'
+    );
+    content = content.replace(
+      /```[\w.]+\n[/*]+ (\S+) \*\/\n[\s\S]+?```/g,
+      '<file-update>$1</file-update>'
+    );
+    return content;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    onSendMessage(message);
+    onSendMessage({ content: message });
     setMessage('');
   };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.ctrlKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
+  console.log(messages);
 
   return (
     <div className="flex-1 flex flex-col">
@@ -35,12 +76,18 @@ export function Chat({ messages, onSendMessage, projectTitle, status }) {
             <div key={index} className="flex items-start gap-4">
               <div
                 className={`w-8 h-8 rounded ${
-                  msg.type === 'user' ? 'bg-blue-500/10' : 'bg-primary/10'
+                  msg.role === 'user' ? 'bg-blue-500/10' : 'bg-primary/10'
                 } flex-shrink-0`}
               />
               <div className="flex-1">
                 <div className="mt-1 prose prose-sm max-w-none">
-                  {msg.content}
+                  <ReactMarkdown
+                    components={components}
+                    rehypePlugins={[rehypeRaw]}
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {fixCodeBlocks(msg.content)}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>
@@ -50,18 +97,19 @@ export function Chat({ messages, onSendMessage, projectTitle, status }) {
       <div className="border-t p-4">
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="flex gap-4">
-            <Textarea
+            <Input
               placeholder="Ask a follow up..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="flex-1 min-h-[80px]"
-              rows={3}
+              onKeyDown={handleKeyDown}
+              className="flex-1"
+              disabled={!connected}
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" size="icon" variant="ghost">
+            {/* <Button type="button" size="icon" variant="ghost">
               <PaperclipIcon className="h-4 w-4" />
-            </Button>
+            </Button> */}
             <Button type="submit" size="icon">
               <SendIcon className="h-4 w-4" />
             </Button>

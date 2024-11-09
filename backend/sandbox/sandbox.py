@@ -1,11 +1,16 @@
 import modal
+import aiohttp
+import asyncio
+import io
+from typing import List, Optional, Tuple
+from modal.volume import FileEntryType
 
 app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
 image = (
     modal.Image.debian_slim()
     .run_commands("apt-get update")
-    .run_commands("apt-get install -y --no-install-recommends curl")
+    .run_commands("apt-get install -y --no-install-recommends curl wget zip unzip tree")
     .run_commands("curl -fsSL https://deb.nodesource.com/setup_20.x | bash -")
     .run_commands("apt-get install -y --no-install-recommends nodejs")
     .run_commands("node --version && npm --version")
@@ -14,14 +19,84 @@ image_start_cmd = """
 cd /app && if [ ! -d "my-app" ]; then npx --yes create-react-app my-app; fi && cd my-app && npm start
 """.strip()
 
+IGNORE_PATHS = ["node_modules", ".git", ".next", "build"]
+
+
+async def _wait_for_up(url: str) -> bool:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                return response.status < 500
+    except:
+        return False
+
+
+async def _vol_to_paths(vol: modal.Volume):
+    paths = []
+    entries = await vol.listdir.aio("/", recursive=False)
+
+    def _ends_with_ignore_path(path: str):
+        path_parts = path.split("/")
+        return any(
+            part == ignore_path for ignore_path in IGNORE_PATHS for part in path_parts
+        )
+
+    async def _recurse(path: str):
+        entries = await vol.listdir.aio(path, recursive=False)
+        for entry in entries:
+            if _ends_with_ignore_path(entry.path):
+                continue
+            if entry.type == FileEntryType.DIRECTORY:
+                await _recurse(entry.path)
+            paths.append(entry.path)
+
+    for entry in entries:
+        if _ends_with_ignore_path(entry.path):
+            continue
+        if entry.type == FileEntryType.DIRECTORY:
+            await _recurse(entry.path)
+        paths.append(entry.path)
+
+    return paths
+
 
 class DevSandbox:
-    def __init__(self, project_id: int, sb: modal.Sandbox):
+    def __init__(self, project_id: int, sb: modal.Sandbox, vol: modal.Volume):
         self.project_id = project_id
         self.sb = sb
+        self.vol = vol
+
+    async def wait_for_up(self):
+        while True:
+            tunnels = await self.sb.tunnels.aio()
+            tunnel_url = tunnels[3000].url
+            if await _wait_for_up(tunnel_url):
+                break
+
+            await asyncio.sleep(3)
+
+    async def get_file_paths(self) -> List[str]:
+        paths = await _vol_to_paths(self.vol)
+        return sorted(["/app/" + path for path in paths])
+
+    async def run_command(self, command: str, workdir: Optional[str] = None) -> str:
+        try:
+            proc = await self.sb.exec.aio(
+                "sh", "-c", command, workdir=workdir or "/app"
+            )
+            await proc.wait.aio()
+            return (await proc.stdout.read.aio()) + (await proc.stderr.read.aio())
+        except Exception as e:
+            return f"Error: {e}"
+
+    async def write_file_contents(self, files: List[Tuple[str, str]]):
+        async with await self.vol.batch_upload.aio(force=True) as batch:
+            for path, content in files:
+                batch.put_file(io.BytesIO(content.encode()), path)
+        await self.vol.commit.aio()
 
     @classmethod
-    async def get_or_create(cls, project_id: int):
+    async def get_or_create(cls, project_id: int) -> "DevSandbox":
         sandboxes = [
             sandbox
             async for sandbox in modal.Sandbox.list.aio(
@@ -29,10 +104,11 @@ class DevSandbox:
                 tags={"project_id": str(project_id)},
             )
         ]
+        vol = modal.Volume.from_name(
+            f"vol-project-{project_id}", create_if_missing=True
+        )
         if len(sandboxes) == 0:
-            vol = modal.Volume.from_name(
-                f"vol-project-{project_id}", create_if_missing=True
-            )
+
             sb = await modal.Sandbox.create.aio(
                 "sh",
                 "-c",
@@ -48,4 +124,4 @@ class DevSandbox:
             await sb.set_tags.aio({"project_id": str(project_id)})
         else:
             sb = sandboxes[0]
-        return cls(project_id, sb)
+        return cls(project_id, sb, vol)

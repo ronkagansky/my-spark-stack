@@ -16,6 +16,7 @@ export default function WorkspacePage() {
   const [webSocketService, setWebSocketService] = useState(null);
   const [projectTitle, setProjectTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
+  const [projectFileTree, setProjectFileTree] = useState([]);
   const [status, setStatus] = useState({
     status: 'Disconnected',
     color: 'bg-gray-500',
@@ -45,6 +46,10 @@ export default function WorkspacePage() {
         console.log('handleMessage', data);
         if (data.for_type === 'sandbox_status') {
           handleSandboxStatus(data);
+        } else if (data.for_type === 'chat_chunk') {
+          handleChatChunk(data);
+        } else if (data.for_type === 'sandbox_file_tree') {
+          handleSandboxFileTree(data);
         }
       };
 
@@ -53,8 +58,25 @@ export default function WorkspacePage() {
           setStatus({ status: 'Ready', color: 'bg-green-500' });
           setProjectPreviewUrl(data.tunnels[3000]);
         } else if (data.status === 'BUILDING') {
-          setStatus({ status: 'Setting up', color: 'bg-yellow-500' });
+          setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
         }
+      };
+
+      const handleSandboxFileTree = (data) => {
+        setProjectFileTree(data.paths);
+      };
+
+      const handleChatChunk = (data) => {
+        setMessages((prev) => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage?.role === 'assistant') {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMessage, content: lastMessage.content + data.content },
+            ];
+          }
+          return [...prev, { role: 'assistant', content: data.content }];
+        });
       };
 
       ws.addListener(handleSocketMessage);
@@ -86,12 +108,11 @@ export default function WorkspacePage() {
   }, [projectId]);
 
   const handleSendMessage = async (message) => {
-    if (!message.trim()) return;
+    if (!message.content.trim()) return;
 
     const userMessage = {
-      type: 'user',
-      content: message,
-      timestamp: new Date().toISOString(),
+      role: 'user',
+      content: message.content,
     };
 
     try {
@@ -109,10 +130,10 @@ export default function WorkspacePage() {
 
         const ws = await initializeWebSocket(project.id);
         setMessages((prev) => [...prev, userMessage]);
-        ws.sendMessage({ type: 'message', content: message });
+        ws.sendMessage({ chat: [...messages, userMessage] });
       } else {
         setMessages((prev) => [...prev, userMessage]);
-        webSocketService.sendMessage({ type: 'message', content: message });
+        webSocketService.sendMessage({ chat: [...messages, userMessage] });
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -152,6 +173,7 @@ export default function WorkspacePage() {
         </div>
 
         <Chat
+          connected={!!webSocketService}
           messages={messages}
           onSendMessage={handleSendMessage}
           projectTitle={projectTitle}
@@ -161,6 +183,7 @@ export default function WorkspacePage() {
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           projectPreviewUrl={projectPreviewUrl}
+          projectFileTree={projectFileTree}
         />
       </div>
     </div>

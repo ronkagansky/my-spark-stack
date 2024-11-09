@@ -70,3 +70,18 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.prose {
+  line-height: 1.5rem;
+  li {
+    list-style-type: disc;
+    margin-left: 1.5em;
+  }
+  code {
+    color: black;
+    font-weight: 600;
+  }
+  ol, ul {
+    padding-bottom: 0.5rem;
+  }
+}
