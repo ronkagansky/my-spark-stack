@@ -6,15 +6,19 @@ import { webSocketService } from '../lib/project-websocket';
 
 const UserContext = createContext({
   user: null,
+  projects: [],
   createAccount: async () => {},
+  addProject: async () => {},
 });
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [projects, setProjects] = useState([]);
 
   useEffect(() => {
     if (localStorage.getItem('token')) {
       api.getCurrentUser().then(setUser);
+      api.getUserProjects().then(setProjects);
     }
   }, []);
 
@@ -24,8 +28,19 @@ export function UserProvider({ children }) {
     return user;
   };
 
+  const addProject = (project) => {
+    setProjects((prev) => [...prev, project]);
+  };
+
   return (
-    <UserContext.Provider value={{ user, createAccount }}>
+    <UserContext.Provider
+      value={{
+        user,
+        projects,
+        createAccount,
+        addProject,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

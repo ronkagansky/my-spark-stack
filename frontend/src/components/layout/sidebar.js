@@ -4,9 +4,11 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, MenuIcon, XIcon } from 'lucide-react';
+import { useUser } from '@/context/user-context';
 
-export const Sidebar = ({ username, projects }) => {
+export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const { user, projects } = useUser();
 
   // Add mobile toggle button that's only visible on small screens
   const toggleButton = (
@@ -66,9 +68,9 @@ export const Sidebar = ({ username, projects }) => {
               <div className="flex items-center space-x-3">
                 <Avatar>
                   <AvatarImage src="" />
-                  <AvatarFallback>{username[0]}</AvatarFallback>
+                  <AvatarFallback>{user.username[0]}</AvatarFallback>
                 </Avatar>
-                <span className="font-medium">{username}</span>
+                <span className="font-medium">{user.username}</span>
               </div>
             </div>
           </div>

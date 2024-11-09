@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/user-context';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SendIcon, XIcon, ChevronDownIcon } from 'lucide-react';
+import { PaperclipIcon, SendIcon, XIcon, ChevronDownIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,10 +12,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ProjectWebSocketService } from '@/lib/project-websocket';
 import { api } from '@/lib/api';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function WorkspacePage() {
-  const router = useRouter();
-  const { user } = useUser();
+  const { addProject } = useUser();
   const [message, setMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState('confirmation.tsx');
@@ -63,32 +61,61 @@ export default function WorkspacePage() {
     e.preventDefault();
     if (!message.trim()) return;
 
-    if (!projectId) {
-      try {
-        const project = await api.createProject({
-          name: 'AI Calendly Clone',
-          description: 'A chat session about the AI Calendly Clone project',
-        });
-        setProjectId(project.id);
-      } catch (error) {
-        console.error('Failed to create project:', error);
-        return;
-      }
-    }
-
-    if (!webSocketService) return;
-
     const userMessage = {
       type: 'user',
       content: message,
       timestamp: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
 
-    webSocketService.sendMessage({
-      type: 'message',
-      content: message,
-    });
+    if (!projectId) {
+      try {
+        const project = await api.createProject({
+          name: new Date().toLocaleDateString(),
+          description: `Chat session started on ${new Date().toLocaleDateString()}`,
+        });
+        setProjectId(project.id);
+        addProject(project);
+
+        const ws = new ProjectWebSocketService(project.id);
+
+        // Wait for WebSocket connection to be established
+        await new Promise((resolve, reject) => {
+          ws.connect();
+          ws.ws.onopen = () => resolve();
+          ws.ws.onerror = () =>
+            reject(new Error('WebSocket connection failed'));
+        });
+
+        const handleMessage = (data) => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: data.type,
+              content: data.content,
+              timestamp: data.timestamp,
+            },
+          ]);
+        };
+
+        ws.addListener(handleMessage);
+        setWebSocketService(ws);
+
+        setMessages((prev) => [...prev, userMessage]);
+        ws.sendMessage({
+          type: 'message',
+          content: message,
+        });
+      } catch (error) {
+        console.error('Failed to create project:', error);
+        return;
+      }
+    } else {
+      setMessages((prev) => [...prev, userMessage]);
+      webSocketService.sendMessage({
+        type: 'message',
+        content: message,
+      });
+    }
 
     setMessage('');
   };
@@ -113,16 +140,6 @@ export default function WorkspacePage() {
           <div className="flex-1 overflow-auto p-4 pt-16 md:pt-4">
             {/* Messages will go here */}
             <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded bg-primary/10 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="mt-1 prose prose-sm max-w-none">
-                    Fork of AI Calendly Clone was forked. Continue chatting to
-                    ask questions about or make changes to it.
-                  </div>
-                </div>
-              </div>
-
               {/* Chat messages */}
               {messages.map((msg, index) => (
                 <div key={index} className="flex items-start gap-4">
@@ -141,16 +158,24 @@ export default function WorkspacePage() {
             </div>
           </div>
           <div className="border-t p-4">
-            <form className="flex gap-4" onSubmit={handleSendMessage}>
-              <Input
-                placeholder="Ask a follow up..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit" size="icon">
-                <SendIcon className="h-4 w-4" />
-              </Button>
+            <form className="flex flex-col gap-4" onSubmit={handleSendMessage}>
+              <div className="flex gap-4">
+                <Textarea
+                  placeholder="Ask a follow up..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="flex-1 min-h-[80px]"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" size="icon" variant="ghost">
+                  <PaperclipIcon className="h-4 w-4" />
+                </Button>
+                <Button type="submit" size="icon">
+                  <SendIcon className="h-4 w-4" />
+                </Button>
+              </div>
             </form>
           </div>
         </div>
