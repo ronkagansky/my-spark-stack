@@ -42,8 +42,8 @@ export const Sidebar = ({ username, projects }) => {
         } md:translate-x-0 fixed md:static w-64 h-screen bg-background border-r transition-transform duration-200 ease-in-out z-40`}
       >
         <div className="flex flex-col h-full">
-          {/* New Chat Button */}
-          <div className="p-4 border-b">
+          {/* New Chat Button - Added padding-left on mobile */}
+          <div className="p-4 border-b md:pl-4 pl-16">
             <Button
               variant="outline"
               className="w-full justify-start"

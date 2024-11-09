@@ -25,9 +25,20 @@ export default function WorkspacePage() {
     <div className="flex h-screen bg-background">
       {/* Main content */}
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Chat section */}
+        {/* Preview toggle for mobile - moved to top right */}
+        <div className="md:hidden fixed top-4 right-4 z-40">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+          >
+            {isPreviewOpen ? 'Hide Preview' : 'Show Preview'}
+          </Button>
+        </div>
+
+        {/* Chat section - adjusted padding for mobile */}
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto p-4 pt-16 md:pt-4">
             {/* Messages will go here */}
             <div className="space-y-4">
               <div className="flex items-start gap-4">
@@ -56,13 +67,13 @@ export default function WorkspacePage() {
           </div>
         </div>
 
-        {/* Preview section - make it slide in from the right on mobile */}
+        {/* Preview section */}
         <div
           className={`${
             isPreviewOpen ? 'translate-x-0' : 'translate-x-full'
           } md:translate-x-0 fixed md:static right-0 top-0 h-screen w-full md:w-[600px] border-l bg-background transition-transform duration-200 ease-in-out z-30`}
         >
-          <div className="p-4 border-b flex items-center justify-between">
+          <div className="p-4 pl-16 md:pl-4 border-b flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm">
                 Preview
@@ -87,16 +98,6 @@ export default function WorkspacePage() {
             </div>
           </div>
         </div>
-
-        {/* Add preview toggle button for mobile */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="fixed bottom-4 right-4 md:hidden z-40"
-          onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-        >
-          {isPreviewOpen ? 'Hide Preview' : 'Show Preview'}
-        </Button>
       </div>
     </div>
   );
