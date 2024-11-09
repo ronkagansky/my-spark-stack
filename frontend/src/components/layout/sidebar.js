@@ -5,10 +5,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, MenuIcon, XIcon } from 'lucide-react';
 import { useUser } from '@/context/user-context';
+import { useRouter } from 'next/navigation';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
   const { user, projects } = useUser();
+  const router = useRouter();
+
+  const handleProjectClick = (projectId) => {
+    router.push(`/workspace/${projectId}`);
+    setIsMobileOpen(false); // Close mobile sidebar after navigation
+  };
 
   // Add mobile toggle button that's only visible on small screens
   const toggleButton = (
@@ -47,7 +54,7 @@ export const Sidebar = () => {
             </Button>
           </div>
 
-          {/* Projects List */}
+          {/* Projects List - Updated with onClick handler */}
           <div className="flex-1 overflow-y-auto p-4">
             <h2 className="text-lg font-semibold mb-4">Recent Projects</h2>
             <div className="space-y-2">
@@ -55,6 +62,7 @@ export const Sidebar = () => {
                 <div
                   key={project.id}
                   className="p-2 hover:bg-accent rounded-md cursor-pointer"
+                  onClick={() => handleProjectClick(project.id)}
                 >
                   {project.name}
                 </div>

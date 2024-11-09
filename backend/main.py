@@ -19,20 +19,20 @@ from db.models import User, Project
 
 app = FastAPI()
 
-# # Mount Next.js static files
-# app.mount("/_next", StaticFiles(directory="../frontend/.next"), name="next_static")
-# app.mount("/static", StaticFiles(directory="../frontend/public"), name="public_static")
+# Mount Next.js static files
+app.mount("/_next", StaticFiles(directory="../frontend/.next"), name="next_static")
+app.mount("/static", StaticFiles(directory="../frontend/public"), name="public_static")
 
 
-# # Serve Next.js frontend - add this before other routes
-# @app.get("/{full_path:path}")
-# async def serve_frontend(full_path: str):
-#     # API routes should not be handled by frontend
-#     if full_path.startswith("api/") or full_path.startswith("ws/"):
-#         raise HTTPException(status_code=404, detail="Not found")
+# Serve Next.js frontend - add this before other routes
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    # API routes should not be handled by frontend
+    if full_path.startswith("api/") or full_path.startswith("ws/"):
+        raise HTTPException(status_code=404, detail="Not found")
 
-#     # Serve the Next.js index.html for all other routes
-#     return FileResponse("frontend/.next/server/pages/index.html")
+    # Serve the Next.js index.html for all other routes
+    return FileResponse("frontend/.next/server/pages/index.html")
 
 
 # Configure CORS

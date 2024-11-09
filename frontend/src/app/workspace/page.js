@@ -57,6 +57,16 @@ export default function WorkspacePage() {
     }
   }, [projectId]);
 
+  // Add useEffect to check URL for project ID on mount
+  useEffect(() => {
+    const pathParts = window.location.pathname.split('/');
+    const urlProjectId = pathParts[pathParts.length - 1];
+
+    if (urlProjectId && urlProjectId !== 'workspace') {
+      setProjectId(urlProjectId);
+    }
+  }, []);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -75,6 +85,9 @@ export default function WorkspacePage() {
         });
         setProjectId(project.id);
         addProject(project);
+
+        // Add this: Update URL with new project ID
+        window.history.pushState({}, '', `/workspace/${project.id}`);
 
         const ws = new ProjectWebSocketService(project.id);
 
