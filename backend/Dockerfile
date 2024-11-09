@@ -37,8 +37,7 @@ COPY --from=frontend-builder /app/frontend/next.config.mjs /app/frontend/
 WORKDIR /app/frontend
 RUN npm install --production
 
-# Configure Nginx
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY /app/backend/nginx.conf /etc/nginx/nginx.conf
 
 # Modify start script to include nginx
 RUN echo '#!/bin/bash\n\
