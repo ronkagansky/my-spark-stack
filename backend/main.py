@@ -1,10 +1,13 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List
 import os
 from modal import Sandbox, forward
+import json
+import random
+from datetime import datetime
 
 from db.database import get_db, init_db
 from db.models import User, Project
@@ -23,6 +26,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add these sample responses
+SAMPLE_RESPONSES = [
+    "I've analyzed the code structure. The main components seem well-organized. What specific part would you like me to explain?",
+    "That's an interesting question about the project. Let me break it down for you...",
+    "I can help you modify the code. What changes would you like to make?",
+    "The current implementation follows React best practices. We could enhance it by...",
+    "Based on your question, I think we should focus on improving the user experience by...",
+]
 
 
 class UserCreate(BaseModel):
@@ -114,6 +126,25 @@ async def create_project(
         raise HTTPException(status_code=400, detail=str(e))
 
     return new_project
+
+
+@app.websocket("/ws/chat")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Generate a response
+            response = {
+                "type": "assistant",
+                "content": random.choice(SAMPLE_RESPONSES),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            await websocket.send_json(response)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        await websocket.close()
 
 
 if __name__ == "__main__":

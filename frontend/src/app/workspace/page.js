@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { webSocketService } from '@/lib/websocket';
 
 export default function WorkspacePage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function WorkspacePage() {
   const [message, setMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState('confirmation.tsx');
+  const [messages, setMessages] = useState([]);
 
   const exampleFiles = [
     'confirmation.tsx',
@@ -28,13 +30,44 @@ export default function WorkspacePage() {
     'layout.tsx',
   ];
 
-  // Redirect to auth if no user
   useEffect(() => {
-    const username = localStorage.getItem('username');
-    if (!username) {
-      router.push('/auth');
-    }
-  }, [router]);
+    // Connect WebSocket when component mounts
+    webSocketService.connect();
+
+    // Add message listener
+    const handleMessage = (data) => {
+      setMessages((prev) => [...prev, data]);
+    };
+
+    webSocketService.addListener(handleMessage);
+
+    // Cleanup
+    return () => {
+      webSocketService.removeListener(handleMessage);
+    };
+  }, []);
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    // Add user message to chat
+    const userMessage = {
+      type: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Send message through WebSocket
+    webSocketService.sendMessage({
+      type: 'message',
+      content: message,
+    });
+
+    // Clear input
+    setMessage('');
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -65,10 +98,26 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Chat messages */}
+              {messages.map((msg, index) => (
+                <div key={index} className="flex items-start gap-4">
+                  <div
+                    className={`w-8 h-8 rounded ${
+                      msg.type === 'user' ? 'bg-blue-500/10' : 'bg-primary/10'
+                    } flex-shrink-0`}
+                  />
+                  <div className="flex-1">
+                    <div className="mt-1 prose prose-sm max-w-none">
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <div className="border-t p-4">
-            <form className="flex gap-4" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex gap-4" onSubmit={handleSendMessage}>
               <Input
                 placeholder="Ask a follow up..."
                 value={message}

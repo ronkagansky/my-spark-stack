@@ -5,25 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 export default function WorkspaceLayout({ children }) {
-  const { user } = useUser();
   const router = useRouter();
   const [projects, setProjects] = useState([]);
   const { toast } = useToast();
+  const { user } = useUser();
 
   useEffect(() => {
-    if (!user) {
-      router.push('/auth');
-      return;
-    }
-
-    // Fetch user's projects
-    fetch(`http://localhost:8000/projects/${user.username}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch projects');
-        return res.json();
-      })
+    if (!user) return;
+    api
+      .getUserProjects(user.username)
       .then((data) => setProjects(data))
       .catch((err) => {
         console.error('Failed to fetch projects:', err);

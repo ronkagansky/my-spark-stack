@@ -2,18 +2,17 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { webSocketService } from '../lib/websocket';
 
 const UserContext = createContext({
   user: null,
   createAccount: async () => {},
-  logout: () => {},
 });
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Load user on mount
     const username = localStorage.getItem('username');
     if (username) {
       api
@@ -25,19 +24,26 @@ export function UserProvider({ children }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      webSocketService.connect();
+    }
+
+    return () => {
+      if (webSocketService.ws) {
+        webSocketService.ws.close();
+      }
+    };
+  }, [user]);
+
   const createAccount = async (username) => {
     const user = await api.createAccount(username);
     setUser(user);
     return user;
   };
 
-  const logout = () => {
-    localStorage.removeItem('username');
-    setUser(null);
-  };
-
   return (
-    <UserContext.Provider value={{ user, createAccount, logout }}>
+    <UserContext.Provider value={{ user, createAccount }}>
       {children}
     </UserContext.Provider>
   );

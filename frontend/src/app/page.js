@@ -15,5 +15,5 @@ export default function HomePage() {
     }
   }, [router]);
 
-  return null; // Or a loading spinner if you prefer
+  return null;
 }

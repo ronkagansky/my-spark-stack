@@ -49,5 +49,5 @@ RUN echo '#!/bin/bash\n\
 ENV PORT=8000
 ENV NODE_ENV=production
 
-# Start both servers
-CMD ["/app/start.sh"] 
+# Add uvicorn configuration for WebSocket support
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--ws", "auto"]

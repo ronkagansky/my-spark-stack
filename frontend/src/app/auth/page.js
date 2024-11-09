@@ -4,31 +4,22 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/context/user-context';
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/lib/api';
+import { useUser } from '@/context/user-context';
 
 export default function AuthPage() {
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { createAccount } = useUser();
   const { toast } = useToast();
-
-  // Redirect if already logged in
-  useEffect(() => {
-    const username = localStorage.getItem('username');
-    if (username) {
-      router.push('/workspace');
-    }
-  }, [router]);
+  const { createAccount } = useUser();
 
   const handleCreateAccount = async () => {
     if (!username.trim()) return;
 
     try {
       setIsLoading(true);
-      const user = await api.createAccount(username);
+      await createAccount(username);
       localStorage.setItem('username', username);
       toast({
         title: 'Success!',
@@ -56,7 +47,7 @@ export default function AuthPage() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md space-y-6 p-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Create Your Account</h1>
+          <h1 className="text-3xl font-bold">Prompt Stack</h1>
           <p className="text-muted-foreground">
             Choose a username to get started
           </p>
