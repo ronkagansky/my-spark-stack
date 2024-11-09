@@ -5,13 +5,28 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/user-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SendIcon, XIcon } from 'lucide-react';
+import { SendIcon, XIcon, ChevronDownIcon } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function WorkspacePage() {
   const router = useRouter();
   const { user } = useUser();
   const [message, setMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState('confirmation.tsx');
+
+  const exampleFiles = [
+    'confirmation.tsx',
+    'calendar.tsx',
+    'booking.tsx',
+    'settings.tsx',
+    'layout.tsx',
+  ];
 
   // Redirect to auth if no user
   useEffect(() => {
@@ -78,9 +93,28 @@ export default function WorkspacePage() {
               <Button variant="ghost" size="sm">
                 Preview
               </Button>
-              <Button variant="ghost" size="sm">
-                confirmation.tsx
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    {selectedFile}
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {exampleFiles.map((file) => (
+                    <DropdownMenuItem
+                      key={file}
+                      onClick={() => setSelectedFile(file)}
+                    >
+                      {file}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             {/* Add close button for mobile */}
             <Button

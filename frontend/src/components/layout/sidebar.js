@@ -3,19 +3,10 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/context/user-context';
-import { useRouter } from 'next/navigation';
 import { PlusIcon, MenuIcon, XIcon } from 'lucide-react';
 
 export const Sidebar = ({ username, projects }) => {
-  const { logout } = useUser();
-  const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
-
-  const handleLogout = () => {
-    logout();
-    router.push('/auth');
-  };
 
   // Add mobile toggle button that's only visible on small screens
   const toggleButton = (
@@ -79,9 +70,6 @@ export const Sidebar = ({ username, projects }) => {
                 </Avatar>
                 <span className="font-medium">{username}</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                Logout
-              </Button>
             </div>
           </div>
         </div>

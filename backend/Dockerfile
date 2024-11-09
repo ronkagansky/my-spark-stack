@@ -30,7 +30,7 @@ COPY backend/ .
 COPY --from=frontend-builder /app/frontend/.next /app/frontend/.next
 COPY --from=frontend-builder /app/frontend/public /app/frontend/public
 COPY --from=frontend-builder /app/frontend/package*.json /app/frontend/
-COPY --from=frontend-builder /app/frontend/next.config.js /app/frontend/
+COPY --from=frontend-builder /app/frontend/next.config.mjs /app/frontend/
 
 # Install frontend production dependencies
 WORKDIR /app/frontend
@@ -41,9 +41,9 @@ WORKDIR /app
 
 # Create start script
 RUN echo '#!/bin/bash\n\
-cd /app/frontend && npm start & \n\
-cd /app && uvicorn main:app --host 0.0.0.0 --port $PORT\n\
-' > /app/start.sh && chmod +x /app/start.sh
+    cd /app/frontend && npm start & \n\
+    cd /app && uvicorn main:app --host 0.0.0.0 --port $PORT\n\
+    ' > /app/start.sh && chmod +x /app/start.sh
 
 # Set environment variables
 ENV PORT=8000
