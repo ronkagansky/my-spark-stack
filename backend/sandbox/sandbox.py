@@ -151,7 +151,7 @@ for path, base64_content in files:
                 image=image,
                 encrypted_ports=[3000],
                 timeout=15 * 60,
-                cpu=1,
+                cpu=2,
                 memory=1024,
             )
             await sb.set_tags.aio({"project_id": str(project_id)})
