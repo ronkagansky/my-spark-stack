@@ -1,5 +1,7 @@
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  window.location.hostname == 'localhost'
+    ? 'http://localhost:8000'
+    : window.location.origin;
 
 class ApiClient {
   async _post(endpoint, data) {
