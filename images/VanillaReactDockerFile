@@ -1,4 +1,4 @@
-FROM debian:slim
+FROM python:3.11
 
 # Install dependencies
 RUN apt-get update && \
