@@ -7,6 +7,9 @@ COPY frontend/package*.json ./
 RUN npm install --force
 
 COPY frontend/ .
+
+ENV NEXT_PUBLIC_API_URL=https://prompt-stack-production.up.railway.app
+
 RUN npm run build
 
 # Stage 2: Build backend and serve frontend
