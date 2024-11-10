@@ -31,3 +31,21 @@ class Project(Base):
     )
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     owner = relationship("User", back_populates="projects")
+    chat_messages = relationship(
+        "ChatMessage", back_populates="project", cascade="all, delete-orphan"
+    )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    project = relationship("Project", back_populates="chat_messages")

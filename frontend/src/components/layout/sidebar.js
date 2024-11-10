@@ -19,11 +19,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { api } from '@/lib/api';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
-  const { user, projects } = useUser();
+  const { user, projects, refreshProjects } = useUser();
   const router = useRouter();
+  const [editingProjectId, setEditingProjectId] = React.useState(null);
+  const [editingName, setEditingName] = React.useState('');
 
   const handleProjectClick = (projectId) => {
     router.push(`/workspace/${projectId}`);
@@ -37,12 +40,43 @@ export const Sidebar = () => {
 
   const handleRename = (projectId, e) => {
     e.stopPropagation();
-    // TODO: Implement rename logic
+    const project = projects.find((p) => p.id === projectId);
+    setEditingProjectId(projectId);
+    setEditingName(project.name);
   };
 
-  const handleDelete = (projectId, e) => {
+  const handleRenameSubmit = async (projectId, e) => {
+    e.preventDefault();
     e.stopPropagation();
-    // TODO: Implement delete logic
+
+    if (!editingName.trim()) return;
+
+    try {
+      await api.updateProject(projectId, { name: editingName.trim() });
+      await refreshProjects();
+      setEditingProjectId(null);
+    } catch (error) {
+      console.error('Failed to rename project:', error);
+      // Add proper error handling here
+    }
+  };
+
+  const handleDelete = async (projectId, e) => {
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this project?')) {
+      try {
+        await api.deleteProject(projectId);
+        // Refresh the projects list by calling the context update
+        await refreshProjects();
+        // If we're currently on the deleted project's page, redirect to home
+        if (window.location.pathname.includes(`/workspace/${projectId}`)) {
+          router.push('/workspace');
+        }
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+        // You might want to add proper error handling/notification here
+      }
+    }
   };
 
   const toggleButton = (
@@ -92,9 +126,26 @@ export const Sidebar = () => {
                   onClick={() => handleProjectClick(project.id)}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="truncate pr-2 text-sm">
-                      {project.name}
-                    </span>
+                    {editingProjectId === project.id ? (
+                      <form
+                        onSubmit={(e) => handleRenameSubmit(project.id, e)}
+                        className="flex-1 mr-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="text"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          className="w-full px-1 py-0.5 text-sm bg-background border rounded"
+                          autoFocus
+                          onBlur={(e) => handleRenameSubmit(project.id, e)}
+                        />
+                      </form>
+                    ) : (
+                      <span className="truncate pr-2 text-sm">
+                        {project.name}
+                      </span>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button

@@ -32,6 +32,11 @@ export function UserProvider({ children }) {
     setProjects((prev) => [...prev, project]);
   };
 
+  const refreshProjects = async () => {
+    const projects = await api.getUserProjects();
+    setProjects(projects);
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -39,6 +44,7 @@ export function UserProvider({ children }) {
         projects,
         createAccount,
         addProject,
+        refreshProjects,
       }}
     >
       {children}

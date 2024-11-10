@@ -139,7 +139,7 @@ for path, base64_content in files:
             )
         ]
         vol = modal.Volume.from_name(
-            f"vol-project-{project_id}", create_if_missing=True
+            f"prompt-stack-vol-project-{project_id}", create_if_missing=True
         )
         if len(sandboxes) == 0:
             sb = await modal.Sandbox.create.aio(
@@ -151,7 +151,7 @@ for path, base64_content in files:
                 image=image,
                 encrypted_ports=[3000],
                 timeout=15 * 60,
-                cpu=2,
+                cpu=1,
                 memory=1024,
             )
             await sb.set_tags.aio({"project_id": str(project_id)})

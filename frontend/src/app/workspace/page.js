@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@/context/user-context';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ProjectWebSocketService } from '@/lib/project-websocket';
 import { api } from '@/lib/api';
@@ -10,6 +11,7 @@ import { Preview } from './components/Preview';
 
 export default function WorkspacePage() {
   const { addProject } = useUser();
+  const router = useRouter();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [respStreaming, setRespStreaming] = useState(false);
@@ -23,8 +25,19 @@ export default function WorkspacePage() {
     status: 'Disconnected',
     color: 'bg-gray-500',
   });
+  const [cleanup, setCleanup] = useState(null);
+
+  useEffect(() => {
+    if (!localStorage.getItem('token')) {
+      router.push('/');
+    }
+  }, []);
 
   const initializeWebSocket = async (wsProjectId) => {
+    if (cleanup) {
+      cleanup();
+    }
+
     const ws = new ProjectWebSocketService(wsProjectId);
     const RETRY_INTERVAL = 5000; // 5 seconds
     let retryCount = 0;
@@ -113,25 +126,34 @@ export default function WorkspacePage() {
     };
 
     await connectWithRetry();
-    return ws;
+
+    const cleanupFunction = () => {
+      ws.disconnect();
+      setWebSocketService(null);
+      setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
+      setProjectPreviewUrl(null);
+    };
+
+    setCleanup(() => cleanupFunction);
+    return { ws, cleanup: cleanupFunction };
   };
 
   useEffect(() => {
     if (projectId) {
-      let ws;
       initializeWebSocket(projectId)
-        .then((websocket) => {
-          ws = websocket;
+        .then(({ ws }) => {
+          setWebSocketService(ws);
         })
         .catch((error) => {
           console.error('Failed to initialize WebSocket:', error);
         });
-      return () => {
-        if (ws) {
-          ws.disconnect();
-        }
-      };
     }
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
   }, [projectId]);
 
   const handleSendMessage = async (message) => {
@@ -174,12 +196,21 @@ export default function WorkspacePage() {
       const pathParts = window.location.pathname.split('/');
       const urlProjectId = pathParts[pathParts.length - 1];
 
+      if (cleanup) {
+        cleanup();
+      }
+
       if (urlProjectId && urlProjectId !== 'workspace') {
         try {
           const project = await api.getProject(urlProjectId);
           setProjectId(urlProjectId);
           setProjectTitle(project.name);
-          setMessages([]);
+          const existingMessages =
+            project?.chat_messages.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })) || [];
+          setMessages(existingMessages);
         } catch (error) {
           console.error('Failed to load project details:', error);
         }
@@ -189,15 +220,11 @@ export default function WorkspacePage() {
         setMessages([]);
         setProjectPreviewUrl(null);
         setProjectFileTree([]);
-        if (webSocketService) {
-          webSocketService.disconnect();
-          setWebSocketService(null);
-        }
       }
     };
 
     loadProjectDetails();
-  }, [webSocketService]);
+  }, [cleanup]);
 
   return (
     <div className="flex h-screen bg-background">

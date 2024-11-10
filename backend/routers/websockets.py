@@ -8,7 +8,8 @@ import asyncio
 from sandbox.sandbox import DevSandbox
 from agents.agent import Agent, ChatMessage, parse_file_changes
 from db.database import get_db
-from db.models import Project
+from db.models import Project, ChatMessage as DbChatMessage
+from routers.auth import get_current_user_from_token
 
 
 class SandboxStatus(str, Enum):
@@ -46,7 +47,14 @@ project_connections: Dict[int, List[WebSocket]] = {}
 @router.websocket("/api/ws/project-chat/{project_id}")
 async def websocket_endpoint(websocket: WebSocket, project_id: int):
     db = next(get_db())
-    project = db.query(Project).filter(Project.id == project_id).first()
+
+    token = websocket.query_params.get("token")
+    current_user = await get_current_user_from_token(token, db)
+    project = (
+        db.query(Project)
+        .filter(Project.id == project_id, Project.owner_id == current_user.id)
+        .first()
+    )
     if project is None:
         raise WebSocketException(code=404, reason="Project not found")
 
@@ -81,6 +89,23 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
                         content=partial_message.delta_content, complete=False
                     )
                 )
+
+            db.query(DbChatMessage).filter(
+                DbChatMessage.project_id == project_id
+            ).delete()
+            for chat_message in data.chat:
+                db_message = DbChatMessage(
+                    role=chat_message.role,
+                    content=chat_message.content,
+                    project_id=project_id,
+                )
+                db.add(db_message)
+            if total_content:
+                db_message = DbChatMessage(
+                    role="assistant", content=total_content, project_id=project_id
+                )
+                db.add(db_message)
+            db.commit()
 
             if agent.sandbox:
                 changes = parse_file_changes(agent.sandbox, total_content)

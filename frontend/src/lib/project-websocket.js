@@ -20,7 +20,7 @@ export class ProjectWebSocketService {
     }
 
     this.ws = new WebSocket(
-      `${wsProtocol}${baseUrl}/api/ws/project-chat/${this.projectId}`
+      `${wsProtocol}${baseUrl}/api/ws/project-chat/${this.projectId}?token=${token}`
     );
 
     this.ws.onmessage = (event) => {

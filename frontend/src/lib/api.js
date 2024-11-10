@@ -33,6 +33,38 @@ class ApiClient {
     return res.json();
   }
 
+  async _delete(endpoint) {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`API error: ${res.statusText}`);
+    }
+
+    return res.json();
+  }
+
+  async _patch(endpoint, data) {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      throw new Error(`API error: ${res.statusText}`);
+    }
+
+    return res.json();
+  }
+
   async createAccount(username) {
     const data = await this._post('/api/auth/create', { username });
     localStorage.setItem('token', data.token);
@@ -57,6 +89,14 @@ class ApiClient {
 
   async getProjectFile(projectId, filePath) {
     return this._get(`/api/projects/${projectId}/file/${filePath}`);
+  }
+
+  async deleteProject(projectId) {
+    return this._delete(`/api/projects/${projectId}`);
+  }
+
+  async updateProject(projectId, updates) {
+    return this._patch(`/api/projects/${projectId}`, updates);
   }
 }
 
