@@ -43,7 +43,7 @@ COPY backend/nginx.conf /etc/nginx/nginx.conf
 # Modify start script to include nginx
 RUN echo '#!/bin/bash\n\
     service nginx start\n\
-    cd /app/frontend && npm start --port 3000 & \n\
+    cd /app/frontend && npm start & \n\
     cd /app && uvicorn main:app --host 0.0.0.0 --port 8000 --ws auto\n\
     wait' > /app/start.sh && chmod +x /app/start.sh
 
