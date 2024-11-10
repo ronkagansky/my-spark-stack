@@ -98,6 +98,10 @@ class ApiClient {
   async updateProject(projectId, updates) {
     return this._patch(`/api/projects/${projectId}`, updates);
   }
+
+  async getStackPacks() {
+    return this._get('/api/stacks');
+  }
 }
 
 // Export singleton instance

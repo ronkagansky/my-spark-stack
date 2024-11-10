@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import init_db
 
-from routers import auth, projects, websockets
+from routers import auth, projects, websockets, stacks
 
 app = FastAPI()
 
@@ -23,7 +23,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(websockets.router)
-
+app.include_router(stacks.router)
 if __name__ == "__main__":
     init_db()
     import uvicorn

@@ -14,33 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const STARTUP_ENVIRONMENTS = [
-  {
-    id: 'next-tailwind',
-    label: 'Next.js + Tailwind CSS',
-    description:
-      'Perfect for modern, responsive applications with utility-first CSS. Best for rapid development and custom designs.',
-  },
-  {
-    id: 'next-mui',
-    label: 'Next.js + Material UI',
-    description:
-      'Ideal for enterprise applications following Material Design. Rich component library with built-in accessibility.',
-  },
-  {
-    id: 'vite-chakra',
-    label: 'Vite + Chakra UI',
-    description:
-      'Great for fast development with instant server start. Chakra UI offers modular and accessible components.',
-  },
-  {
-    id: 'cra-styled',
-    label: 'Create React App + Styled Components',
-    description:
-      'Traditional React setup with powerful CSS-in-JS. Best for teams familiar with classic React development.',
-  },
-];
+import { api } from '@/lib/api';
 
 const SUGGESTED_PROMPTS = [
   'Add a new feature',
@@ -60,7 +34,11 @@ const components = {
   'file-update': FileUpdate,
 };
 
-const EmptyState = ({ selectedEnvironment, setSelectedEnvironment }) => (
+const EmptyState = ({
+  selectedEnvironment,
+  setSelectedEnvironment,
+  stackPacks,
+}) => (
   <div className="flex flex-col items-center justify-center h-full">
     <div className="max-w-md w-full">
       <h2 className="text-lg font-semibold mb-4 text-center">Stackpacks</h2>
@@ -68,26 +46,16 @@ const EmptyState = ({ selectedEnvironment, setSelectedEnvironment }) => (
         value={selectedEnvironment}
         onValueChange={setSelectedEnvironment}
       >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select a frontend stack">
-            {selectedEnvironment && (
-              <span>
-                {
-                  STARTUP_ENVIRONMENTS.find(
-                    (env) => env.id === selectedEnvironment
-                  )?.label
-                }
-              </span>
-            )}
-          </SelectValue>
+        <SelectTrigger className="w-full py-6">
+          <SelectValue placeholder="Select a Stack" />
         </SelectTrigger>
         <SelectContent className="max-h-[400px]">
-          {STARTUP_ENVIRONMENTS.map((env) => (
-            <SelectItem key={env.id} value={env.id} className="py-2">
+          {stackPacks?.map((pack) => (
+            <SelectItem key={pack.id} value={pack.id} className="py-2">
               <div className="flex flex-col gap-1">
-                <span className="font-medium">{env.label}</span>
+                <span className="font-medium">{pack.title}</span>
                 <p className="text-sm text-muted-foreground">
-                  {env.description}
+                  {pack.description}
                 </p>
               </div>
             </SelectItem>
@@ -176,6 +144,19 @@ export function Chat({
   const [autoScroll, setAutoScroll] = useState(true);
   const messagesEndRef = useRef(null);
   const [selectedEnvironment, setSelectedEnvironment] = useState('');
+  const [stackPacks, setStackPacks] = useState([]);
+
+  useEffect(() => {
+    const fetchStackPacks = async () => {
+      try {
+        const packs = await api.getStackPacks();
+        setStackPacks(packs);
+      } catch (error) {
+        console.error('Failed to fetch stack packs:', error);
+      }
+    };
+    fetchStackPacks();
+  }, []);
 
   const fixCodeBlocks = (content) => {
     content = content.replace(
@@ -252,6 +233,7 @@ export function Chat({
           <EmptyState
             selectedEnvironment={selectedEnvironment}
             setSelectedEnvironment={setSelectedEnvironment}
+            stackPacks={stackPacks}
           />
         ) : (
           <MessageList messages={messages} fixCodeBlocks={fixCodeBlocks} />
