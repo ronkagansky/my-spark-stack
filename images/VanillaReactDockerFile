@@ -1,6 +1,7 @@
 FROM python:3.11
 
-# Install dependencies
+WORKDIR /
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
@@ -8,29 +9,15 @@ RUN apt-get update && \
     zip \
     unzip \
     tree && \
-    # Install Node.js
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
-    # Clean up
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Verify Node.js and npm installation
 RUN node --version && npm --version
 
-WORKDIR /app
+RUN npx --yes create-react-app frontend && \
+    cd frontend && \
+    npm install react-router-dom
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application
-COPY . .
-
-# Build the application
-RUN npm run build
-
-# Expose port 3000
 EXPOSE 3000
