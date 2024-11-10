@@ -41,9 +41,11 @@ async def get_project_file(
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    project = get_project(project_id, current_user, db)
+    project = await get_project(project_id, current_user, db)
     sandbox = await DevSandbox.get_or_create(project.id)
-    return ProjectFileContentResponse(path=path, content="todo")
+    return ProjectFileContentResponse(
+        path=path, content=await sandbox.read_file_contents(path)
+    )
 
 
 @router.post("", response_model=ProjectResponse)

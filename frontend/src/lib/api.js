@@ -54,6 +54,10 @@ class ApiClient {
   async createProject(project) {
     return this._post('/api/projects', project);
   }
+
+  async getProjectFile(projectId, filePath) {
+    return this._get(`/api/projects/${projectId}/file/${filePath}`);
+  }
 }
 
 // Export singleton instance

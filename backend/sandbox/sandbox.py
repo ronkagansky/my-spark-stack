@@ -48,14 +48,16 @@ async def _vol_to_paths(vol: modal.Volume):
                 continue
             if entry.type == FileEntryType.DIRECTORY:
                 await _recurse(entry.path)
-            paths.append(entry.path)
+            else:
+                paths.append(entry.path)
 
     for entry in entries:
         if _ends_with_ignore_path(entry.path):
             continue
         if entry.type == FileEntryType.DIRECTORY:
             await _recurse(entry.path)
-        paths.append(entry.path)
+        else:
+            paths.append(entry.path)
 
     return paths
 
@@ -120,6 +122,13 @@ for path, base64_content in files:
         )
         await proc.wait.aio()
 
+    async def read_file_contents(self, path: str) -> str:
+        path = path.replace("/app/", "")
+        content = []
+        async for chunk in self.vol.read_file.aio(path):
+            content.append(chunk.decode("utf-8"))
+        return "".join(content)
+
     @classmethod
     async def get_or_create(cls, project_id: int) -> "DevSandbox":
         sandboxes = [
@@ -133,7 +142,6 @@ for path, base64_content in files:
             f"vol-project-{project_id}", create_if_missing=True
         )
         if len(sandboxes) == 0:
-
             sb = await modal.Sandbox.create.aio(
                 "sh",
                 "-c",
@@ -142,7 +150,7 @@ for path, base64_content in files:
                 volumes={"/app": vol},
                 image=image,
                 encrypted_ports=[3000],
-                timeout=3600,
+                timeout=15 * 60,
                 cpu=1,
                 memory=512,
             )

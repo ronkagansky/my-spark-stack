@@ -35,7 +35,7 @@ COPY --from=frontend-builder /app/frontend/next.config.mjs /app/frontend/
 
 # Install frontend production dependencies
 WORKDIR /app/frontend
-RUN npm install --production
+RUN npm install --production --force
 
 # Fix the nginx.conf copy path
 COPY backend/nginx.conf /etc/nginx/nginx.conf

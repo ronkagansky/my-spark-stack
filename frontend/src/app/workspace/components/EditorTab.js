@@ -2,8 +2,9 @@
 
 import Editor from '@monaco-editor/react';
 import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
-export function EditorTab({ projectFileTree }) {
+export function EditorTab({ projectFileTree, projectId }) {
   const defaultFile = '/app/my-app/src/App.js';
   const [selectedFile, setSelectedFile] = useState(() =>
     projectFileTree.includes(defaultFile) ? defaultFile : null
@@ -21,9 +22,11 @@ export function EditorTab({ projectFileTree }) {
     if (!filename) return;
     setSelectedFile(filename);
     try {
-      setFileContent('TODO');
+      const response = await api.getProjectFile(projectId, filename);
+      setFileContent(response.content);
     } catch (error) {
       console.error('Error loading file:', error);
+      setFileContent('Error loading file content');
     }
   };
 

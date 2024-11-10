@@ -17,6 +17,11 @@ export const Sidebar = () => {
     setIsMobileOpen(false); // Close mobile sidebar after navigation
   };
 
+  const handleNewChat = () => {
+    router.push('/workspace');
+    setIsMobileOpen(false);
+  };
+
   // Add mobile toggle button that's only visible on small screens
   const toggleButton = (
     <Button
@@ -48,6 +53,7 @@ export const Sidebar = () => {
               variant="outline"
               className="w-full justify-start"
               size="sm"
+              onClick={handleNewChat}
             >
               <PlusIcon className="mr-2 h-4 w-4" />
               New Chat

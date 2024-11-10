@@ -179,28 +179,40 @@ export default function WorkspacePage() {
           const project = await api.getProject(urlProjectId);
           setProjectId(urlProjectId);
           setProjectTitle(project.name);
+          setMessages([]);
         } catch (error) {
           console.error('Failed to load project details:', error);
+        }
+      } else {
+        setProjectId(null);
+        setProjectTitle('New Chat');
+        setMessages([]);
+        setProjectPreviewUrl(null);
+        setProjectFileTree([]);
+        if (webSocketService) {
+          webSocketService.disconnect();
+          setWebSocketService(null);
         }
       }
     };
 
     loadProjectDetails();
-  }, []);
+  }, [webSocketService]);
 
   return (
     <div className="flex h-screen bg-background">
       <div className="flex-1 flex flex-col md:flex-row">
-        <div className="md:hidden fixed top-4 right-4 z-40">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsPreviewOpen(!isPreviewOpen)}
-          >
-            {isPreviewOpen ? 'Hide Preview' : 'Show Preview'}
-          </Button>
-        </div>
-
+        {!isPreviewOpen && (
+          <div className="md:hidden fixed top-4 right-4 z-40">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+            >
+              View
+            </Button>
+          </div>
+        )}
         <Chat
           respStreaming={respStreaming}
           connected={!!webSocketService}
@@ -218,6 +230,7 @@ export default function WorkspacePage() {
               : null
           }
           projectFileTree={projectFileTree}
+          projectId={projectId}
         />
       </div>
     </div>

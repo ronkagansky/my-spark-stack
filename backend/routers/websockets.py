@@ -84,10 +84,11 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
 
             if agent.sandbox:
                 changes = parse_file_changes(agent.sandbox, total_content)
-                print("Applying Changes", [f.path for f in changes])
-                await agent.sandbox.write_file_contents(
-                    [(change.path, change.content) for change in changes]
-                )
+                if len(changes) > 0:
+                    print("Applying Changes", [f.path for f in changes])
+                    await agent.sandbox.write_file_contents(
+                        [(change.path, change.content) for change in changes]
+                    )
 
             await send_json(
                 SandboxFileTreeResponse(paths=await agent.sandbox.get_file_paths())
@@ -96,7 +97,7 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
             await send_json(ChatChunkResponse(content="", complete=True))
 
     except Exception as e:
-        # TODO: Handle error
+        print(e)
         pass
     finally:
         sandbox_task.cancel()
