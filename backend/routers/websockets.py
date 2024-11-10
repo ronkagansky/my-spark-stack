@@ -1,8 +1,9 @@
 from fastapi import APIRouter, WebSocket, WebSocketException
-from typing import Dict, List
+from typing import Dict, List, Callable
 from enum import Enum
 from asyncio import create_task
 from pydantic import BaseModel
+import asyncio
 
 from sandbox.sandbox import DevSandbox
 from agents.agent import Agent, ChatMessage, parse_file_changes
@@ -29,6 +30,7 @@ class SandboxFileTreeResponse(BaseModel):
 class ChatChunkResponse(BaseModel):
     for_type: str = "chat_chunk"
     content: str
+    complete: bool
 
 
 class ChatRequest(BaseModel):
@@ -55,36 +57,43 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
         project_connections[project_id] = []
     project_connections[project_id].append(websocket)
 
+    async def send_json(data: BaseModel):
+        for connection in project_connections[project_id]:
+            await connection.send_json(data.model_dump())
+
     agent = Agent(project)
-    sandbox_task = create_task(create_sandbox(websocket, agent, project_id))
+
+    sandbox_task = create_task(create_sandbox(send_json, agent, project_id))
 
     try:
         while True:
             raw_data = await websocket.receive_text()
             data = ChatRequest.model_validate_json(raw_data)
 
+            while not agent.sandbox or not agent.sandbox.ready:
+                await asyncio.sleep(1)
+
             total_content = ""
             async for partial_message in agent.step(data.chat):
                 total_content += partial_message.delta_content
-                response = ChatChunkResponse(content=partial_message.delta_content)
-                for connection in project_connections[project_id]:
-                    await connection.send_json(response.model_dump())
+                await send_json(
+                    ChatChunkResponse(
+                        content=partial_message.delta_content, complete=False
+                    )
+                )
 
             if agent.sandbox:
                 changes = parse_file_changes(agent.sandbox, total_content)
-                print("applying changes", changes)
-                try:
-                    await agent.sandbox.write_file_contents(
-                        [(change.path, change.content) for change in changes]
-                    )
-                except Exception as e:
-                    print("error applying changes", e)
+                print("Applying Changes", [f.path for f in changes])
+                await agent.sandbox.write_file_contents(
+                    [(change.path, change.content) for change in changes]
+                )
 
-            await websocket.send_json(
-                SandboxFileTreeResponse(
-                    paths=await agent.sandbox.get_file_paths()
-                ).model_dump()
+            await send_json(
+                SandboxFileTreeResponse(paths=await agent.sandbox.get_file_paths())
             )
+
+            await send_json(ChatChunkResponse(content="", complete=True))
 
     except Exception as e:
         # TODO: Handle error
@@ -97,22 +106,22 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
         await websocket.close()
 
 
-async def create_sandbox(websocket: WebSocket, agent: Agent, project_id: int):
-    await websocket.send_json(
-        SandboxStatusResponse(status=SandboxStatus.BUILDING, tunnels={}).model_dump()
-    )
+async def create_sandbox(
+    send_json: Callable[[BaseModel], None], agent: Agent, project_id: int
+):
+    await send_json(SandboxStatusResponse(status=SandboxStatus.BUILDING, tunnels={}))
 
     sandbox = await DevSandbox.get_or_create(project_id)
     agent.set_sandbox(sandbox)
     await sandbox.wait_for_up()
 
     paths = await sandbox.get_file_paths()
-    await websocket.send_json(SandboxFileTreeResponse(paths=paths).model_dump())
+    await send_json(SandboxFileTreeResponse(paths=paths))
 
     tunnels = await sandbox.sb.tunnels.aio()
-    await websocket.send_json(
+    await send_json(
         SandboxStatusResponse(
             status=SandboxStatus.READY,
             tunnels={port: tunnel.url for port, tunnel in tunnels.items()},
-        ).model_dump()
+        )
     )

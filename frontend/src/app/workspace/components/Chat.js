@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import rehypeRaw from 'rehype-raw';
 const FileUpdate = (props) => {
   return (
     <div className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md">
-      Updated {props.children}
+      {props.children}
     </div>
   );
 };
@@ -20,6 +20,7 @@ const components = {
 };
 
 export function Chat({
+  respStreaming,
   connected,
   messages,
   onSendMessage,
@@ -27,6 +28,8 @@ export function Chat({
   status,
 }) {
   const [message, setMessage] = useState('');
+  const [autoScroll, setAutoScroll] = useState(true);
+  const messagesEndRef = useRef(null);
 
   const fixCodeBlocks = (content) => {
     content = content.replace(
@@ -37,6 +40,7 @@ export function Chat({
       /```[\w.]+\n[/*]+ (\S+) \*\/\n[\s\S]+?```/g,
       '<file-update>$1</file-update>'
     );
+    content = content.replace(/```[^`]+$/, '...');
     return content;
   };
 
@@ -57,8 +61,26 @@ export function Chat({
 
   console.log(messages);
 
+  const scrollToBottom = () => {
+    if (autoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]); // Scroll when messages update
+
+  const handleScroll = (e) => {
+    const element = e.target;
+    const isScrolledNearBottom =
+      element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+
+    setAutoScroll(isScrolledNearBottom);
+  };
+
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col md:max-w-[80%] md:mx-auto w-full">
       <div className="fixed top-0 left-0 right-0 md:relative bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 border-b">
         <div className="px-4 py-2.5 flex items-center justify-between gap-4">
           <h1 className="text-base font-semibold truncate">{projectTitle}</h1>
@@ -70,7 +92,10 @@ export function Chat({
           </div>
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-4 pt-16 md:pt-4">
+      <div
+        className="flex-1 overflow-auto p-4 pt-16 md:pt-4"
+        onScroll={handleScroll}
+      >
         <div className="space-y-4">
           {messages.map((msg, index) => (
             <div key={index} className="flex items-start gap-4">
@@ -93,6 +118,7 @@ export function Chat({
             </div>
           ))}
         </div>
+        <div ref={messagesEndRef} /> {/* Scroll anchor */}
       </div>
       <div className="border-t p-4">
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -103,14 +129,13 @@ export function Chat({
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               className="flex-1"
-              disabled={!connected}
             />
           </div>
           <div className="flex justify-end gap-2">
             {/* <Button type="button" size="icon" variant="ghost">
               <PaperclipIcon className="h-4 w-4" />
             </Button> */}
-            <Button type="submit" size="icon">
+            <Button type="submit" size="icon" disabled={respStreaming}>
               <SendIcon className="h-4 w-4" />
             </Button>
           </div>

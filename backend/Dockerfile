@@ -4,7 +4,7 @@ WORKDIR /app/frontend
 
 # Copy frontend files
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm install --force
 
 COPY frontend/ .
 RUN npm run build

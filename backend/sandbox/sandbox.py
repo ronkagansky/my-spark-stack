@@ -1,7 +1,7 @@
 import modal
 import aiohttp
 import asyncio
-import io
+import base64
 from typing import List, Optional, Tuple
 from modal.volume import FileEntryType
 
@@ -65,6 +65,7 @@ class DevSandbox:
         self.project_id = project_id
         self.sb = sb
         self.vol = vol
+        self.ready = False
 
     async def wait_for_up(self):
         while True:
@@ -74,6 +75,7 @@ class DevSandbox:
                 break
 
             await asyncio.sleep(3)
+        self.ready = True
 
     async def get_file_paths(self) -> List[str]:
         paths = await _vol_to_paths(self.vol)
@@ -90,10 +92,33 @@ class DevSandbox:
             return f"Error: {e}"
 
     async def write_file_contents(self, files: List[Tuple[str, str]]):
-        async with await self.vol.batch_upload.aio(force=True) as batch:
-            for path, content in files:
-                batch.put_file(io.BytesIO(content.encode()), path)
-        await self.vol.commit.aio()
+        # Create a single Python command that writes all files at once
+        files_data = []
+        for path, content in files:
+            encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+            files_data.append((path, encoded_content))
+
+        python_cmd = """
+import os
+import base64
+
+files = %s
+
+for path, base64_content in files:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as f:
+        f.write(base64.b64decode(base64_content).decode('utf-8'))
+""" % str(
+            files_data
+        )
+
+        proc = await self.sb.exec.aio(
+            "python3",
+            "-c",
+            python_cmd,
+            workdir="/app",
+        )
+        await proc.wait.aio()
 
     @classmethod
     async def get_or_create(cls, project_id: int) -> "DevSandbox":

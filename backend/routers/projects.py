@@ -4,7 +4,8 @@ from typing import List
 
 from db.database import get_db
 from db.models import User, Project
-from schemas.models import ProjectCreate, ProjectResponse
+from schemas.models import ProjectCreate, ProjectResponse, ProjectFileContentResponse
+from sandbox.sandbox import DevSandbox
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -31,6 +32,18 @@ async def get_project(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+@router.get("/{project_id}/file/{path:path}", response_model=ProjectFileContentResponse)
+async def get_project_file(
+    project_id: int,
+    path: str,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = get_project(project_id, current_user, db)
+    sandbox = await DevSandbox.get_or_create(project.id)
+    return ProjectFileContentResponse(path=path, content="todo")
 
 
 @router.post("", response_model=ProjectResponse)

@@ -12,11 +12,13 @@ export default function WorkspacePage() {
   const { addProject } = useUser();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [respStreaming, setRespStreaming] = useState(false);
   const [projectId, setProjectId] = useState(null);
   const [webSocketService, setWebSocketService] = useState(null);
   const [projectTitle, setProjectTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
   const [projectFileTree, setProjectFileTree] = useState([]);
+  const [previewHash, setPreviewHash] = useState(1);
   const [status, setStatus] = useState({
     status: 'Disconnected',
     color: 'bg-gray-500',
@@ -24,69 +26,94 @@ export default function WorkspacePage() {
 
   const initializeWebSocket = async (wsProjectId) => {
     const ws = new ProjectWebSocketService(wsProjectId);
+    const RETRY_INTERVAL = 5000; // 5 seconds
+    let retryCount = 0;
 
-    try {
-      await new Promise((resolve, reject) => {
-        ws.connect();
-        ws.ws.onopen = () => resolve();
-        ws.ws.onerror = (error) => reject(error);
-        ws.ws.onclose = () => {
-          setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
-          setProjectPreviewUrl(null);
-        };
-        setTimeout(
-          () => reject(new Error('WebSocket connection timeout')),
-          5000
-        );
-      });
+    const connectWithRetry = async () => {
+      try {
+        await new Promise((resolve, reject) => {
+          ws.connect();
+          ws.ws.onopen = () => resolve();
+          ws.ws.onerror = (error) => reject(error);
+          ws.ws.onclose = () => {
+            setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
+            setProjectPreviewUrl(null);
 
-      setStatus({ status: 'Setting up', color: 'bg-yellow-500' });
-
-      const handleSocketMessage = (data) => {
-        console.log('handleMessage', data);
-        if (data.for_type === 'sandbox_status') {
-          handleSandboxStatus(data);
-        } else if (data.for_type === 'chat_chunk') {
-          handleChatChunk(data);
-        } else if (data.for_type === 'sandbox_file_tree') {
-          handleSandboxFileTree(data);
-        }
-      };
-
-      const handleSandboxStatus = (data) => {
-        if (data.status === 'READY') {
-          setStatus({ status: 'Ready', color: 'bg-green-500' });
-          setProjectPreviewUrl(data.tunnels[3000]);
-        } else if (data.status === 'BUILDING') {
-          setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
-        }
-      };
-
-      const handleSandboxFileTree = (data) => {
-        setProjectFileTree(data.paths);
-      };
-
-      const handleChatChunk = (data) => {
-        setMessages((prev) => {
-          const lastMessage = prev[prev.length - 1];
-          if (lastMessage?.role === 'assistant') {
-            return [
-              ...prev.slice(0, -1),
-              { ...lastMessage, content: lastMessage.content + data.content },
-            ];
-          }
-          return [...prev, { role: 'assistant', content: data.content }];
+            retryCount++;
+            setStatus({
+              status: `Reconnecting...`,
+              color: 'bg-gray-500',
+            });
+            setTimeout(connectWithRetry, RETRY_INTERVAL);
+          };
+          setTimeout(
+            () => reject(new Error('WebSocket connection timeout')),
+            5000
+          );
         });
-      };
 
-      ws.addListener(handleSocketMessage);
-      setWebSocketService(ws);
+        // Reset retry count on successful connection
+        retryCount = 0;
+        setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
 
-      return ws;
-    } catch (error) {
-      console.error('WebSocket connection failed:', error);
-      throw error;
-    }
+        const handleSocketMessage = (data) => {
+          console.log('handleMessage', data);
+          if (data.for_type === 'sandbox_status') {
+            handleSandboxStatus(data);
+          } else if (data.for_type === 'chat_chunk') {
+            handleChatChunk(data);
+          } else if (data.for_type === 'sandbox_file_tree') {
+            handleSandboxFileTree(data);
+          }
+        };
+
+        const handleSandboxStatus = (data) => {
+          if (data.status === 'READY') {
+            setStatus({ status: 'Ready', color: 'bg-green-500' });
+            setProjectPreviewUrl(data.tunnels[3000]);
+          } else if (data.status === 'BUILDING') {
+            setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
+          }
+        };
+
+        const handleSandboxFileTree = (data) => {
+          setProjectFileTree(data.paths);
+        };
+
+        const handleChatChunk = (data) => {
+          setMessages((prev) => {
+            const lastMessage = prev[prev.length - 1];
+            if (lastMessage?.role === 'assistant') {
+              return [
+                ...prev.slice(0, -1),
+                { ...lastMessage, content: lastMessage.content + data.content },
+              ];
+            }
+            return [...prev, { role: 'assistant', content: data.content }];
+          });
+          if (data.complete) {
+            setRespStreaming(false);
+            setPreviewHash((prev) => prev + 1);
+          }
+        };
+
+        ws.addListener(handleSocketMessage);
+        setWebSocketService(ws);
+
+        return ws;
+      } catch (error) {
+        console.error('WebSocket connection failed:', error);
+        retryCount++;
+        setStatus({
+          status: `Reconnecting...`,
+          color: 'bg-yellow-500',
+        });
+        setTimeout(connectWithRetry, RETRY_INTERVAL);
+      }
+    };
+
+    await connectWithRetry();
+    return ws;
   };
 
   useEffect(() => {
@@ -130,8 +157,10 @@ export default function WorkspacePage() {
 
         const ws = await initializeWebSocket(project.id);
         setMessages((prev) => [...prev, userMessage]);
+        setRespStreaming(true);
         ws.sendMessage({ chat: [...messages, userMessage] });
       } else {
+        setRespStreaming(true);
         setMessages((prev) => [...prev, userMessage]);
         webSocketService.sendMessage({ chat: [...messages, userMessage] });
       }
@@ -173,6 +202,7 @@ export default function WorkspacePage() {
         </div>
 
         <Chat
+          respStreaming={respStreaming}
           connected={!!webSocketService}
           messages={messages}
           onSendMessage={handleSendMessage}
@@ -182,7 +212,11 @@ export default function WorkspacePage() {
         <Preview
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
-          projectPreviewUrl={projectPreviewUrl}
+          projectPreviewUrl={
+            projectPreviewUrl
+              ? `${projectPreviewUrl}?hash=${previewHash}`
+              : null
+          }
           projectFileTree={projectFileTree}
         />
       </div>

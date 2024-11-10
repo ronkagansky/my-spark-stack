@@ -29,6 +29,11 @@ class ProjectResponse(BaseModel):
         from_attributes = True
 
 
+class ProjectFileContentResponse(BaseModel):
+    path: str
+    content: str
+
+
 class AuthResponse(BaseModel):
     user: UserResponse
     token: str

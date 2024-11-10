@@ -44,6 +44,9 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
         if sandbox is None:
             return "This environment is still booting up! Try again in a minute."
         result = await sandbox.run_command(command, workdir=workdir)
+        print(f"$ {command} -> {result}")
+        if result == "":
+            result = "<empty response>"
         return result
 
     return AgentTool(
@@ -219,6 +222,7 @@ class Agent:
                                 "tool_call_id": tool_call.id,
                             }
                         )
+                    yield PartialChatMessage(role="assistant", delta_content="\n")
                 elif chunk.choices[0].finish_reason == "stop":
                     running = False
                     break
