@@ -7,6 +7,47 @@ import { Button } from '@/components/ui/button';
 import { SendIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import rehypeRaw from 'rehype-raw';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const STARTUP_ENVIRONMENTS = [
+  {
+    id: 'next-tailwind',
+    label: 'Next.js + Tailwind CSS',
+    description:
+      'Perfect for modern, responsive applications with utility-first CSS. Best for rapid development and custom designs.',
+  },
+  {
+    id: 'next-mui',
+    label: 'Next.js + Material UI',
+    description:
+      'Ideal for enterprise applications following Material Design. Rich component library with built-in accessibility.',
+  },
+  {
+    id: 'vite-chakra',
+    label: 'Vite + Chakra UI',
+    description:
+      'Great for fast development with instant server start. Chakra UI offers modular and accessible components.',
+  },
+  {
+    id: 'cra-styled',
+    label: 'Create React App + Styled Components',
+    description:
+      'Traditional React setup with powerful CSS-in-JS. Best for teams familiar with classic React development.',
+  },
+];
+
+const SUGGESTED_PROMPTS = [
+  'Add a new feature',
+  'Fix a bug',
+  'Improve performance',
+  'Add tests',
+];
 
 const FileUpdate = (props) => {
   return (
@@ -19,9 +60,113 @@ const components = {
   'file-update': FileUpdate,
 };
 
+const EmptyState = ({ selectedEnvironment, setSelectedEnvironment }) => (
+  <div className="flex flex-col items-center justify-center h-full">
+    <div className="max-w-md w-full">
+      <h2 className="text-lg font-semibold mb-4 text-center">Buildpacks</h2>
+      <Select
+        value={selectedEnvironment}
+        onValueChange={setSelectedEnvironment}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select a frontend stack">
+            {selectedEnvironment && (
+              <span>
+                {
+                  STARTUP_ENVIRONMENTS.find(
+                    (env) => env.id === selectedEnvironment
+                  )?.label
+                }
+              </span>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="max-h-[400px]">
+          {STARTUP_ENVIRONMENTS.map((env) => (
+            <SelectItem key={env.id} value={env.id} className="py-2">
+              <div className="flex flex-col gap-1">
+                <span className="font-medium">{env.label}</span>
+                <p className="text-sm text-muted-foreground">
+                  {env.description}
+                </p>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  </div>
+);
+
+const MessageList = ({ messages, fixCodeBlocks }) => (
+  <div className="space-y-4">
+    {messages.map((msg, index) => (
+      <div key={index} className="flex items-start gap-4">
+        <div
+          className={`w-8 h-8 rounded ${
+            msg.role === 'user' ? 'bg-blue-500/10' : 'bg-primary/10'
+          } flex-shrink-0 flex items-center justify-center text-sm font-medium ${
+            msg.role === 'user' ? 'text-blue-500' : 'text-primary'
+          }`}
+        >
+          {msg.role === 'user' ? 'H' : 'AI'}
+        </div>
+        <div className="flex-1">
+          <div className="mt-1 prose prose-sm max-w-none">
+            <ReactMarkdown
+              components={components}
+              rehypePlugins={[rehypeRaw]}
+              remarkPlugins={[remarkGfm]}
+            >
+              {fixCodeBlocks(msg.content)}
+            </ReactMarkdown>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const ChatInput = ({
+  message,
+  setMessage,
+  handleSubmit,
+  handleKeyDown,
+  handleChipClick,
+  respStreaming,
+}) => (
+  <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <div className="flex flex-wrap gap-2">
+      {SUGGESTED_PROMPTS.map((prompt) => (
+        <button
+          key={prompt}
+          type="button"
+          onClick={() => handleChipClick(prompt)}
+          className="px-3 py-1 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+        >
+          {prompt}
+        </button>
+      ))}
+    </div>
+    <div className="flex gap-4">
+      <Input
+        placeholder="Ask a follow up..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className="flex-1"
+      />
+    </div>
+    <div className="flex justify-end gap-2">
+      <Button type="submit" size="icon" disabled={respStreaming}>
+        <SendIcon className="h-4 w-4" />
+      </Button>
+    </div>
+  </form>
+);
+
 export function Chat({
   respStreaming,
-  connected,
   messages,
   onSendMessage,
   projectTitle,
@@ -30,6 +175,7 @@ export function Chat({
   const [message, setMessage] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const messagesEndRef = useRef(null);
+  const [selectedEnvironment, setSelectedEnvironment] = useState('');
 
   const fixCodeBlocks = (content) => {
     content = content.replace(
@@ -59,8 +205,6 @@ export function Chat({
     }
   };
 
-  console.log(messages);
-
   const scrollToBottom = () => {
     if (autoScroll) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,6 +221,10 @@ export function Chat({
       element.scrollHeight - element.scrollTop - element.clientHeight < 100;
 
     setAutoScroll(isScrolledNearBottom);
+  };
+
+  const handleChipClick = (prompt) => {
+    onSendMessage({ content: prompt });
   };
 
   return (
@@ -96,54 +244,25 @@ export function Chat({
         className="flex-1 overflow-auto p-4 pt-28 md:pt-4"
         onScroll={handleScroll}
       >
-        <div className="space-y-4">
-          {messages.map((msg, index) => (
-            <div key={index} className="flex items-start gap-4">
-              <div
-                className={`w-8 h-8 rounded ${
-                  msg.role === 'user' ? 'bg-blue-500/10' : 'bg-primary/10'
-                } flex-shrink-0 flex items-center justify-center text-sm font-medium ${
-                  msg.role === 'user' ? 'text-blue-500' : 'text-primary'
-                }`}
-              >
-                {msg.role === 'user' ? 'H' : 'AI'}
-              </div>
-              <div className="flex-1">
-                <div className="mt-1 prose prose-sm max-w-none">
-                  <ReactMarkdown
-                    components={components}
-                    rehypePlugins={[rehypeRaw]}
-                    remarkPlugins={[remarkGfm]}
-                  >
-                    {fixCodeBlocks(msg.content)}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div ref={messagesEndRef} /> {/* Scroll anchor */}
+        {messages.length === 0 ? (
+          <EmptyState
+            selectedEnvironment={selectedEnvironment}
+            setSelectedEnvironment={setSelectedEnvironment}
+          />
+        ) : (
+          <MessageList messages={messages} fixCodeBlocks={fixCodeBlocks} />
+        )}
+        <div ref={messagesEndRef} />
       </div>
       <div className="border-t p-4">
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <div className="flex gap-4">
-            <Input
-              placeholder="Ask a follow up..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1"
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            {/* <Button type="button" size="icon" variant="ghost">
-              <PaperclipIcon className="h-4 w-4" />
-            </Button> */}
-            <Button type="submit" size="icon" disabled={respStreaming}>
-              <SendIcon className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
+        <ChatInput
+          message={message}
+          setMessage={setMessage}
+          handleSubmit={handleSubmit}
+          handleKeyDown={handleKeyDown}
+          handleChipClick={handleChipClick}
+          respStreaming={respStreaming}
+        />
       </div>
     </div>
   );
