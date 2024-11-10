@@ -3,6 +3,13 @@
 import Editor from '@monaco-editor/react';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function EditorTab({ projectFileTree, projectId }) {
   const defaultFile = '/app/my-app/src/App.js';
@@ -10,6 +17,7 @@ export function EditorTab({ projectFileTree, projectId }) {
     projectFileTree.includes(defaultFile) ? defaultFile : null
   );
   const [fileContent, setFileContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load default file content on mount if it exists
   useEffect(() => {
@@ -21,41 +29,40 @@ export function EditorTab({ projectFileTree, projectId }) {
   const handleFileSelect = async (filename) => {
     if (!filename) return;
     setSelectedFile(filename);
+    setIsLoading(true);
     try {
       const response = await api.getProjectFile(projectId, filename);
       setFileContent(response.content);
     } catch (error) {
       console.error('Error loading file:', error);
       setFileContent('Error loading file content');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="flex flex-col h-full">
       <div className="p-2">
-        <select
-          className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background 
-            focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
-            disabled:cursor-not-allowed disabled:opacity-50"
-          value={selectedFile || ''}
-          onChange={(e) => handleFileSelect(e.target.value)}
-        >
-          <option value="" className="text-muted-foreground">
-            Select a file...
-          </option>
-          {projectFileTree.map((path) => (
-            <option key={path} value={path} className="text-foreground">
-              {path}
-            </option>
-          ))}
-        </select>
+        <Select value={selectedFile || ''} onValueChange={handleFileSelect}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a file..." />
+          </SelectTrigger>
+          <SelectContent>
+            {projectFileTree.map((path) => (
+              <SelectItem key={path} value={path}>
+                {path}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex-1">
         {selectedFile ? (
           <Editor
             height="100%"
             defaultLanguage="typescript"
-            value={fileContent}
+            value={isLoading ? 'Loading...' : fileContent}
             theme="vs-dark"
             options={{
               readOnly: true,

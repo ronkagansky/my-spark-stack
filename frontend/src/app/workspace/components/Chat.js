@@ -63,7 +63,7 @@ const components = {
 const EmptyState = ({ selectedEnvironment, setSelectedEnvironment }) => (
   <div className="flex flex-col items-center justify-center h-full">
     <div className="max-w-md w-full">
-      <h2 className="text-lg font-semibold mb-4 text-center">Buildpacks</h2>
+      <h2 className="text-lg font-semibold mb-4 text-center">Stackpacks</h2>
       <Select
         value={selectedEnvironment}
         onValueChange={setSelectedEnvironment}
@@ -184,6 +184,10 @@ export function Chat({
     );
     content = content.replace(
       /```[\w.]+\n[/*]+ (\S+) \*\/\n[\s\S]+?```/g,
+      '<file-update>$1</file-update>'
+    );
+    content = content.replace(
+      /```[\w.]+\n<!-- (\S+) -->\n[\s\S]+?```/g,
       '<file-update>$1</file-update>'
     );
     content = content.replace(/```[^`]+$/, '...');

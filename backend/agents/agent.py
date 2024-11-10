@@ -244,6 +244,7 @@ def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChange]:
     patterns = [
         r"```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```",  # Python-style comments (#)
         r"```[\w.]+\n[/*]+ (\S+) \*/\n([\s\S]+?)```",  # C-style comments (/* */)
+        r"```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```",  # HTML-style comments <!-- -->
     ]
 
     for pattern in patterns:

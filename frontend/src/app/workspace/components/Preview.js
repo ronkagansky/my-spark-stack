@@ -57,37 +57,6 @@ export function Preview({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setRefreshCount((prev) => prev + 1);
-              }}
-              disabled={!projectPreviewUrl}
-              className={
-                !projectPreviewUrl ? 'cursor-not-allowed opacity-50' : ''
-              }
-            >
-              <RefreshIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              disabled={!projectPreviewUrl}
-              className={
-                !projectPreviewUrl ? 'cursor-not-allowed opacity-50' : ''
-              }
-            >
-              <a
-                href={projectPreviewUrl || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => !projectPreviewUrl && e.preventDefault()}
-              >
-                <ExternalLinkIcon className="h-4 w-4" />
-              </a>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               className="md:hidden"
               onClick={onClose}
             >
