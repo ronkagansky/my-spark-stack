@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: promptstack-vanilla-react
+  IMAGE_NAME: ${{ github.repository }}-pack-vanilla-react
   DOCKERFILE_PATH: images/VanillaReactDockerFile
 
 jobs:
