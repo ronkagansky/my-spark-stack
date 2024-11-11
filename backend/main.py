@@ -1,10 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import init_db
+import asyncio
+from contextlib import asynccontextmanager
 
 from routers import auth, projects, websockets, stacks
 
-app = FastAPI()
+
+async def periodic_task():
+    while True:
+        print("Running periodic task...")
+        await asyncio.sleep(60)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(periodic_task())
+    yield
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Configure CORS
 app.add_middleware(
@@ -24,6 +40,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(websockets.router)
 app.include_router(stacks.router)
+
 if __name__ == "__main__":
     init_db()
     import uvicorn

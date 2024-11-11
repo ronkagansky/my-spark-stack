@@ -43,7 +43,7 @@ You are building a Nextjs app with Shadcn UI.
 The user choose to use a Nextjs app with Shadcn UI so avoid adding any additional dependencies unless they are explicitly asked for.
 
 Included:
-- Nextjs (use for routing)
+- Nextjs App Router (use for routing)
 - `lucide-react` for icons
 - The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
 
