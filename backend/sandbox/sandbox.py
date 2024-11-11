@@ -121,7 +121,8 @@ for path, base64_content in files:
         await proc.wait.aio()
 
     async def read_file_contents(self, path: str) -> str:
-        path = path.replace("/app/", "")
+        if path.startswith("/app/"):
+            path = path[len("/app/") :]
         content = []
         async for chunk in self.vol.read_file.aio(path):
             content.append(chunk.decode("utf-8"))
