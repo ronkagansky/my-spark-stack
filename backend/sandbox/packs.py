@@ -16,7 +16,7 @@ PACKS = [
         title="Vanilla React",
         description="A simple JS React App. Best for starting from scratch with minimal dependencies.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-vanilla-react:latest",
-        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm run dev",
+        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm run start",
         stack_description="""
 You are building a vanilla React app.
 
@@ -29,6 +29,7 @@ Already included:
 Tips:
 - Use react-leaflet for maps
 - Use https://random.imagecdn.app/<width>/<height> for random images
+- Ensure any new pages are directly accessible from App.js (or else the user will not see them)
 """.strip(),
     ),
     StackPack(
@@ -36,7 +37,7 @@ Tips:
         title="Nextjs Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a nice UI.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn:latest",
-        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm start",
+        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm run dev",
         stack_description="""
 You are building a Nextjs app with Shadcn UI.
 
@@ -45,11 +46,14 @@ The user choose to use a Nextjs app with Shadcn UI so avoid adding any additiona
 Already included:
 - Nextjs App Router (use for routing)
 - `lucide-react` for icons
+- Most shadcn components are already installed with `npx shadcn@latest add`
 - The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
 
 Tips:
 - Use react-leaflet for maps
 - Use https://random.imagecdn.app/<width>/<height> for random images
+- Use "use client" for all components
+- Ensure any new pages are directly accessible from App.js (or else the user will not see them)
 """.strip(),
     ),
 ]

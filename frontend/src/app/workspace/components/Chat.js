@@ -95,6 +95,7 @@ const MessageList = ({ messages, fixCodeBlocks }) => (
               components={components}
               rehypePlugins={[rehypeRaw]}
               remarkPlugins={[remarkGfm]}
+              className="w-full"
             >
               {fixCodeBlocks(msg.content)}
             </ReactMarkdown>
@@ -258,7 +259,7 @@ export function Chat({
         className="flex-1 overflow-auto p-4 pt-28 md:pt-4 relative"
         onScroll={handleScroll}
       >
-        {messages.length > 0 && isSettingUp && (
+        {!showStackPacks && messages.length <= 1 && isSettingUp && (
           <>
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

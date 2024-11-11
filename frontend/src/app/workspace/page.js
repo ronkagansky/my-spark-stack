@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@/context/user-context';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ export default function WorkspacePage({ projectId }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [respStreaming, setRespStreaming] = useState(false);
-  const [webSocketService, setWebSocketService] = useState(null);
   const [projectTitle, setProjectTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
   const [projectFileTree, setProjectFileTree] = useState([]);
@@ -27,6 +26,7 @@ export default function WorkspacePage({ projectId }) {
     status: 'Disconnected',
     color: 'bg-gray-500',
   });
+  const webSocketRef = useRef(null);
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
@@ -39,6 +39,10 @@ export default function WorkspacePage({ projectId }) {
   }, [projectId]);
 
   const initializeWebSocket = async (wsProjectId) => {
+    if (webSocketRef.current) {
+      webSocketRef.current.disconnect();
+    }
+
     const ws = new ProjectWebSocketService(wsProjectId);
 
     const connectWS = async () => {
@@ -104,7 +108,7 @@ export default function WorkspacePage({ projectId }) {
         };
 
         ws.addListener(handleSocketMessage);
-        setWebSocketService(ws);
+        webSocketRef.current = ws;
 
         return ws;
       } catch (error) {
@@ -119,14 +123,16 @@ export default function WorkspacePage({ projectId }) {
 
   useEffect(() => {
     if (_projectId) {
-      initializeWebSocket(_projectId)
-        .then(({ ws }) => {
-          setWebSocketService(ws);
-        })
-        .catch((error) => {
-          console.error('Failed to initialize WebSocket:', error);
-        });
+      initializeWebSocket(_projectId).catch((error) => {
+        console.error('Failed to initialize WebSocket:', error);
+      });
     }
+
+    return () => {
+      if (webSocketRef.current) {
+        webSocketRef.current.disconnect();
+      }
+    };
   }, [_projectId]);
 
   const handleStackPackSelect = async (stackPackId) => {
@@ -158,14 +164,14 @@ export default function WorkspacePage({ projectId }) {
         window.history.pushState({}, '', `/workspace/${project.id}`);
 
         const { ws } = await initializeWebSocket(project.id);
-        setWebSocketService(ws);
+        webSocketRef.current = ws;
 
         ws.sendMessage({ chat: [...messages, userMessage] });
         return;
       }
 
       setMessages((prev) => [...prev, userMessage]);
-      webSocketService.sendMessage({ chat: [...messages, userMessage] });
+      webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
     } catch (error) {
       console.error('Failed to send message:', error);
       setRespStreaming(false);
@@ -221,7 +227,7 @@ export default function WorkspacePage({ projectId }) {
         )}
         <Chat
           respStreaming={respStreaming}
-          connected={!!webSocketService}
+          connected={!!webSocketRef.current}
           messages={messages}
           onSendMessage={handleSendMessage}
           projectTitle={projectTitle}
