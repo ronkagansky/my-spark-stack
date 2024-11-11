@@ -207,6 +207,7 @@ export default function WorkspacePage({ projectId }) {
       messages.length === 1 &&
       !respStreaming
     ) {
+      setRespStreaming(true);
       webSocketRef.current.sendMessage({ chat: messages });
     }
   }, [messages, status?.status, webSocketRef.current, respStreaming]);
