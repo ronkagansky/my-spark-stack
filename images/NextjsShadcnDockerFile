@@ -19,8 +19,8 @@ RUN node --version && npm --version
 RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --no-import-alias && \
     cd frontend && \
     npm install lucide-react --force && \
-    npx shadcn@latest init -d && \
+    (echo "\n" | npx shadcn@latest init -d) && \
     (echo "\n" | npx shadcn@latest add --yes --all) && \
-    next build
+    npm run build
 
 EXPOSE 3000
