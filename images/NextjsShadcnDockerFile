@@ -15,16 +15,12 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --import-alias '@/*' && \
+RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
     cd frontend && \
     npm install lucide-react --force && \
-    echo "init shadcn" && \
-    (echo "\n\n\n" | npx shadcn@latest init -d) && \
-    echo "add shadcn" && \
+    (echo "\n\n\n" | npx shadcn@latest init --defaults --force --yes) && \
     (echo "\n\n\n" | npx shadcn@latest add --yes --all) && \
-    echo "build" && \
     npm run build && \
-    echo "done" && \
-    ls -asl /frontend/src
+    ls -asl /frontend
 
 EXPOSE 3000
