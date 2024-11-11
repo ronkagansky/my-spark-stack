@@ -27,7 +27,7 @@ Already included:
 - The react app is already created in /app/frontend (do not run `create-react-app`)
 
 Tips:
-- Put initial app changes in App.js and move to other files as things get more complex
+- Put initial app changes in App.js and move to other files only as things get more complex
 - Use react-leaflet for maps
 - Use https://random.imagecdn.app/<width>/<height> for random images
 - Always link new pages in App.js (or else the user will not see them)
@@ -51,7 +51,7 @@ Already included:
 - The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
 
 Tips:
-- Put initial app changes in App.js and move to other files as things get more complex
+- Put initial app changes in src/app/page.js and move to other files only as things get more complex
 - Use react-leaflet for maps
 - Always include "use client" unless otherwise specified
 - Always use tailwind classes over custom css
