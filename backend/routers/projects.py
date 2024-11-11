@@ -96,7 +96,7 @@ async def delete_project(
         raise HTTPException(status_code=404, detail="Project not found")
 
     if project.modal_active_sandbox_id:
-        await DevSandbox.delete(project.id, project.modal_active_sandbox_id)
+        await DevSandbox.delete(project.id)
 
     db.delete(project)
     try:

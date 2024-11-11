@@ -119,63 +119,65 @@ export const Sidebar = () => {
               <div className="text-sm text-muted-foreground font-medium px-2">
                 Recent Chats
               </div>
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
-                  onClick={() => handleProjectClick(project.id)}
-                >
-                  <div className="flex justify-between items-center">
-                    {editingProjectId === project.id ? (
-                      <form
-                        onSubmit={(e) => handleRenameSubmit(project.id, e)}
-                        className="flex-1 mr-2"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="text"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          className="w-full px-1 py-0.5 text-sm bg-background border rounded"
-                          autoFocus
-                          onBlur={(e) => handleRenameSubmit(project.id, e)}
-                        />
-                      </form>
-                    ) : (
-                      <span className="truncate pr-2 text-sm">
-                        {project.name}
-                      </span>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+              {[...projects]
+                .sort((a, b) => b.id - a.id)
+                .map((project) => (
+                  <div
+                    key={project.id}
+                    className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
+                    onClick={() => handleProjectClick(project.id)}
+                  >
+                    <div className="flex justify-between items-center">
+                      {editingProjectId === project.id ? (
+                        <form
+                          onSubmit={(e) => handleRenameSubmit(project.id, e)}
+                          className="flex-1 mr-2"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onClick={(e) => handleRename(project.id, e)}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => handleDelete(project.id, e)}
-                          className="text-red-600 focus:text-red-600 focus:bg-red-100"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="w-full px-1 py-0.5 text-sm bg-background border rounded"
+                            autoFocus
+                            onBlur={(e) => handleRenameSubmit(project.id, e)}
+                          />
+                        </form>
+                      ) : (
+                        <span className="truncate pr-2 text-sm">
+                          {project.name}
+                        </span>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem
+                            onClick={(e) => handleRename(project.id, e)}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => handleDelete(project.id, e)}
+                            className="text-red-600 focus:text-red-600 focus:bg-red-100"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
           <div className="p-4 border-t">

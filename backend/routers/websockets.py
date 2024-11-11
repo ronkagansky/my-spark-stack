@@ -47,7 +47,7 @@ router = APIRouter(tags=["websockets"])
 project_connections: Dict[int, List[WebSocket]] = {}
 
 
-async def save_chat_messages(
+async def _save_chat_messages(
     db: Session,
     project_id: int,
     chat_messages: List[ChatMessage],
@@ -69,7 +69,7 @@ async def save_chat_messages(
     db.commit()
 
 
-async def apply_sandbox_changes(agent: Agent, total_content: str):
+async def _apply_file_changes(agent: Agent, total_content: str):
     if agent.sandbox:
         changes = parse_file_changes(agent.sandbox, total_content)
         if len(changes) > 0:
@@ -79,8 +79,34 @@ async def apply_sandbox_changes(agent: Agent, total_content: str):
             )
 
 
-async def get_follow_ups(agent: Agent, chat_messages: List[ChatMessage]):
+async def _get_follow_ups(agent: Agent, chat_messages: List[ChatMessage]):
     return await agent.suggest_follow_ups(chat_messages)
+
+
+async def _create_sandbox(
+    send_json: Callable[[BaseModel], None], agent: Agent, project_id: int
+):
+    try:
+        await send_json(
+            SandboxStatusResponse(status=SandboxStatus.BUILDING, tunnels={})
+        )
+
+        sandbox = await DevSandbox.get_or_create(project_id)
+        agent.set_sandbox(sandbox)
+        await sandbox.wait_for_up()
+
+        paths = await sandbox.get_file_paths()
+        await send_json(SandboxFileTreeResponse(paths=paths))
+
+        tunnels = await sandbox.sb.tunnels.aio()
+        await send_json(
+            SandboxStatusResponse(
+                status=SandboxStatus.READY,
+                tunnels={port: tunnel.url for port, tunnel in tunnels.items()},
+            )
+        )
+    except Exception as e:
+        print("create_sandbox() error", e)
 
 
 @router.websocket("/api/ws/project-chat/{project_id}")
@@ -110,17 +136,16 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
 
     agent = Agent(project)
 
-    sandbox_task = create_task(create_sandbox(send_json, agent, project_id))
+    sandbox_task = create_task(_create_sandbox(send_json, agent, project_id))
 
     try:
         while True:
             raw_data = await websocket.receive_text()
             data = ChatRequest.model_validate_json(raw_data)
+            await _save_chat_messages(db, project_id, data.chat)
 
-            if not agent.sandbox or not agent.sandbox.ready:
-                await save_chat_messages(db, project_id, data.chat)
-                while not agent.sandbox or not agent.sandbox.ready:
-                    await asyncio.sleep(1)
+            while not agent.sandbox or not agent.sandbox.ready:
+                await asyncio.sleep(1)
 
             total_content = ""
             async for partial_message in agent.step(data.chat):
@@ -132,13 +157,13 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
                 )
 
             _, _, follow_ups = await asyncio.gather(
-                save_chat_messages(
+                _save_chat_messages(
                     db,
                     project_id,
                     data.chat + [ChatMessage(role="assistant", content=total_content)],
                 ),
-                apply_sandbox_changes(agent, total_content),
-                get_follow_ups(
+                _apply_file_changes(agent, total_content),
+                _get_follow_ups(
                     agent,
                     data.chat + [ChatMessage(role="assistant", content=total_content)],
                 ),
@@ -165,24 +190,3 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
             await websocket.close()
         except Exception:
             pass
-
-
-async def create_sandbox(
-    send_json: Callable[[BaseModel], None], agent: Agent, project_id: int
-):
-    await send_json(SandboxStatusResponse(status=SandboxStatus.BUILDING, tunnels={}))
-
-    sandbox = await DevSandbox.get_or_create(project_id)
-    agent.set_sandbox(sandbox)
-    await sandbox.wait_for_up()
-
-    paths = await sandbox.get_file_paths()
-    await send_json(SandboxFileTreeResponse(paths=paths))
-
-    tunnels = await sandbox.sb.tunnels.aio()
-    await send_json(
-        SandboxStatusResponse(
-            status=SandboxStatus.READY,
-            tunnels={port: tunnel.url for port, tunnel in tunnels.items()},
-        )
-    )

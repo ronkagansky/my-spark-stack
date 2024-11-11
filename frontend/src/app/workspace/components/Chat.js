@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
-import { SendIcon } from 'lucide-react';
+import { SendIcon, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import rehypeRaw from 'rehype-raw';
 import {
@@ -47,13 +47,13 @@ const EmptyState = ({
           onStackPackSelect(value);
         }}
       >
-        <SelectTrigger className="w-full py-6">
+        <SelectTrigger className="w-full py-10">
           <SelectValue placeholder="Select a Stack" />
         </SelectTrigger>
-        <SelectContent className="max-h-[400px] w-full">
+        <SelectContent className="max-h-[500px] w-full">
           <SelectItem value={null} className="py-2 w-full">
             <div className="flex flex-col gap-1 w-full">
-              <span className="font-medium">Pick for me</span>
+              <span className="font-medium">Pick stack for me</span>
               <p className="text-sm text-muted-foreground break-words whitespace-normal w-full pr-4">
                 Let AI choose the best stack for your project based on your
                 first prompt.
@@ -113,17 +113,16 @@ const ChatInput = ({
   handleChipClick,
   respStreaming,
   suggestedFollowUps,
+  chatPlaceholder,
+  isSettingUp,
 }) => (
   <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
     <div className="flex flex-wrap gap-2">
-      {(suggestedFollowUps && suggestedFollowUps.length > 0
-        ? suggestedFollowUps
-        : STARTER_PROMPTS
-      ).map((prompt) => (
+      {suggestedFollowUps.map((prompt) => (
         <button
           key={prompt}
           type="button"
-          disabled={respStreaming}
+          disabled={respStreaming || isSettingUp}
           onClick={() => handleChipClick(prompt)}
           className="px-3 py-1 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
         >
@@ -133,7 +132,7 @@ const ChatInput = ({
     </div>
     <div className="flex gap-4">
       <Input
-        placeholder="Ask a follow up..."
+        placeholder={chatPlaceholder}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -141,7 +140,7 @@ const ChatInput = ({
       />
     </div>
     <div className="flex justify-end gap-2">
-      <Button type="submit" size="icon" disabled={respStreaming}>
+      <Button type="submit" size="icon" disabled={respStreaming || isSettingUp}>
         <SendIcon className="h-4 w-4" />
       </Button>
     </div>
@@ -161,7 +160,7 @@ export function Chat({
   const [message, setMessage] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const messagesEndRef = useRef(null);
-  const [selectedEnvironment, setSelectedEnvironment] = useState('');
+  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [stackPacks, setStackPacks] = useState([]);
 
   useEffect(() => {
@@ -216,7 +215,7 @@ export function Chat({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]); // Scroll when messages update
+  }, [messages]);
 
   const handleScroll = (e) => {
     const element = e.target;
@@ -229,6 +228,18 @@ export function Chat({
   const handleChipClick = (prompt) => {
     onSendMessage({ content: prompt });
   };
+
+  useEffect(() => {
+    if (status?.status.includes('Disconnected') && messages.length > 0) {
+      const timer = setTimeout(() => {
+        window.location.reload();
+      }, 10000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [status?.status, messages.length]);
+
+  const isSettingUp = status?.status.includes('Setting up');
 
   return (
     <div className="flex-1 flex flex-col md:max-w-[80%] md:mx-auto w-full">
@@ -244,9 +255,19 @@ export function Chat({
         </div>
       </div>
       <div
-        className="flex-1 overflow-auto p-4 pt-28 md:pt-4"
+        className="flex-1 overflow-auto p-4 pt-28 md:pt-4 relative"
         onScroll={handleScroll}
       >
+        {messages.length > 0 && isSettingUp && (
+          <>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Booting up your development environment...
+              </p>
+            </div>
+          </>
+        )}
         {messages.length === 0 && showStackPacks ? (
           <EmptyState
             selectedEnvironment={selectedEnvironment}
@@ -267,7 +288,21 @@ export function Chat({
           handleKeyDown={handleKeyDown}
           handleChipClick={handleChipClick}
           respStreaming={respStreaming}
-          suggestedFollowUps={suggestedFollowUps}
+          isSettingUp={isSettingUp}
+          suggestedFollowUps={
+            suggestedFollowUps &&
+            suggestedFollowUps.length > 0 &&
+            messages.length === 0
+              ? suggestedFollowUps
+              : STARTER_PROMPTS
+          }
+          chatPlaceholder={
+            suggestedFollowUps &&
+            suggestedFollowUps.length > 0 &&
+            messages.length === 0
+              ? suggestedFollowUps[0]
+              : 'What would you like to build?'
+          }
         />
       </div>
     </div>

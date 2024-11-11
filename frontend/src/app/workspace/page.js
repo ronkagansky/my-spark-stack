@@ -143,7 +143,7 @@ export default function WorkspacePage() {
         setMessages((prev) => [...prev, userMessage]);
 
         const project = await api.createProject({
-          name: 'New Project',
+          name: 'Project',
           description: `Chat session started on ${new Date().toLocaleDateString()}`,
           stack_pack_id: projectStackPackId,
         });
@@ -153,7 +153,7 @@ export default function WorkspacePage() {
         addProject(project);
         window.history.pushState({}, '', `/workspace/${project.id}`);
 
-        const ws = await initializeWebSocket(project.id);
+        const { ws } = await initializeWebSocket(project.id);
         setWebSocketService(ws);
 
         ws.sendMessage({ chat: [...messages, userMessage] });
@@ -194,6 +194,7 @@ export default function WorkspacePage() {
         setMessages([]);
         setProjectPreviewUrl(null);
         setProjectFileTree([]);
+        setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
       }
     };
 

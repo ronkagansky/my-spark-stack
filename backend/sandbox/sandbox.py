@@ -65,6 +65,7 @@ class DevSandbox:
 
     async def wait_for_up(self):
         while True:
+            print("Polling sandbox", self.project_id, self.sb)
             tunnels = await self.sb.tunnels.aio()
             tunnel_url = tunnels[3000].url
             if await _wait_for_up(tunnel_url):
@@ -123,14 +124,13 @@ for path, base64_content in files:
             content.append(chunk.decode("utf-8"))
         return "".join(content)
 
-    # async def get_logs(self) -> str:
-    #     return await self.sb.stdout.read.aio()
-
     @classmethod
-    async def delete(cls, project_id: int, sandbox_id: str):
+    async def delete(cls, project_id: int):
         try:
-            sb = await modal.Sandbox.from_id.aio(sandbox_id)
-            await sb.terminate.aio()
+            async for sb in modal.Sandbox.list.aio(
+                tags={"project_id": str(project_id)}
+            ):
+                await sb.terminate.aio()
         except:
             pass
         try:
@@ -182,4 +182,5 @@ for path, base64_content in files:
         else:
             print("Using existing sandbox for project", project.id)
             sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
+
         return cls(project_id, sb, vol)
