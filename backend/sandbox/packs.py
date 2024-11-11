@@ -37,7 +37,7 @@ Tips:
         id="nextjs-shadcn",
         title="Nextjs Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a nice UI.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn:latest",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:4f8e93be0b77c7a3ac754cb026284c02093ccb67b42b0a7d68492699d5f11c6c",
         sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm install --force && npm run dev",
         stack_description="""
 You are building a Nextjs app with Shadcn UI.
