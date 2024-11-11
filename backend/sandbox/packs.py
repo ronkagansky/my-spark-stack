@@ -16,13 +16,13 @@ PACKS = [
         title="Vanilla React",
         description="A simple JS React App. Best for starting from scratch with minimal dependencies.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-vanilla-react:latest",
-        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm start",
+        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm run dev",
         stack_description="""
 You are building a vanilla React app.
 
 The user choose to use a vanilla app so avoid adding any additional dependencies unless they are explicitly asked for.
 
-Included:
+Already included:
 - react-router-dom (use for all routing needs, note this is v6.xx)
 - The react app is already created in /app/frontend (do not run `create-react-app`)
 
@@ -42,7 +42,7 @@ You are building a Nextjs app with Shadcn UI.
 
 The user choose to use a Nextjs app with Shadcn UI so avoid adding any additional dependencies unless they are explicitly asked for.
 
-Included:
+Already included:
 - Nextjs App Router (use for routing)
 - `lucide-react` for icons
 - The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
