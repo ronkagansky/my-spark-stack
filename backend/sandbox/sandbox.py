@@ -180,7 +180,7 @@ for path, base64_content in files:
                     volumes={"/app": vol},
                     image=image,
                     encrypted_ports=[3000],
-                    timeout=60 * 60,
+                    timeout=3 * 60 * 60,
                     cpu=1,
                     memory=1024,
                 )

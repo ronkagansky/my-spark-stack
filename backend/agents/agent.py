@@ -255,13 +255,6 @@ class Agent:
         tools = [build_run_command_tool(self.sandbox)]
         running = True
 
-        # try:
-        #     if self.sandbox:
-        #         logs = await self.sandbox.get_logs()
-        #         print(logs)
-        # except Exception as e:
-        #     print("Error getting logs", e)
-
         while running:
             stream = await client.chat.completions.create(
                 model="gpt-4o",

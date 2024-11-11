@@ -150,9 +150,8 @@ export default function WorkspacePage({ projectId }) {
 
     try {
       setRespStreaming(true);
+      setMessages((prev) => [...prev, userMessage]);
       if (!_projectId) {
-        setMessages((prev) => [...prev, userMessage]);
-
         const project = await api.createProject({
           name: message.content,
           description: `Chat session started on ${new Date().toLocaleDateString()}`,
@@ -166,12 +165,7 @@ export default function WorkspacePage({ projectId }) {
 
         const { ws } = await initializeWebSocket(project.id);
         webSocketRef.current = ws;
-
-        ws.sendMessage({ chat: [...messages, userMessage] });
-        return;
       }
-
-      setMessages((prev) => [...prev, userMessage]);
       webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
     } catch (error) {
       console.error('Failed to send message:', error);

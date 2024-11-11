@@ -56,6 +56,7 @@ Tips:
 - Always include "use client" unless otherwise specified
 - Always use tailwind classes over custom css
 - Always link new pages in App.js (or else the user will not see them)
+- Always use app router for new pages, creating /src/app/<page>/page.js
 - Always use shadcn components over custom components
 """.strip(),
     ),
