@@ -25,7 +25,7 @@ export default function AuthPage() {
         title: 'Success!',
         description: 'Account created successfully',
       });
-      router.push('/workspace');
+      router.push('/workspace/new');
     } catch (error) {
       toast({
         title: 'Error',

@@ -34,9 +34,8 @@ export const Sidebar = () => {
   };
 
   const handleNewChat = () => {
-    router.push('/workspace');
+    router.push('/workspace/new');
     setIsMobileOpen(false);
-    router.refresh();
   };
 
   const handleRename = (projectId, e) => {
@@ -71,7 +70,7 @@ export const Sidebar = () => {
         await refreshProjects();
         // If we're currently on the deleted project's page, redirect to home
         if (window.location.pathname.includes(`/workspace/${projectId}`)) {
-          router.push('/workspace');
+          router.push('/workspace/new');
         }
       } catch (error) {
         console.error('Failed to delete project:', error);
