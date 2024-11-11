@@ -153,7 +153,7 @@ export default function WorkspacePage({ projectId }) {
         setMessages((prev) => [...prev, userMessage]);
 
         const project = await api.createProject({
-          name: 'Project',
+          name: message.content,
           description: `Chat session started on ${new Date().toLocaleDateString()}`,
           stack_pack_id: projectStackPackId,
         });
@@ -180,13 +180,9 @@ export default function WorkspacePage({ projectId }) {
 
   useEffect(() => {
     const loadProjectDetails = async () => {
-      const pathParts = window.location.pathname.split('/');
-      const urlProjectId = pathParts[pathParts.length - 1];
-
-      if (urlProjectId && urlProjectId !== 'workspace') {
+      if (_projectId) {
         try {
-          const project = await api.getProject(urlProjectId);
-          _setProjectId(urlProjectId);
+          const project = await api.getProject(_projectId);
           setProjectTitle(project.name);
           const existingMessages =
             project?.chat_messages.map((m) => ({
@@ -199,7 +195,6 @@ export default function WorkspacePage({ projectId }) {
           console.error('Failed to load project details:', error);
         }
       } else {
-        _setProjectId(null);
         setProjectTitle('New Chat');
         setMessages([]);
         setProjectPreviewUrl(null);
@@ -209,7 +204,7 @@ export default function WorkspacePage({ projectId }) {
     };
 
     loadProjectDetails();
-  }, []);
+  }, [_projectId]);
 
   return (
     <div className="flex h-screen bg-background">

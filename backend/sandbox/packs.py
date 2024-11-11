@@ -52,8 +52,10 @@ Already included:
 Tips:
 - Use react-leaflet for maps
 - Use https://random.imagecdn.app/<width>/<height> for random images
-- Use "use client" for all components
+- Always include "use client" unless otherwise specified
+- Always use tailwind classes over custom css
 - Ensure any new pages are directly accessible from App.js (or else the user will not see them)
+- Prefer shadcn components over custom components
 """.strip(),
     ),
 ]

@@ -293,14 +293,14 @@ export function Chat({
           suggestedFollowUps={
             suggestedFollowUps &&
             suggestedFollowUps.length > 0 &&
-            messages.length === 0
+            messages.length > 0
               ? suggestedFollowUps
               : STARTER_PROMPTS
           }
           chatPlaceholder={
             suggestedFollowUps &&
             suggestedFollowUps.length > 0 &&
-            messages.length === 0
+            messages.length > 0
               ? suggestedFollowUps[0]
               : 'What would you like to build?'
           }
