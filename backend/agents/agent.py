@@ -244,7 +244,7 @@ class Agent:
                         []
                         if not message.images
                         else [
-                            {"type": "image_url", "image_url": img.data}
+                            {"type": "image_url", "image_url": {"url": img.data}}
                             for img in message.images
                         ]
                     ),
