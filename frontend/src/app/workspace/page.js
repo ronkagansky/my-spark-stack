@@ -158,10 +158,11 @@ export default function WorkspacePage({ projectId }) {
           description: `Chat session started on ${new Date().toLocaleDateString()}`,
           stack_pack_id: projectStackPackId,
         });
+        addProject(project);
         const { ws } = await initializeWebSocket(project.id);
         webSocketRef.current = ws;
         webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
-        router.push(`/workspace/${project.id}`);
+        setTimeout(() => router.push(`/workspace/${project.id}`), 300);
       } else {
         webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
       }

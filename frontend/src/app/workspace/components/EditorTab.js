@@ -11,6 +11,31 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+function getLanguageFromFilename(filename) {
+  const extension = filename.split('.').pop().toLowerCase();
+
+  const languageMap = {
+    js: 'javascript',
+    jsx: 'javascript',
+    ts: 'typescript',
+    tsx: 'typescript',
+    py: 'python',
+    json: 'json',
+    md: 'markdown',
+    css: 'css',
+    html: 'html',
+    yml: 'yaml',
+    yaml: 'yaml',
+    xml: 'xml',
+    sql: 'sql',
+    sh: 'shell',
+    bash: 'shell',
+    txt: 'plaintext',
+  };
+
+  return languageMap[extension] || 'plaintext';
+}
+
 export function EditorTab({ projectFileTree, projectId }) {
   const defaultFile = '/app/my-app/src/App.js';
   const [selectedFile, setSelectedFile] = useState(() =>
@@ -61,7 +86,7 @@ export function EditorTab({ projectFileTree, projectId }) {
         {selectedFile ? (
           <Editor
             height="100%"
-            defaultLanguage="typescript"
+            defaultLanguage={getLanguageFromFilename(selectedFile)}
             value={isLoading ? 'Loading...' : fileContent}
             theme="vs-dark"
             options={{
