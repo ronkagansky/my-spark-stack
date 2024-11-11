@@ -16,11 +16,9 @@ import {
 } from '@/components/ui/select';
 import { api } from '@/lib/api';
 
-const SUGGESTED_PROMPTS = [
-  'Add a new feature',
-  'Fix a bug',
-  'Improve performance',
-  'Add tests',
+const STARTER_PROMPTS = [
+  'Build a cat facts app with catfact.ninja API',
+  'Build a maps app for coffee shops in SF',
 ];
 
 const FileUpdate = (props) => {
@@ -38,23 +36,35 @@ const EmptyState = ({
   selectedEnvironment,
   setSelectedEnvironment,
   stackPacks,
+  onStackPackSelect,
 }) => (
   <div className="flex flex-col items-center justify-center h-full">
     <div className="max-w-md w-full">
-      <h2 className="text-lg font-semibold mb-4 text-center">Stackpacks</h2>
       <Select
         value={selectedEnvironment}
-        onValueChange={setSelectedEnvironment}
+        onValueChange={(value) => {
+          setSelectedEnvironment(value);
+          onStackPackSelect(value);
+        }}
       >
         <SelectTrigger className="w-full py-6">
           <SelectValue placeholder="Select a Stack" />
         </SelectTrigger>
-        <SelectContent className="max-h-[400px]">
+        <SelectContent className="max-h-[400px] w-full">
+          <SelectItem value={null} className="py-2 w-full">
+            <div className="flex flex-col gap-1 w-full">
+              <span className="font-medium">Pick for me</span>
+              <p className="text-sm text-muted-foreground break-words whitespace-normal w-full pr-4">
+                Let AI choose the best stack for your project based on your
+                first prompt.
+              </p>
+            </div>
+          </SelectItem>
           {stackPacks?.map((pack) => (
-            <SelectItem key={pack.id} value={pack.id} className="py-2">
-              <div className="flex flex-col gap-1">
+            <SelectItem key={pack.id} value={pack.id} className="py-2 w-full">
+              <div className="flex flex-col gap-1 w-full">
                 <span className="font-medium">{pack.title}</span>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words whitespace-normal w-full pr-4">
                   {pack.description}
                 </p>
               </div>
@@ -102,13 +112,18 @@ const ChatInput = ({
   handleKeyDown,
   handleChipClick,
   respStreaming,
+  suggestedFollowUps,
 }) => (
   <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
     <div className="flex flex-wrap gap-2">
-      {SUGGESTED_PROMPTS.map((prompt) => (
+      {(suggestedFollowUps && suggestedFollowUps.length > 0
+        ? suggestedFollowUps
+        : STARTER_PROMPTS
+      ).map((prompt) => (
         <button
           key={prompt}
           type="button"
+          disabled={respStreaming}
           onClick={() => handleChipClick(prompt)}
           className="px-3 py-1 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
         >
@@ -139,6 +154,9 @@ export function Chat({
   onSendMessage,
   projectTitle,
   status,
+  onStackPackSelect,
+  showStackPacks = false,
+  suggestedFollowUps = [],
 }) {
   const [message, setMessage] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
@@ -229,11 +247,12 @@ export function Chat({
         className="flex-1 overflow-auto p-4 pt-28 md:pt-4"
         onScroll={handleScroll}
       >
-        {messages.length === 0 ? (
+        {messages.length === 0 && showStackPacks ? (
           <EmptyState
             selectedEnvironment={selectedEnvironment}
             setSelectedEnvironment={setSelectedEnvironment}
             stackPacks={stackPacks}
+            onStackPackSelect={onStackPackSelect}
           />
         ) : (
           <MessageList messages={messages} fixCodeBlocks={fixCodeBlocks} />
@@ -248,6 +267,7 @@ export function Chat({
           handleKeyDown={handleKeyDown}
           handleChipClick={handleChipClick}
           respStreaming={respStreaming}
+          suggestedFollowUps={suggestedFollowUps}
         />
       </div>
     </div>

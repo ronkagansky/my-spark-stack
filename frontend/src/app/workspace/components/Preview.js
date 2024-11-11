@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  X as XIcon,
-  ExternalLink as ExternalLinkIcon,
-  RefreshCw as RefreshIcon,
-  PanelRight as PanelRightIcon,
-} from 'lucide-react';
+import { X as XIcon, PanelRight as PanelRightIcon } from 'lucide-react';
 import { PreviewTab } from './PreviewTab';
 import { EditorTab } from './EditorTab';
 
@@ -19,7 +14,6 @@ export function Preview({
   projectId,
 }) {
   const [selectedTab, setSelectedTab] = useState('preview');
-  const [refreshCount, setRefreshCount] = useState(0);
 
   return (
     <>
@@ -67,10 +61,7 @@ export function Preview({
         <div className="p-4">
           <div className="rounded-lg border bg-muted/40 h-[calc(100vh-8rem)]">
             {selectedTab === 'preview' ? (
-              <PreviewTab
-                projectPreviewUrl={projectPreviewUrl}
-                key={refreshCount}
-              />
+              <PreviewTab projectPreviewUrl={projectPreviewUrl} />
             ) : (
               <EditorTab
                 projectFileTree={projectFileTree}

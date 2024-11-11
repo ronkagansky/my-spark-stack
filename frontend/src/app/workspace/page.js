@@ -20,12 +20,13 @@ export default function WorkspacePage() {
   const [projectTitle, setProjectTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
   const [projectFileTree, setProjectFileTree] = useState([]);
+  const [projectStackPackId, setProjectStackPackId] = useState(null);
+  const [suggestedFollowUps, setSuggestedFollowUps] = useState([]);
   const [previewHash, setPreviewHash] = useState(1);
   const [status, setStatus] = useState({
     status: 'Disconnected',
     color: 'bg-gray-500',
   });
-  const [cleanup, setCleanup] = useState(null);
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
@@ -34,15 +35,9 @@ export default function WorkspacePage() {
   }, []);
 
   const initializeWebSocket = async (wsProjectId) => {
-    if (cleanup) {
-      cleanup();
-    }
-
     const ws = new ProjectWebSocketService(wsProjectId);
-    const RETRY_INTERVAL = 5000; // 5 seconds
-    let retryCount = 0;
 
-    const connectWithRetry = async () => {
+    const connectWS = async () => {
       try {
         await new Promise((resolve, reject) => {
           ws.connect();
@@ -51,13 +46,6 @@ export default function WorkspacePage() {
           ws.ws.onclose = () => {
             setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
             setProjectPreviewUrl(null);
-
-            retryCount++;
-            setStatus({
-              status: `Reconnecting...`,
-              color: 'bg-gray-500',
-            });
-            setTimeout(connectWithRetry, RETRY_INTERVAL);
           };
           setTimeout(
             () => reject(new Error('WebSocket connection timeout')),
@@ -65,8 +53,6 @@ export default function WorkspacePage() {
           );
         });
 
-        // Reset retry count on successful connection
-        retryCount = 0;
         setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
 
         const handleSocketMessage = (data) => {
@@ -108,6 +94,9 @@ export default function WorkspacePage() {
             setRespStreaming(false);
             setPreviewHash((prev) => prev + 1);
           }
+          if (data.suggested_follow_ups) {
+            setSuggestedFollowUps(data.suggested_follow_ups);
+          }
         };
 
         ws.addListener(handleSocketMessage);
@@ -116,26 +105,12 @@ export default function WorkspacePage() {
         return ws;
       } catch (error) {
         console.error('WebSocket connection failed:', error);
-        retryCount++;
-        setStatus({
-          status: `Reconnecting...`,
-          color: 'bg-yellow-500',
-        });
-        setTimeout(connectWithRetry, RETRY_INTERVAL);
+        setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
       }
     };
 
-    await connectWithRetry();
-
-    const cleanupFunction = () => {
-      ws.disconnect();
-      setWebSocketService(null);
-      setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
-      setProjectPreviewUrl(null);
-    };
-
-    setCleanup(() => cleanupFunction);
-    return { ws, cleanup: cleanupFunction };
+    await connectWS();
+    return { ws };
   };
 
   useEffect(() => {
@@ -148,13 +123,11 @@ export default function WorkspacePage() {
           console.error('Failed to initialize WebSocket:', error);
         });
     }
-
-    return () => {
-      if (cleanup) {
-        cleanup();
-      }
-    };
   }, [projectId]);
+
+  const handleStackPackSelect = async (stackPackId) => {
+    setProjectStackPackId(stackPackId);
+  };
 
   const handleSendMessage = async (message) => {
     if (!message.content.trim()) return;
@@ -165,11 +138,14 @@ export default function WorkspacePage() {
     };
 
     try {
+      setRespStreaming(true);
       if (!projectId) {
-        const projectName = new Date().toLocaleDateString();
+        setMessages((prev) => [...prev, userMessage]);
+
         const project = await api.createProject({
-          name: projectName,
+          name: 'New Project',
           description: `Chat session started on ${new Date().toLocaleDateString()}`,
+          stack_pack_id: projectStackPackId,
         });
 
         setProjectId(project.id);
@@ -178,16 +154,17 @@ export default function WorkspacePage() {
         window.history.pushState({}, '', `/workspace/${project.id}`);
 
         const ws = await initializeWebSocket(project.id);
-        setMessages((prev) => [...prev, userMessage]);
-        setRespStreaming(true);
+        setWebSocketService(ws);
+
         ws.sendMessage({ chat: [...messages, userMessage] });
-      } else {
-        setRespStreaming(true);
-        setMessages((prev) => [...prev, userMessage]);
-        webSocketService.sendMessage({ chat: [...messages, userMessage] });
+        return;
       }
+
+      setMessages((prev) => [...prev, userMessage]);
+      webSocketService.sendMessage({ chat: [...messages, userMessage] });
     } catch (error) {
       console.error('Failed to send message:', error);
+      setRespStreaming(false);
     }
   };
 
@@ -195,10 +172,6 @@ export default function WorkspacePage() {
     const loadProjectDetails = async () => {
       const pathParts = window.location.pathname.split('/');
       const urlProjectId = pathParts[pathParts.length - 1];
-
-      if (cleanup) {
-        cleanup();
-      }
 
       if (urlProjectId && urlProjectId !== 'workspace') {
         try {
@@ -211,6 +184,7 @@ export default function WorkspacePage() {
               content: m.content,
             })) || [];
           setMessages(existingMessages);
+          setProjectStackPackId(project.stack_pack_id);
         } catch (error) {
           console.error('Failed to load project details:', error);
         }
@@ -224,7 +198,7 @@ export default function WorkspacePage() {
     };
 
     loadProjectDetails();
-  }, [cleanup]);
+  }, []);
 
   return (
     <div className="flex h-screen bg-background">
@@ -247,6 +221,9 @@ export default function WorkspacePage() {
           onSendMessage={handleSendMessage}
           projectTitle={projectTitle}
           status={status}
+          onStackPackSelect={handleStackPackSelect}
+          showStackPacks={!projectId}
+          suggestedFollowUps={suggestedFollowUps}
         />
         <Preview
           isOpen={isPreviewOpen}

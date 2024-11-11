@@ -23,7 +23,7 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
-    stack_pack_id = Column(String, nullable=True)
+    stack_pack_id = Column(String, nullable=False)
     owner_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
@@ -35,6 +35,8 @@ class Project(Base):
     chat_messages = relationship(
         "ChatMessage", back_populates="project", cascade="all, delete-orphan"
     )
+    modal_active_sandbox_last_used_at = Column(DateTime(timezone=True), nullable=True)
+    modal_active_sandbox_id = Column(String, nullable=True)
 
 
 class ChatMessage(Base):

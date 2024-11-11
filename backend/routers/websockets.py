@@ -1,8 +1,9 @@
 from fastapi import APIRouter, WebSocket, WebSocketException
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 from enum import Enum
 from asyncio import create_task
 from pydantic import BaseModel
+import datetime
 import asyncio
 
 from sandbox.sandbox import DevSandbox
@@ -10,10 +11,11 @@ from agents.agent import Agent, ChatMessage, parse_file_changes
 from db.database import get_db
 from db.models import Project, ChatMessage as DbChatMessage
 from routers.auth import get_current_user_from_token
+from sqlalchemy.orm import Session
 
 
 class SandboxStatus(str, Enum):
-    BUILDING = "CREATING"
+    BUILDING = "BUILDING"
     READY = "READY"
 
 
@@ -32,6 +34,7 @@ class ChatChunkResponse(BaseModel):
     for_type: str = "chat_chunk"
     content: str
     complete: bool
+    suggested_follow_ups: Optional[List[str]] = None
 
 
 class ChatRequest(BaseModel):
@@ -42,6 +45,42 @@ router = APIRouter(tags=["websockets"])
 
 # Store project websocket connections
 project_connections: Dict[int, List[WebSocket]] = {}
+
+
+async def save_chat_messages(
+    db: Session,
+    project_id: int,
+    chat_messages: List[ChatMessage],
+):
+    db.query(DbChatMessage).filter(DbChatMessage.project_id == project_id).delete()
+
+    for chat_message in chat_messages:
+        db_message = DbChatMessage(
+            role=chat_message.role,
+            content=chat_message.content,
+            project_id=project_id,
+        )
+        db.add(db_message)
+
+    db.query(Project).filter(Project.id == project_id).update(
+        {"modal_active_sandbox_last_used_at": datetime.datetime.now()}
+    )
+
+    db.commit()
+
+
+async def apply_sandbox_changes(agent: Agent, total_content: str):
+    if agent.sandbox:
+        changes = parse_file_changes(agent.sandbox, total_content)
+        if len(changes) > 0:
+            print("Applying Changes", [f.path for f in changes])
+            await agent.sandbox.write_file_contents(
+                [(change.path, change.content) for change in changes]
+            )
+
+
+async def get_follow_ups(agent: Agent, chat_messages: List[ChatMessage]):
+    return await agent.suggest_follow_ups(chat_messages)
 
 
 @router.websocket("/api/ws/project-chat/{project_id}")
@@ -78,8 +117,10 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
             raw_data = await websocket.receive_text()
             data = ChatRequest.model_validate_json(raw_data)
 
-            while not agent.sandbox or not agent.sandbox.ready:
-                await asyncio.sleep(1)
+            if not agent.sandbox or not agent.sandbox.ready:
+                await save_chat_messages(db, project_id, data.chat)
+                while not agent.sandbox or not agent.sandbox.ready:
+                    await asyncio.sleep(1)
 
             total_content = ""
             async for partial_message in agent.step(data.chat):
@@ -90,46 +131,40 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
                     )
                 )
 
-            db.query(DbChatMessage).filter(
-                DbChatMessage.project_id == project_id
-            ).delete()
-            for chat_message in data.chat:
-                db_message = DbChatMessage(
-                    role=chat_message.role,
-                    content=chat_message.content,
-                    project_id=project_id,
-                )
-                db.add(db_message)
-            if total_content:
-                db_message = DbChatMessage(
-                    role="assistant", content=total_content, project_id=project_id
-                )
-                db.add(db_message)
-            db.commit()
-
-            if agent.sandbox:
-                changes = parse_file_changes(agent.sandbox, total_content)
-                if len(changes) > 0:
-                    print("Applying Changes", [f.path for f in changes])
-                    await agent.sandbox.write_file_contents(
-                        [(change.path, change.content) for change in changes]
-                    )
+            _, _, follow_ups = await asyncio.gather(
+                save_chat_messages(
+                    db,
+                    project_id,
+                    data.chat + [ChatMessage(role="assistant", content=total_content)],
+                ),
+                apply_sandbox_changes(agent, total_content),
+                get_follow_ups(
+                    agent,
+                    data.chat + [ChatMessage(role="assistant", content=total_content)],
+                ),
+            )
 
             await send_json(
                 SandboxFileTreeResponse(paths=await agent.sandbox.get_file_paths())
             )
 
-            await send_json(ChatChunkResponse(content="", complete=True))
+            await send_json(
+                ChatChunkResponse(
+                    content="", complete=True, suggested_follow_ups=follow_ups
+                )
+            )
 
     except Exception as e:
-        print(e)
-        pass
+        print("websocket loop error", e)
     finally:
         sandbox_task.cancel()
         project_connections[project_id].remove(websocket)
         if not project_connections[project_id]:
             del project_connections[project_id]
-        await websocket.close()
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
 
 async def create_sandbox(

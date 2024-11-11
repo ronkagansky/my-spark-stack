@@ -17,6 +17,7 @@ class UserResponse(BaseModel):
 
 class ProjectCreate(BaseModel):
     name: str
+    stack_pack_id: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -35,6 +36,7 @@ class ProjectResponse(BaseModel):
     name: str
     description: Optional[str]
     owner_id: int
+    stack_pack_id: str
     chat_messages: Optional[List[ChatResponse]] = None
 
     class Config:

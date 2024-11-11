@@ -12,6 +12,7 @@ from schemas.models import (
     ProjectUpdate,
 )
 from sandbox.sandbox import DevSandbox
+from sandbox.packs import DEFAULT_STACK_PACK_ID
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -61,8 +62,12 @@ async def create_project(
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
+    stack_pack_id = project.stack_pack_id or DEFAULT_STACK_PACK_ID
     new_project = Project(
-        name=project.name, description=project.description, owner_id=current_user.id
+        name=project.name,
+        description=project.description,
+        owner_id=current_user.id,
+        stack_pack_id=stack_pack_id,
     )
 
     db.add(new_project)
@@ -89,6 +94,9 @@ async def delete_project(
     )
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.modal_active_sandbox_id:
+        await DevSandbox.delete(project.id, project.modal_active_sandbox_id)
 
     db.delete(project)
     try:

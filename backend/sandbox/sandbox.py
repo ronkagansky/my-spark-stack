@@ -2,22 +2,16 @@ import modal
 import aiohttp
 import asyncio
 import base64
+import datetime
 from typing import List, Optional, Tuple
 from modal.volume import FileEntryType
 
+from db.database import get_db
+from db.models import Project
+from sandbox.packs import get_pack_by_id
+
 app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
-image = (
-    modal.Image.debian_slim()
-    .run_commands("apt-get update")
-    .run_commands("apt-get install -y --no-install-recommends curl wget zip unzip tree")
-    .run_commands("curl -fsSL https://deb.nodesource.com/setup_20.x | bash -")
-    .run_commands("apt-get install -y --no-install-recommends nodejs")
-    .run_commands("node --version && npm --version")
-)
-image_start_cmd = """
-cd /app && if [ ! -d "my-app" ]; then npx --yes create-react-app my-app; fi && cd my-app && npm start
-""".strip()
 
 IGNORE_PATHS = ["node_modules", ".git", ".next", "build"]
 
@@ -129,32 +123,63 @@ for path, base64_content in files:
             content.append(chunk.decode("utf-8"))
         return "".join(content)
 
+    # async def get_logs(self) -> str:
+    #     return await self.sb.stdout.read.aio()
+
+    @classmethod
+    async def delete(cls, project_id: int, sandbox_id: str):
+        try:
+            sb = await modal.Sandbox.from_id.aio(sandbox_id)
+            await sb.terminate.aio()
+        except:
+            pass
+        try:
+            await modal.Volume.delete.aio(f"prompt-stack-vol-project-{project_id}")
+        except:
+            pass
+
     @classmethod
     async def get_or_create(cls, project_id: int) -> "DevSandbox":
-        sandboxes = [
-            sandbox
-            async for sandbox in modal.Sandbox.list.aio(
-                app_id=app.app_id,
-                tags={"project_id": str(project_id)},
-            )
-        ]
+        db = next(get_db())
+        project = db.query(Project).filter(Project.id == project_id).first()
+
         vol = modal.Volume.from_name(
             f"prompt-stack-vol-project-{project_id}", create_if_missing=True
         )
-        if len(sandboxes) == 0:
+        if project.modal_active_sandbox_id:
+            sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
+            poll_code = await sb.poll.aio()
+            return_code = sb.returncode
+            sb_is_up = ((poll_code is None) or (return_code is None)) or (
+                poll_code == 0 and return_code == 0
+            )
+        else:
+            sb_is_up = False
+        if not sb_is_up:
+            print(
+                "Creating sandbox for project",
+                project.id,
+                project.modal_active_sandbox_id,
+            )
+            pack = get_pack_by_id(project.stack_pack_id)
+            image = modal.Image.from_registry(pack.from_registry, add_python=None)
             sb = await modal.Sandbox.create.aio(
                 "sh",
                 "-c",
-                image_start_cmd,
+                pack.sandbox_start_cmd,
                 app=app,
                 volumes={"/app": vol},
                 image=image,
                 encrypted_ports=[3000],
-                timeout=15 * 60,
+                timeout=60 * 60,
                 cpu=1,
                 memory=1024,
             )
+            project.modal_active_sandbox_id = sb.object_id
+            project.modal_active_sandbox_last_used_at = datetime.datetime.now()
+            db.commit()
             await sb.set_tags.aio({"project_id": str(project_id)})
         else:
-            sb = sandboxes[0]
+            print("Using existing sandbox for project", project.id)
+            sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
         return cls(project_id, sb, vol)

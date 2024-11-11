@@ -72,7 +72,18 @@ class ApiClient {
   }
 
   async getCurrentUser() {
-    return this._get('/api/auth/me');
+    try {
+      return await this._get('/api/auth/me');
+    } catch (error) {
+      if (
+        error.message.includes('401') ||
+        error.message.includes('Unauthorized')
+      ) {
+        localStorage.removeItem('token');
+        window.location.reload();
+      }
+      throw error;
+    }
   }
 
   async getUserProjects() {
