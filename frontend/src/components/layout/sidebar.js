@@ -36,6 +36,7 @@ export const Sidebar = () => {
   const handleNewChat = () => {
     router.push('/workspace');
     setIsMobileOpen(false);
+    window.location.reload();
   };
 
   const handleRename = (projectId, e) => {
