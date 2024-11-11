@@ -221,6 +221,8 @@ class Agent:
     async def step(
         self, messages: List[ChatMessage]
     ) -> AsyncGenerator[PartialChatMessage, None]:
+        yield PartialChatMessage(role="assistant", delta_content="")
+
         if self.sandbox:
             files = await self.sandbox.get_file_paths()
             files_text = "\n".join(files)

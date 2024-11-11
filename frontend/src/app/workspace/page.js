@@ -200,6 +200,17 @@ export default function WorkspacePage({ projectId }) {
     loadProjectDetails();
   }, [projectId]);
 
+  useEffect(() => {
+    if (
+      webSocketRef.current &&
+      status?.status.includes('Ready') &&
+      messages.length === 1 &&
+      !respStreaming
+    ) {
+      webSocketRef.current.sendMessage({ chat: messages });
+    }
+  }, [messages, status?.status, webSocketRef.current, respStreaming]);
+
   return (
     <div className="flex h-screen bg-background">
       <div className="flex-1 flex flex-col md:flex-row">
