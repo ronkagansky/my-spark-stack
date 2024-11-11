@@ -15,7 +15,7 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --no-import-alias && \
+RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --import-alias '@/*' && \
     cd frontend && \
     npm install lucide-react --force && \
     (echo "\n" | npx shadcn@latest init -d) && \
