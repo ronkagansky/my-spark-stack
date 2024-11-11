@@ -46,7 +46,7 @@ The user choose to use a Nextjs app with Shadcn UI so avoid adding any additiona
 Already included:
 - Nextjs App Router (use for routing)
 - `lucide-react` for icons
-- Most shadcn components are already installed with `npx shadcn@latest add`
+- Most shadcn components are already installed with `npx shadcn@latest add --yes --all`
 - The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
 
 Tips:

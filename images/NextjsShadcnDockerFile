@@ -20,7 +20,7 @@ RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-
     cd frontend && \
     npm install lucide-react --force \
     npx shadcn@latest init -d \
-    npx shadcn@latest add --force \
+    npx shadcn@latest add --yes --all \
     next build
 
 EXPOSE 3000
