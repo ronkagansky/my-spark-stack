@@ -8,7 +8,7 @@ RUN npm install --force
 
 COPY frontend/ .
 
-ENV NEXT_PUBLIC_API_URL=https://prompt-stack-production.up.railway.app
+ENV NEXT_PUBLIC_API_URL=https://prompt-stack.sshh.io
 
 RUN npm run build
 
