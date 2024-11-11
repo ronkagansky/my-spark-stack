@@ -47,13 +47,12 @@ The user choose to use a Nextjs app with Shadcn UI so avoid adding any additiona
 Already included:
 - Nextjs App Router (use for routing)
 - `lucide-react` for icons
-- Most shadcn components are already installed with `npx shadcn@latest add --yes --all`
+- Most shadcn components are already installed with `npx shadcn@latest add --yes --all` (import them like `@/components/ui/button`)
 - The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
 
 Tips:
 - Put initial app changes in App.js and move to other files as things get more complex
 - Use react-leaflet for maps
-- Use https://random.imagecdn.app/<width>/<height> for random images
 - Always include "use client" unless otherwise specified
 - Always use tailwind classes over custom css
 - Always link new pages in App.js (or else the user will not see them)

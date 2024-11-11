@@ -33,7 +33,7 @@ async def periodic_task():
                     f" and sandbox_id={project.modal_active_sandbox_id} (last used at {project.modal_active_sandbox_last_used_at})"
                 )
                 sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
-                await sb.terminate()
+                await sb.terminate.aio()
                 project.modal_active_sandbox_id = None
                 project.modal_active_sandbox_last_used_at = None
                 db.commit()

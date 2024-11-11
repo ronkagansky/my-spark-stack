@@ -140,11 +140,12 @@ export default function WorkspacePage({ projectId }) {
   };
 
   const handleSendMessage = async (message) => {
-    if (!message.content.trim()) return;
+    if (!message.content.trim() && message.images.length === 0) return;
 
     const userMessage = {
       role: 'user',
       content: message.content,
+      images: message.images || [],
     };
 
     try {

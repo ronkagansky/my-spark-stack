@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
-import { SendIcon, Loader2 } from 'lucide-react';
+import { SendIcon, Loader2, ImageIcon, X, Scan } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import rehypeRaw from 'rehype-raw';
 import {
@@ -116,6 +116,10 @@ const ChatInput = ({
   suggestedFollowUps,
   chatPlaceholder,
   isSettingUp,
+  onImageAttach,
+  imageAttachments,
+  onRemoveImage,
+  onScreenshot,
 }) => (
   <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
     <div className="flex flex-wrap gap-2">
@@ -131,16 +135,66 @@ const ChatInput = ({
         </button>
       ))}
     </div>
-    <div className="flex gap-4">
-      <Input
-        placeholder={chatPlaceholder}
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="flex-1"
-      />
+    <div className="flex flex-col gap-4">
+      {imageAttachments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {imageAttachments.map((img, index) => (
+            <div key={index} className="relative inline-block">
+              <img
+                src={img.data}
+                alt={`attachment ${index + 1}`}
+                className="max-h-32 max-w-[200px] object-contain rounded-lg"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="absolute top-1 right-1 h-6 w-6"
+                onClick={() => onRemoveImage(index)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-4">
+        <Input
+          placeholder={chatPlaceholder}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1"
+        />
+      </div>
     </div>
     <div className="flex justify-end gap-2">
+      <input
+        type="file"
+        id="imageInput"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={onImageAttach}
+      />
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        disabled={respStreaming || isSettingUp}
+        onClick={onScreenshot}
+      >
+        <Scan className="h-4 w-4" />
+      </Button>
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        disabled={respStreaming || isSettingUp}
+        onClick={() => document.getElementById('imageInput').click()}
+      >
+        <ImageIcon className="h-4 w-4" />
+      </Button>
       <Button type="submit" size="icon" disabled={respStreaming || isSettingUp}>
         <SendIcon className="h-4 w-4" />
       </Button>
@@ -159,6 +213,7 @@ export function Chat({
   suggestedFollowUps = [],
 }) {
   const [message, setMessage] = useState('');
+  const [imageAttachments, setImageAttachments] = useState([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const messagesEndRef = useRef(null);
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
@@ -195,10 +250,14 @@ export function Chat({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() && imageAttachments.length === 0) return;
 
-    onSendMessage({ content: message });
+    onSendMessage({
+      content: message,
+      images: imageAttachments,
+    });
     setMessage('');
+    setImageAttachments([]);
   };
 
   const handleKeyDown = (e) => {
@@ -227,7 +286,59 @@ export function Chat({
   };
 
   const handleChipClick = (prompt) => {
-    onSendMessage({ content: prompt });
+    onSendMessage({ content: prompt, images: imageAttachments });
+  };
+
+  const handleImageAttach = async (e) => {
+    const files = Array.from(e.target.files);
+
+    for (const file of files) {
+      const img = new Image();
+      const reader = new FileReader();
+
+      await new Promise((resolve) => {
+        reader.onload = (e) => {
+          img.src = e.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1000;
+            const MAX_HEIGHT = 1000;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const resizedDataUrl = canvas.toDataURL(file.type, 0.7);
+
+            setImageAttachments((prev) => [
+              ...prev,
+              {
+                data: resizedDataUrl,
+                name: file.name,
+                type: file.type,
+              },
+            ]);
+            resolve();
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   };
 
   useEffect(() => {
@@ -241,6 +352,85 @@ export function Chat({
   }, [status?.status, messages.length]);
 
   const isSettingUp = status?.status.includes('Setting up');
+
+  const handleRemoveImage = (index) => {
+    setImageAttachments((prev) => prev.filter((_, i) => i !== index));
+    // Clear the file input if all images are removed
+    if (imageAttachments.length === 1) {
+      const fileInput = document.getElementById('imageInput');
+      if (fileInput) fileInput.value = '';
+    }
+  };
+
+  const handleScreenshot = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        preferCurrentTab: true,
+        video: {
+          displaySurface: 'browser',
+        },
+      });
+
+      // Create video element to capture the stream
+      const video = document.createElement('video');
+      video.srcObject = stream;
+
+      // Wait for the video to load metadata
+      await new Promise((resolve) => {
+        video.onloadedmetadata = resolve;
+      });
+      video.play();
+
+      // Create canvas and draw the video frame
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+
+      // Stop all tracks
+      stream.getTracks().forEach((track) => track.stop());
+
+      // Resize the screenshot if needed
+      const MAX_WIDTH = 1000;
+      const MAX_HEIGHT = 1000;
+      let width = canvas.width;
+      let height = canvas.height;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+
+      // Create resized canvas
+      const resizedCanvas = document.createElement('canvas');
+      resizedCanvas.width = width;
+      resizedCanvas.height = height;
+      const resizedCtx = resizedCanvas.getContext('2d');
+      resizedCtx.drawImage(canvas, 0, 0, width, height);
+
+      // Convert to data URL
+      const dataUrl = resizedCanvas.toDataURL('image/jpeg', 0.7);
+
+      setImageAttachments((prev) => [
+        ...prev,
+        {
+          data: dataUrl,
+          name: 'screenshot.jpg',
+          type: 'image/jpeg',
+        },
+      ]);
+    } catch (err) {
+      console.error('Error taking screenshot:', err);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col md:max-w-[80%] md:mx-auto w-full">
@@ -304,6 +494,10 @@ export function Chat({
               ? suggestedFollowUps[0]
               : 'What would you like to build?'
           }
+          onImageAttach={handleImageAttach}
+          imageAttachments={imageAttachments}
+          onRemoveImage={handleRemoveImage}
+          onScreenshot={handleScreenshot}
         />
       </div>
     </div>

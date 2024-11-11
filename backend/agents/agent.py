@@ -13,9 +13,14 @@ from sandbox.packs import get_pack_by_id
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
+class ChatImage(BaseModel):
+    data: str
+
+
 class ChatMessage(BaseModel):
     role: str
     content: str
+    images: Optional[List[ChatImage]] = None
 
 
 class PartialChatMessage(BaseModel):
@@ -232,7 +237,18 @@ class Agent:
         oai_chat = [
             {"role": "system", "content": system_prompt},
             *[
-                {"role": message.role, "content": message.content}
+                {
+                    "role": message.role,
+                    "content": [{"type": "text", "text": message.content}]
+                    + (
+                        []
+                        if not message.images
+                        else [
+                            {"type": "image_url", "image_url": img.data}
+                            for img in message.images
+                        ]
+                    ),
+                }
                 for message in messages
             ],
         ]
