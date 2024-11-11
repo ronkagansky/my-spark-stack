@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import init_db, get_db
 from db.models import Project
-import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from sqlalchemy import select
+import asyncio
+import modal
 
 from routers import auth, projects, websockets, stacks
 
@@ -16,14 +16,24 @@ async def periodic_task():
         print("Running periodic task...")
         # Find projects with sandboxes inactive for 10+ minutes
         cutoff_time = datetime.utcnow() - timedelta(minutes=10)
-        query = select(Project).where(
-            Project.modal_active_sandbox_last_used_at <= cutoff_time
+        inactive_projects = (
+            db.query(Project)
+            .filter(
+                (Project.modal_active_sandbox_last_used_at <= cutoff_time)
+                & (Project.modal_active_sandbox_id.is_not(None))
+            )
+            .all()
         )
-        inactive_projects = db.execute(query).scalars().all()
 
         for project in inactive_projects:
-            print(f"Found inactive sandbox for project {project.id}")
-            # You can add additional handling here if needed
+            print(
+                f"Found inactive sandbox for project={project.id} and sandbox_id={project.modal_active_sandbox_id}"
+            )
+            sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
+            await sb.terminate()
+            project.modal_active_sandbox_id = None
+            project.modal_active_sandbox_last_used_at = None
+            db.commit()
 
         await asyncio.sleep(60)
 

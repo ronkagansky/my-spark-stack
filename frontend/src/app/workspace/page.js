@@ -9,17 +9,17 @@ import { api } from '@/lib/api';
 import { Chat } from './components/Chat';
 import { Preview } from './components/Preview';
 
-export default function WorkspacePage() {
+export default function WorkspacePage({ projectId }) {
   const { addProject } = useUser();
   const router = useRouter();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [respStreaming, setRespStreaming] = useState(false);
-  const [projectId, setProjectId] = useState(null);
   const [webSocketService, setWebSocketService] = useState(null);
   const [projectTitle, setProjectTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
   const [projectFileTree, setProjectFileTree] = useState([]);
+  const [_projectId, _setProjectId] = useState(projectId);
   const [projectStackPackId, setProjectStackPackId] = useState(null);
   const [suggestedFollowUps, setSuggestedFollowUps] = useState([]);
   const [previewHash, setPreviewHash] = useState(1);
@@ -33,6 +33,10 @@ export default function WorkspacePage() {
       router.push('/');
     }
   }, []);
+
+  useEffect(() => {
+    _setProjectId(projectId);
+  }, [projectId]);
 
   const initializeWebSocket = async (wsProjectId) => {
     const ws = new ProjectWebSocketService(wsProjectId);
@@ -114,8 +118,8 @@ export default function WorkspacePage() {
   };
 
   useEffect(() => {
-    if (projectId) {
-      initializeWebSocket(projectId)
+    if (_projectId) {
+      initializeWebSocket(_projectId)
         .then(({ ws }) => {
           setWebSocketService(ws);
         })
@@ -123,7 +127,7 @@ export default function WorkspacePage() {
           console.error('Failed to initialize WebSocket:', error);
         });
     }
-  }, [projectId]);
+  }, [_projectId]);
 
   const handleStackPackSelect = async (stackPackId) => {
     setProjectStackPackId(stackPackId);
@@ -139,7 +143,7 @@ export default function WorkspacePage() {
 
     try {
       setRespStreaming(true);
-      if (!projectId) {
+      if (!_projectId) {
         setMessages((prev) => [...prev, userMessage]);
 
         const project = await api.createProject({
@@ -148,7 +152,7 @@ export default function WorkspacePage() {
           stack_pack_id: projectStackPackId,
         });
 
-        setProjectId(project.id);
+        _setProjectId(project.id);
         setProjectTitle(project.name);
         addProject(project);
         window.history.pushState({}, '', `/workspace/${project.id}`);
@@ -176,7 +180,7 @@ export default function WorkspacePage() {
       if (urlProjectId && urlProjectId !== 'workspace') {
         try {
           const project = await api.getProject(urlProjectId);
-          setProjectId(urlProjectId);
+          _setProjectId(urlProjectId);
           setProjectTitle(project.name);
           const existingMessages =
             project?.chat_messages.map((m) => ({
@@ -189,7 +193,7 @@ export default function WorkspacePage() {
           console.error('Failed to load project details:', error);
         }
       } else {
-        setProjectId(null);
+        _setProjectId(null);
         setProjectTitle('New Chat');
         setMessages([]);
         setProjectPreviewUrl(null);
@@ -223,7 +227,7 @@ export default function WorkspacePage() {
           projectTitle={projectTitle}
           status={status}
           onStackPackSelect={handleStackPackSelect}
-          showStackPacks={!projectId}
+          showStackPacks={!_projectId}
           suggestedFollowUps={suggestedFollowUps}
         />
         <Preview
@@ -235,7 +239,7 @@ export default function WorkspacePage() {
               : null
           }
           projectFileTree={projectFileTree}
-          projectId={projectId}
+          projectId={_projectId}
         />
       </div>
     </div>

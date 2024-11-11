@@ -43,9 +43,6 @@ class ChatRequest(BaseModel):
 
 router = APIRouter(tags=["websockets"])
 
-# Store project websocket connections
-project_connections: Dict[int, List[WebSocket]] = {}
-
 
 async def _save_chat_messages(
     db: Session,
@@ -125,14 +122,8 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
 
     await websocket.accept()
 
-    # Add connection to project's connection list
-    if project_id not in project_connections:
-        project_connections[project_id] = []
-    project_connections[project_id].append(websocket)
-
     async def send_json(data: BaseModel):
-        for connection in project_connections[project_id]:
-            await connection.send_json(data.model_dump())
+        await websocket.send_json(data.model_dump())
 
     agent = Agent(project)
 
@@ -183,9 +174,6 @@ async def websocket_endpoint(websocket: WebSocket, project_id: int):
         print("websocket loop error", e)
     finally:
         sandbox_task.cancel()
-        project_connections[project_id].remove(websocket)
-        if not project_connections[project_id]:
-            del project_connections[project_id]
         try:
             await websocket.close()
         except Exception:

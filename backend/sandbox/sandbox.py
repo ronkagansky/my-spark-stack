@@ -5,6 +5,7 @@ import base64
 import datetime
 from typing import List, Optional, Tuple
 from modal.volume import FileEntryType
+from asyncio import Lock
 
 from db.database import get_db
 from db.models import Project
@@ -14,6 +15,8 @@ app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
 
 IGNORE_PATHS = ["node_modules", ".git", ".next", "build"]
+
+_sandbox_locks = {}
 
 
 async def _wait_for_up(url: str) -> bool:
@@ -140,47 +143,52 @@ for path, base64_content in files:
 
     @classmethod
     async def get_or_create(cls, project_id: int) -> "DevSandbox":
-        db = next(get_db())
-        project = db.query(Project).filter(Project.id == project_id).first()
+        # Get or create a lock for this project
+        if project_id not in _sandbox_locks:
+            _sandbox_locks[project_id] = Lock()
 
-        vol = modal.Volume.from_name(
-            f"prompt-stack-vol-project-{project_id}", create_if_missing=True
-        )
-        if project.modal_active_sandbox_id:
-            sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
-            poll_code = await sb.poll.aio()
-            return_code = sb.returncode
-            sb_is_up = ((poll_code is None) or (return_code is None)) or (
-                poll_code == 0 and return_code == 0
-            )
-        else:
-            sb_is_up = False
-        if not sb_is_up:
-            print(
-                "Creating sandbox for project",
-                project.id,
-                project.modal_active_sandbox_id,
-            )
-            pack = get_pack_by_id(project.stack_pack_id)
-            image = modal.Image.from_registry(pack.from_registry, add_python=None)
-            sb = await modal.Sandbox.create.aio(
-                "sh",
-                "-c",
-                pack.sandbox_start_cmd,
-                app=app,
-                volumes={"/app": vol},
-                image=image,
-                encrypted_ports=[3000],
-                timeout=60 * 60,
-                cpu=1,
-                memory=1024,
-            )
-            project.modal_active_sandbox_id = sb.object_id
-            project.modal_active_sandbox_last_used_at = datetime.datetime.now()
-            db.commit()
-            await sb.set_tags.aio({"project_id": str(project_id)})
-        else:
-            print("Using existing sandbox for project", project.id)
-            sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
+        async with _sandbox_locks[project_id]:
+            db = next(get_db())
+            project = db.query(Project).filter(Project.id == project_id).first()
 
-        return cls(project_id, sb, vol)
+            vol = modal.Volume.from_name(
+                f"prompt-stack-vol-project-{project_id}", create_if_missing=True
+            )
+            if project.modal_active_sandbox_id:
+                sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
+                poll_code = await sb.poll.aio()
+                return_code = sb.returncode
+                sb_is_up = ((poll_code is None) or (return_code is None)) or (
+                    poll_code == 0 and return_code == 0
+                )
+            else:
+                sb_is_up = False
+            if not sb_is_up:
+                print(
+                    "Creating sandbox for project",
+                    project.id,
+                    project.modal_active_sandbox_id,
+                )
+                pack = get_pack_by_id(project.stack_pack_id)
+                image = modal.Image.from_registry(pack.from_registry, add_python=None)
+                sb = await modal.Sandbox.create.aio(
+                    "sh",
+                    "-c",
+                    pack.sandbox_start_cmd,
+                    app=app,
+                    volumes={"/app": vol},
+                    image=image,
+                    encrypted_ports=[3000],
+                    timeout=60 * 60,
+                    cpu=1,
+                    memory=1024,
+                )
+                project.modal_active_sandbox_id = sb.object_id
+                project.modal_active_sandbox_last_used_at = datetime.datetime.now()
+                db.commit()
+                await sb.set_tags.aio({"project_id": str(project_id)})
+            else:
+                print("Using existing sandbox for project", project.id)
+                sb = await modal.Sandbox.from_id.aio(project.modal_active_sandbox_id)
+
+            return cls(project_id, sb, vol)
