@@ -27,9 +27,10 @@ Already included:
 - The react app is already created in /app/frontend (do not run `create-react-app`)
 
 Tips:
+- Put initial app changes in App.js and move to other files as things get more complex
 - Use react-leaflet for maps
 - Use https://random.imagecdn.app/<width>/<height> for random images
-- Ensure any new pages are directly accessible from App.js (or else the user will not see them)
+- Always link new pages in App.js (or else the user will not see them)
 """.strip(),
     ),
     StackPack(
@@ -50,12 +51,13 @@ Already included:
 - The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
 
 Tips:
+- Put initial app changes in App.js and move to other files as things get more complex
 - Use react-leaflet for maps
 - Use https://random.imagecdn.app/<width>/<height> for random images
 - Always include "use client" unless otherwise specified
 - Always use tailwind classes over custom css
-- Ensure any new pages are directly accessible from App.js (or else the user will not see them)
-- Prefer shadcn components over custom components
+- Always link new pages in App.js (or else the user will not see them)
+- Always use shadcn components over custom components
 """.strip(),
     ),
 ]
