@@ -36,6 +36,7 @@ export const Sidebar = () => {
   const handleNewChat = () => {
     router.push('/workspace');
     setIsMobileOpen(false);
+    window.location.href = '/workspace';
     window.location.reload();
   };
 
