@@ -67,3 +67,7 @@ session: Build the UI for Astro App
             f"Chat {date}",
         )
     return project, project_description, session
+
+
+async def pick_stack(seed_prompt: str) -> str:
+    pass

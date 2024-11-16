@@ -32,6 +32,7 @@ class Project(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
+    custom_instructions = Column(Text, nullable=True)
 
     modal_sandbox_last_used_at = Column(DateTime(timezone=True), nullable=True)
     modal_sandbox_id = Column(String, nullable=True)

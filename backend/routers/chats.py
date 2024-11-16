@@ -78,6 +78,7 @@ async def create_chat(
         project = Project(
             name=project_name,
             description=project_description,
+            custom_instructions="",
             user_id=current_user.id,
             team_id=team_id,
             stack_id=stack.id,

@@ -51,6 +51,7 @@ class ProjectResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     description: Optional[str] = None
+    custom_instructions: Optional[str] = None
 
     class Config:
         from_attributes = True

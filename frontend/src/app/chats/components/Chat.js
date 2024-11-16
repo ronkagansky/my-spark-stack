@@ -342,26 +342,24 @@ export function Chat({
   }, []);
 
   const fixCodeBlocks = (content) => {
+    const replaceB64 = (_, filename, content) => {
+      const b64 = Buffer.from(JSON.stringify({ filename, content })).toString(
+        'base64'
+      );
+      return `<file-update>${b64}</file-update>`;
+    };
+
     content = content.replace(
       /```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```/g,
-      (_, filename, content) =>
-        `<file-update>${btoa(
-          JSON.stringify({ filename, content })
-        )}</file-update>`
+      replaceB64
     );
     content = content.replace(
       /```[\w.]+\n[/*]+ (\S+) \*\/\n([\s\S]+?)```/g,
-      (_, filename, content) =>
-        `<file-update>${btoa(
-          JSON.stringify({ filename, content })
-        )}</file-update>`
+      replaceB64
     );
     content = content.replace(
       /```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```/g,
-      (_, filename, content) =>
-        `<file-update>${btoa(
-          JSON.stringify({ filename, content })
-        )}</file-update>`
+      replaceB64
     );
     content = content.replace(
       /```[\s\S]+$/,
