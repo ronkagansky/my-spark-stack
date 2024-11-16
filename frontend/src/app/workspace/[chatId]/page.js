@@ -6,5 +6,5 @@ import WorkspacePage from '../page';
 export default function ProjectWorkspace() {
   const params = useParams();
 
-  return <WorkspacePage projectId={params.projectId} />;
+  return <WorkspacePage chatId={params.chatId} />;
 }

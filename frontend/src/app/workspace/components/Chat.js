@@ -270,7 +270,7 @@ export function Chat({
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const projects = await api.getProjects();
+        const projects = await api.getUserProjects();
         setProjects(projects);
       } catch (error) {
         console.error('Failed to fetch projects:', error);

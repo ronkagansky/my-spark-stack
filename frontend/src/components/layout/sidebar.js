@@ -23,13 +23,13 @@ import { api } from '@/lib/api';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
-  const { user, projects, refreshProjects } = useUser();
+  const { user, chats, refreshChats } = useUser();
   const router = useRouter();
-  const [editingProjectId, setEditingProjectId] = React.useState(null);
+  const [editingChatId, setEditingChatId] = React.useState(null);
   const [editingName, setEditingName] = React.useState('');
 
-  const handleProjectClick = (projectId) => {
-    router.push(`/workspace/${projectId}`);
+  const handleChatClick = (chatId) => {
+    router.push(`/workspace/${chatId}`);
     setIsMobileOpen(false);
   };
 
@@ -38,42 +38,42 @@ export const Sidebar = () => {
     setIsMobileOpen(false);
   };
 
-  const handleRename = (projectId, e) => {
+  const handleRename = (chatId, e) => {
     e.stopPropagation();
-    const project = projects.find((p) => p.id === projectId);
-    setEditingProjectId(projectId);
-    setEditingName(project.name);
+    const chat = chats.find((c) => c.id === chatId);
+    setEditingChatId(chatId);
+    setEditingName(chat.name);
   };
 
-  const handleRenameSubmit = async (projectId, e) => {
+  const handleRenameSubmit = async (chatId, e) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!editingName.trim()) return;
 
     try {
-      await api.updateProject(projectId, { name: editingName.trim() });
-      await refreshProjects();
-      setEditingProjectId(null);
+      await api.updateChat(chatId, { name: editingName.trim() });
+      await refreshChats();
+      setEditingChatId(null);
     } catch (error) {
-      console.error('Failed to rename project:', error);
+      console.error('Failed to rename chat:', error);
       // Add proper error handling here
     }
   };
 
-  const handleDelete = async (projectId, e) => {
+  const handleDelete = async (chatId, e) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this project?')) {
+    if (confirm('Are you sure you want to delete this chat?')) {
       try {
-        await api.deleteProject(projectId);
+        await api.deleteChat(chatId);
         // Refresh the projects list by calling the context update
-        await refreshProjects();
+        await refreshChats();
         // If we're currently on the deleted project's page, redirect to home
-        if (window.location.pathname.includes(`/workspace/${projectId}`)) {
+        if (window.location.pathname.includes(`/workspace/${chatId}`)) {
           router.push('/workspace/new');
         }
       } catch (error) {
-        console.error('Failed to delete project:', error);
+        console.error('Failed to delete chat:', error);
         // You might want to add proper error handling/notification here
       }
     }
@@ -119,18 +119,18 @@ export const Sidebar = () => {
               <div className="text-sm text-muted-foreground font-medium px-2">
                 Recent Chats
               </div>
-              {[...projects]
+              {[...chats]
                 .sort((a, b) => b.id - a.id)
-                .map((project) => (
+                .map((chat) => (
                   <div
-                    key={project.id}
+                    key={chat.id}
                     className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
-                    onClick={() => handleProjectClick(project.id)}
+                    onClick={() => handleChatClick(chat.id)}
                   >
                     <div className="flex justify-between items-center">
-                      {editingProjectId === project.id ? (
+                      {editingChatId === chat.id ? (
                         <form
-                          onSubmit={(e) => handleRenameSubmit(project.id, e)}
+                          onSubmit={(e) => handleRenameSubmit(chat.id, e)}
                           className="flex-1 mr-2"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -140,12 +140,12 @@ export const Sidebar = () => {
                             onChange={(e) => setEditingName(e.target.value)}
                             className="w-full px-1 py-0.5 text-sm bg-background border rounded"
                             autoFocus
-                            onBlur={(e) => handleRenameSubmit(project.id, e)}
+                            onBlur={(e) => handleRenameSubmit(chat.id, e)}
                           />
                         </form>
                       ) : (
                         <span className="truncate pr-2 text-sm">
-                          {project.name}
+                          {chat.name}
                         </span>
                       )}
                       <DropdownMenu>
@@ -161,13 +161,13 @@ export const Sidebar = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem
-                            onClick={(e) => handleRename(project.id, e)}
+                            onClick={(e) => handleRename(chat.id, e)}
                           >
                             <Pencil className="mr-2 h-4 w-4" />
                             Rename
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={(e) => handleDelete(project.id, e)}
+                            onClick={(e) => handleDelete(chat.id, e)}
                             className="text-red-600 focus:text-red-600 focus:bg-red-100"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />

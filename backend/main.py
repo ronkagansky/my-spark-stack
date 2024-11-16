@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import asyncio
 import modal
 
-from routers import project_socket, auth, projects, stacks
+from routers import project_socket, auth, projects, stacks, teams, chats
 
 
 async def periodic_task():
@@ -72,6 +72,8 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(project_socket.router)
 app.include_router(stacks.router)
+app.include_router(teams.router)
+app.include_router(chats.router)
 
 if __name__ == "__main__":
     init_db()

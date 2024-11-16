@@ -12,6 +12,7 @@ export function Preview({
   projectPreviewUrl,
   projectFileTree,
   projectId,
+  chatId,
 }) {
   const [selectedTab, setSelectedTab] = useState('preview');
 

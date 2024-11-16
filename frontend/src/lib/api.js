@@ -86,6 +86,10 @@ class ApiClient {
     }
   }
 
+  async getUserTeams() {
+    return this._get('/api/teams');
+  }
+
   async getUserProjects() {
     return this._get('/api/projects');
   }
@@ -94,8 +98,8 @@ class ApiClient {
     return this._get(`/api/projects/${projectId}`);
   }
 
-  async createProject(project) {
-    return this._post('/api/projects', project);
+  async createChat(chat) {
+    return this._post('/api/chats', chat);
   }
 
   async getProjectFile(projectId, filePath) {

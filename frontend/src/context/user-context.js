@@ -6,19 +6,33 @@ import { webSocketService } from '../lib/project-websocket';
 
 const UserContext = createContext({
   user: null,
-  projects: [],
+  team: null,
+  teams: [],
+  chats: [],
   createAccount: async () => {},
-  addProject: async () => {},
+  addChat: async () => {},
 });
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [projects, setProjects] = useState([]);
+  const [chats, setChats] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [team, setTeam] = useState(null);
 
   useEffect(() => {
     if (localStorage.getItem('token')) {
       api.getCurrentUser().then(setUser);
-      api.getUserProjects().then(setProjects);
+      api.getUserTeams().then((teams) => {
+        setTeams(teams);
+        if (!localStorage.getItem('team')) {
+          setTeam(teams[0]);
+          localStorage.setItem('team', teams[0].id);
+        } else {
+          setTeam(
+            teams.find((t) => t.id + '' === localStorage.getItem('team'))
+          );
+        }
+      });
     }
   }, []);
 
@@ -28,23 +42,25 @@ export function UserProvider({ children }) {
     return user;
   };
 
-  const addProject = (project) => {
-    setProjects((prev) => [...prev, project]);
+  const addChat = (chat) => {
+    setChats((prev) => [...prev, chat]);
   };
 
-  const refreshProjects = async () => {
-    const projects = await api.getUserProjects();
-    setProjects(projects);
+  const refreshChats = async () => {
+    const chats = await api.getUserChats();
+    setChats(chats);
   };
 
   return (
     <UserContext.Provider
       value={{
         user,
-        projects,
+        chats,
+        teams,
+        team,
         createAccount,
-        addProject,
-        refreshProjects,
+        addChat,
+        refreshChats,
       }}
     >
       {children}

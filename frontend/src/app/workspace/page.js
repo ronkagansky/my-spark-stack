@@ -9,13 +9,14 @@ import { api } from '@/lib/api';
 import { Chat } from './components/Chat';
 import { Preview } from './components/Preview';
 
-export default function WorkspacePage({ projectId }) {
-  const { addProject } = useUser();
+export default function WorkspacePage({ chatId }) {
+  const { addChat, team } = useUser();
   const router = useRouter();
+  const [projectId, setProjectId] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [respStreaming, setRespStreaming] = useState(false);
-  const [projectTitle, setProjectTitle] = useState('New Chat');
+  const [chatTitle, setChatTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
   const [projectFileTree, setProjectFileTree] = useState([]);
   const [projectStackPackId, setProjectStackPackId] = useState(null);
@@ -31,13 +32,10 @@ export default function WorkspacePage({ projectId }) {
     if (!localStorage.getItem('token')) {
       router.push('/');
     }
-  }, []);
-
-  useEffect(() => {
-    if (!projectId) {
+    if (!chatId) {
       router.push('/workspace/new');
     }
-  }, [projectId]);
+  }, [chatId]);
 
   const initializeWebSocket = async (wsProjectId) => {
     if (webSocketRef.current) {
@@ -122,19 +120,19 @@ export default function WorkspacePage({ projectId }) {
     return { ws };
   };
 
-  useEffect(() => {
-    if (projectId !== 'new') {
-      initializeWebSocket(projectId).catch((error) => {
-        console.error('Failed to initialize WebSocket:', error);
-      });
-    }
+  // useEffect(() => {
+  //   if (projectId !== 'new') {
+  //     initializeWebSocket(projectId).catch((error) => {
+  //       console.error('Failed to initialize WebSocket:', error);
+  //     });
+  //   }
 
-    return () => {
-      if (webSocketRef.current) {
-        webSocketRef.current.disconnect();
-      }
-    };
-  }, [projectId]);
+  //   return () => {
+  //     if (webSocketRef.current) {
+  //       webSocketRef.current.disconnect();
+  //     }
+  //   };
+  // }, [projectId]);
 
   const handleStackPackSelect = (stackPackId) => {
     setProjectStackPackId(stackPackId);
@@ -152,36 +150,29 @@ export default function WorkspacePage({ projectId }) {
       content: message.content,
       images: message.images || [],
     };
-
-    try {
-      setRespStreaming(true);
-      setMessages((prev) => [...prev, userMessage]);
-      if (projectId === 'new') {
-        const project = await api.createProject({
-          name: message.content,
-          description: `Chat session started on ${new Date().toLocaleDateString()}`,
-          stack_pack_id: projectStackPackId,
-        });
-        addProject(project);
-        const { ws } = await initializeWebSocket(project.id);
-        webSocketRef.current = ws;
-        webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
-        setTimeout(() => router.push(`/workspace/${project.id}`), 300);
-      } else {
-        webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      setRespStreaming(false);
+    setRespStreaming(true);
+    setMessages((prev) => [...prev, userMessage]);
+    if (chatId === 'new') {
+      const chat = await api.createChat({
+        name: message.content,
+        description: `Chat session started on ${new Date().toLocaleDateString()}`,
+        stack_id: projectStackPackId,
+        project_id: projectId,
+        team_id: team.id,
+      });
+      addChat(chat);
+      setTimeout(() => router.push(`/workspace/${chat.id}`), 100);
+    } else {
+      webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
     }
   };
 
   useEffect(() => {
-    const loadProjectDetails = async () => {
-      if (projectId !== 'new') {
+    (async () => {
+      if (chatId !== 'new') {
         try {
-          const project = await api.getProject(projectId);
-          setProjectTitle(project.name);
+          const project = await api.getProject(chatId);
+          setChatTitle(project.name);
           const existingMessages =
             project?.chat_messages.map((m) => ({
               role: m.role,
@@ -193,28 +184,26 @@ export default function WorkspacePage({ projectId }) {
           console.error('Failed to load project details:', error);
         }
       } else {
-        setProjectTitle('New Chat');
+        setChatTitle('New Chat');
         setMessages([]);
         setProjectPreviewUrl(null);
         setProjectFileTree([]);
         setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
       }
-    };
+    })();
+  }, [chatId]);
 
-    loadProjectDetails();
-  }, [projectId]);
-
-  useEffect(() => {
-    if (
-      webSocketRef.current &&
-      status?.status.includes('Ready') &&
-      messages.length === 1 &&
-      !respStreaming
-    ) {
-      setRespStreaming(true);
-      webSocketRef.current.sendMessage({ chat: messages });
-    }
-  }, [messages, status?.status, webSocketRef.current, respStreaming]);
+  // useEffect(() => {
+  //   if (
+  //     webSocketRef.current &&
+  //     status?.status.includes('Ready') &&
+  //     messages.length === 1 &&
+  //     !respStreaming
+  //   ) {
+  //     setRespStreaming(true);
+  //     webSocketRef.current.sendMessage({ chat: messages });
+  //   }
+  // }, [messages, status?.status, webSocketRef.current, respStreaming]);
 
   return (
     <div className="flex h-screen bg-background">
@@ -235,23 +224,22 @@ export default function WorkspacePage({ projectId }) {
           connected={!!webSocketRef.current}
           messages={messages}
           onSendMessage={handleSendMessage}
-          projectTitle={projectTitle}
+          projectTitle={chatTitle}
           status={status}
           onProjectSelect={handleProjectSelect}
           onStackSelect={handleStackPackSelect}
-          showStackPacks={projectId === 'new'}
+          showStackPacks={chatId === 'new'}
           suggestedFollowUps={suggestedFollowUps}
         />
         <Preview
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           projectPreviewUrl={
-            projectPreviewUrl
-              ? `${projectPreviewUrl}?hash=${previewHash}`
-              : null
+            projectPreviewUrl ? `${projectPreviewUrl}?v=${previewHash}` : null
           }
           projectFileTree={projectFileTree}
           projectId={projectId}
+          chatId={chatId}
         />
       </div>
     </div>

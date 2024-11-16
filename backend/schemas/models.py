@@ -15,20 +15,34 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
-class ProjectCreate(BaseModel):
+class TeamResponse(BaseModel):
+    id: int
     name: str
-    stack_pack_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ChatCreate(BaseModel):
+    name: str
     description: Optional[str] = None
+    stack_id: Optional[str] = None
+    project_id: Optional[int] = None
+    team_id: Optional[int] = None
 
 
 class ChatResponse(BaseModel):
     id: int
-    role: str
-    content: str
-    created_at: datetime
 
-    class Config:
-        from_attributes = True
+
+# class ChatResponse(BaseModel):
+#     id: int
+#     role: str
+#     content: str
+#     created_at: datetime
+
+#     class Config:
+#         from_attributes = True
 
 
 class ProjectResponse(BaseModel):
@@ -56,7 +70,7 @@ class AuthResponse(BaseModel):
         from_attributes = True
 
 
-class ProjectUpdate(BaseModel):
+class ChatUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 

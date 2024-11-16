@@ -51,7 +51,7 @@ class Project(TimestampMixin, Base):
     chats = relationship("Chat", back_populates="project", cascade="all, delete-orphan")
 
 
-class Team(Base):
+class Team(TimestampMixin, Base):
     __tablename__ = "teams"
 
     id = Column(Integer, primary_key=True, index=True)
