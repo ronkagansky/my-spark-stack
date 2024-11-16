@@ -52,21 +52,25 @@ const EmptyState = ({
           <SelectValue placeholder="Select a Project" />
         </SelectTrigger>
         <SelectContent className="max-h-[500px] w-full">
-          <SelectItem value={null} className="py-2">
-            <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-              <span className="font-medium truncate">New Project</span>
-              <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
-                Start a new project from scratch.
-              </p>
-            </div>
-          </SelectItem>
-          {projects?.map((project) => (
-            <SelectItem key={project.id} value={project.id} className="py-2">
-              <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-                <span className="font-medium truncate">{project.title}</span>
-              </div>
-            </SelectItem>
-          ))}
+          {[
+            {
+              id: null,
+              title: 'New Project',
+              description:
+                'Start a new project from scratch. The project will be created after your first chat.',
+            },
+          ]
+            .concat(projects ?? [])
+            .map((project) => (
+              <SelectItem key={project.id} value={project.id} className="py-2">
+                <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
+                  <span className="font-medium truncate">{project.title}</span>
+                  <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
+                    {project.description}
+                  </p>
+                </div>
+              </SelectItem>
+            ))}
         </SelectContent>
       </Select>
 
@@ -80,24 +84,25 @@ const EmptyState = ({
           <SelectValue placeholder="Select a Stack" />
         </SelectTrigger>
         <SelectContent className="max-h-[500px] w-full">
-          <SelectItem value={null} className="py-2">
-            <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-              <span className="font-medium truncate">Pick Stack</span>
-              <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
-                Let AI choose the best stack.
-              </p>
-            </div>
-          </SelectItem>
-          {stacks?.map((pack) => (
-            <SelectItem key={pack.id} value={pack.id} className="py-2">
-              <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-                <span className="font-medium truncate">{pack.title}</span>
-                <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
-                  {pack.description}
-                </p>
-              </div>
-            </SelectItem>
-          ))}
+          {[
+            {
+              id: null,
+              title: 'Auto Stack',
+              description:
+                'Let AI choose the best stack based on your first prompt in the current chat.',
+            },
+          ]
+            .concat(stacks ?? [])
+            .map((pack) => (
+              <SelectItem key={pack.id} value={pack.id} className="py-2">
+                <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
+                  <span className="font-medium truncate">{pack.title}</span>
+                  <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
+                    {pack.description}
+                  </p>
+                </div>
+              </SelectItem>
+            ))}
         </SelectContent>
       </Select>
     </div>
