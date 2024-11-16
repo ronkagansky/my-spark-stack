@@ -8,29 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
-function getLanguageFromFilename(filename) {
-  const extension = filename.split('.').pop().toLowerCase();
-  const languageMap = {
-    js: 'javascript',
-    jsx: 'javascript',
-    ts: 'typescript',
-    tsx: 'typescript',
-    py: 'python',
-    json: 'json',
-    md: 'markdown',
-    css: 'css',
-    html: 'html',
-    yml: 'yaml',
-    yaml: 'yaml',
-    xml: 'xml',
-    sql: 'sql',
-    sh: 'shell',
-    bash: 'shell',
-    txt: 'plaintext',
-  };
-  return languageMap[extension] || 'plaintext';
-}
+import { getLanguageFromFilename } from '@/lib/utils';
 
 export function FileUpdate({ children }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -76,6 +54,15 @@ export function FileUpdate({ children }) {
   );
 }
 
+function FileLoading() {
+  return (
+    <div className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 text-white rounded-md animate-gradient bg-[length:200%_200%]">
+      ...
+    </div>
+  );
+}
+
 export const components = {
   'file-update': FileUpdate,
+  'file-loading': FileLoading,
 };

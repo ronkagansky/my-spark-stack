@@ -1,10 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketException
 from typing import Dict, List, Callable, Optional
 from enum import Enum
-from asyncio import create_task
+from asyncio import create_task, Lock
 from pydantic import BaseModel
-import datetime
-import asyncio
 
 from sandbox.sandbox import DevSandbox
 from agents.agent import Agent, ChatMessage, parse_file_changes
@@ -80,6 +78,7 @@ class ProjectManager:
         self.project_id = project_id
         self.chat_sockets: Dict[int, List[WebSocket]] = {}
         self.chat_agents: Dict[int, Agent] = {}
+        self.lock: Lock = Lock()
         self.sandbox_status = SandboxStatus.OFFLINE
         self.sandbox = None
         self.tunnels = {}
@@ -129,6 +128,8 @@ class ProjectManager:
             del self.chat_agents[chat_id]
 
     async def on_chat_message(self, chat_id: int, message: ChatMessage):
+        if not await self.lock.acquire():
+            return
         self.sandbox_status = SandboxStatus.WORKING
         await self.emit_project(await self._get_project_status())
 
@@ -181,12 +182,15 @@ class ProjectManager:
 
         self.sandbox_status = SandboxStatus.READY
         await self.emit_project(await self._get_project_status())
+        self.lock.release()
 
     async def emit_project(self, data: BaseModel):
         for chat_id in self.chat_sockets:
             await self.emit_chat(chat_id, data)
 
     async def emit_chat(self, chat_id: int, data: BaseModel):
+        if chat_id not in self.chat_sockets:
+            return
         sockets = list(self.chat_sockets[chat_id])
         for socket in sockets:
             try:
@@ -225,7 +229,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
         while True:
             raw_data = await websocket.receive_text()
             data = ChatMessage.model_validate_json(raw_data)
-            await pm.on_chat_message(chat_id, data)
+            create_task(pm.on_chat_message(chat_id, data))
     except Exception as e:
         print("websocket loop error", e)
     finally:

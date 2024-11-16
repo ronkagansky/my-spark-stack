@@ -11,31 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUser } from '@/context/user-context';
-
-function getLanguageFromFilename(filename) {
-  const extension = filename.split('.').pop().toLowerCase();
-
-  const languageMap = {
-    js: 'javascript',
-    jsx: 'javascript',
-    ts: 'typescript',
-    tsx: 'typescript',
-    py: 'python',
-    json: 'json',
-    md: 'markdown',
-    css: 'css',
-    html: 'html',
-    yml: 'yaml',
-    yaml: 'yaml',
-    xml: 'xml',
-    sql: 'sql',
-    sh: 'shell',
-    bash: 'shell',
-    txt: 'plaintext',
-  };
-
-  return languageMap[extension] || 'plaintext';
-}
+import { getLanguageFromFilename } from '@/lib/utils';
 
 export function FilesTab({ projectFileTree, project }) {
   const defaultFile = '/app/my-app/src/App.js';

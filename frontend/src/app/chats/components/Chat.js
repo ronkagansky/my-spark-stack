@@ -323,7 +323,7 @@ export function Chat({
           JSON.stringify({ filename, content })
         )}</file-update>`
     );
-    content = content.replace(/```[^`]+$/, '...');
+    content = content.replace(/```[^`]+$/, '<file-loading>...</file-loading>');
     return content;
   };
 
@@ -498,11 +498,11 @@ export function Chat({
           handleChipClick={handleChipClick}
           status={status}
           suggestedFollowUps={
-            suggestedFollowUps &&
-            suggestedFollowUps.length > 0 &&
-            messages.length > 0
+            suggestedFollowUps && suggestedFollowUps.length > 0
               ? suggestedFollowUps
-              : STARTER_PROMPTS
+              : messages.length === 0
+              ? STARTER_PROMPTS
+              : []
           }
           chatPlaceholder={
             suggestedFollowUps &&
