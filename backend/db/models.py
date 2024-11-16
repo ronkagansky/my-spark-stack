@@ -23,6 +23,7 @@ class User(TimestampMixin, Base):
     team_memberships = relationship(
         "TeamMember", back_populates="user", cascade="all, delete-orphan"
     )
+    chats = relationship("Chat", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Project(TimestampMixin, Base):
@@ -114,9 +115,13 @@ class Chat(Base):
     project_id = Column(
         Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     # Relationships
     project = relationship("Project", back_populates="chats")
+    owner = relationship("User", back_populates="chats")
     messages = relationship(
         "Message", back_populates="chat", cascade="all, delete-orphan"
     )

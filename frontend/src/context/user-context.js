@@ -22,7 +22,8 @@ export function UserProvider({ children }) {
   useEffect(() => {
     if (localStorage.getItem('token')) {
       api.getCurrentUser().then(setUser);
-      api.getUserTeams().then((teams) => {
+      api.getChats().then(setChats);
+      api.getTeams().then((teams) => {
         setTeams(teams);
         if (!localStorage.getItem('team')) {
           setTeam(teams[0]);
@@ -47,7 +48,7 @@ export function UserProvider({ children }) {
   };
 
   const refreshChats = async () => {
-    const chats = await api.getUserChats();
+    const chats = await api.getChats();
     setChats(chats);
   };
 

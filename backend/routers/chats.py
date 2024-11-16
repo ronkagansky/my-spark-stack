@@ -69,7 +69,7 @@ async def create_chat(
         project = Project(
             name=chat.name,
             description=chat.description,
-            owner_id=current_user.id,
+            user_id=current_user.id,
             team_id=team_id,
             stack_id=stack.id,
         )
@@ -92,8 +92,8 @@ async def create_chat(
 
     new_chat = Chat(
         name=chat.name,
-        description=chat.description,
         project_id=project_id,
+        user_id=current_user.id,
     )
 
     db.add(new_chat)

@@ -55,7 +55,7 @@ const EmptyState = ({
           {[
             {
               id: null,
-              title: 'New Project',
+              name: 'New Project',
               description:
                 'Start a new project from scratch. The project will be created after your first chat.',
             },
@@ -64,7 +64,7 @@ const EmptyState = ({
             .map((project) => (
               <SelectItem key={project.id} value={project.id} className="py-2">
                 <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-                  <span className="font-medium truncate">{project.title}</span>
+                  <span className="font-medium truncate">{project.name}</span>
                   <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
                     {project.description}
                   </p>

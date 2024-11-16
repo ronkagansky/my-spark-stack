@@ -33,25 +33,13 @@ class ChatCreate(BaseModel):
 
 class ChatResponse(BaseModel):
     id: int
-
-
-# class ChatResponse(BaseModel):
-#     id: int
-#     role: str
-#     content: str
-#     created_at: datetime
-
-#     class Config:
-#         from_attributes = True
+    name: str
 
 
 class ProjectResponse(BaseModel):
     id: int
     name: str
     description: Optional[str]
-    owner_id: int
-    stack_pack_id: str
-    chat_messages: Optional[List[ChatResponse]] = None
 
     class Config:
         from_attributes = True

@@ -86,8 +86,12 @@ class ApiClient {
     }
   }
 
-  async getUserTeams() {
+  async getTeams() {
     return this._get('/api/teams');
+  }
+
+  async getChats() {
+    return this._get('/api/chats');
   }
 
   async getUserProjects() {

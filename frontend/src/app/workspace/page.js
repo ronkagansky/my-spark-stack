@@ -155,7 +155,7 @@ export default function WorkspacePage({ chatId }) {
     if (chatId === 'new') {
       const chat = await api.createChat({
         name: message.content,
-        description: `Chat session started on ${new Date().toLocaleDateString()}`,
+        description: `Project started on ${new Date().toLocaleDateString()}`,
         stack_id: projectStackPackId,
         project_id: projectId,
         team_id: team.id,
