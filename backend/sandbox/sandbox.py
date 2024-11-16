@@ -9,7 +9,6 @@ from asyncio import Lock
 
 from db.database import get_db
 from db.models import Project
-from sandbox.packs import get_pack_by_id
 
 app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 

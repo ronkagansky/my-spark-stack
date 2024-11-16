@@ -59,3 +59,16 @@ class AuthResponse(BaseModel):
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+
+
+class StackResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    prompt: str
+    from_registry: str
+    sandbox_init_cmd: str
+    sandbox_start_cmd: str
+
+    class Config:
+        from_attributes = True

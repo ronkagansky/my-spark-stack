@@ -12,7 +12,6 @@ from schemas.models import (
     ProjectUpdate,
 )
 from sandbox.sandbox import DevSandbox
-from sandbox.packs import DEFAULT_STACK_PACK_ID
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -62,7 +61,7 @@ async def create_project(
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    stack_pack_id = project.stack_pack_id or DEFAULT_STACK_PACK_ID
+    stack_pack_id = project.stack_pack_id or ""
     new_project = Project(
         name=project.name,
         description=project.description,

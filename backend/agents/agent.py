@@ -7,7 +7,6 @@ import json
 
 from db.models import Project
 from sandbox.sandbox import DevSandbox
-from sandbox.packs import get_pack_by_id
 
 
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))

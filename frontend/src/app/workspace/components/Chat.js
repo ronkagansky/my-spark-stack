@@ -33,18 +33,47 @@ const components = {
 };
 
 const EmptyState = ({
-  selectedEnvironment,
-  setSelectedEnvironment,
-  stackPacks,
-  onStackPackSelect,
+  selectedStack,
+  stacks,
+  onStackSelect,
+  selectedProject,
+  projects,
+  onProjectSelect,
 }) => (
   <div className="flex flex-col items-center justify-center h-full">
-    <div className="max-w-md w-full">
+    <div className="max-w-md w-full space-y-4">
       <Select
-        value={selectedEnvironment}
+        value={selectedProject}
         onValueChange={(value) => {
-          setSelectedEnvironment(value);
-          onStackPackSelect(value);
+          onProjectSelect(value);
+        }}
+      >
+        <SelectTrigger className="w-full py-10">
+          <SelectValue placeholder="Select a Project" />
+        </SelectTrigger>
+        <SelectContent className="max-h-[500px] w-full">
+          <SelectItem value={null} className="py-2">
+            <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
+              <span className="font-medium truncate">New Project</span>
+              <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
+                Start a new project from scratch.
+              </p>
+            </div>
+          </SelectItem>
+          {projects?.map((project) => (
+            <SelectItem key={project.id} value={project.id} className="py-2">
+              <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
+                <span className="font-medium truncate">{project.title}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={selectedStack}
+        onValueChange={(value) => {
+          onStackSelect(value);
         }}
       >
         <SelectTrigger className="w-full py-10">
@@ -53,14 +82,13 @@ const EmptyState = ({
         <SelectContent className="max-h-[500px] w-full">
           <SelectItem value={null} className="py-2">
             <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-              <span className="font-medium truncate">Auto Pick Stack</span>
+              <span className="font-medium truncate">Pick Stack</span>
               <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
-                Let AI choose the best stack for your project based on your
-                first prompt.
+                Let AI choose the best stack.
               </p>
             </div>
           </SelectItem>
-          {stackPacks?.map((pack) => (
+          {stacks?.map((pack) => (
             <SelectItem key={pack.id} value={pack.id} className="py-2">
               <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
                 <span className="font-medium truncate">{pack.title}</span>
@@ -208,7 +236,8 @@ export function Chat({
   onSendMessage,
   projectTitle,
   status,
-  onStackPackSelect,
+  onStackSelect,
+  onProjectSelect,
   showStackPacks = false,
   suggestedFollowUps = [],
 }) {
@@ -216,8 +245,10 @@ export function Chat({
   const [imageAttachments, setImageAttachments] = useState([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const messagesEndRef = useRef(null);
-  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
-  const [stackPacks, setStackPacks] = useState([]);
+  const [selectedStack, setSelectedStack] = useState(null);
+  const [stacks, setStackPacks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
 
   useEffect(() => {
     const fetchStackPacks = async () => {
@@ -229,6 +260,18 @@ export function Chat({
       }
     };
     fetchStackPacks();
+  }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const projects = await api.getProjects();
+        setProjects(projects);
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      }
+    };
+    fetchProjects();
   }, []);
 
   const fixCodeBlocks = (content) => {
@@ -432,6 +475,16 @@ export function Chat({
     }
   };
 
+  const handleStackSelect = (stack) => {
+    setSelectedStack(stack);
+    onStackSelect(stack);
+  };
+
+  const handleProjectSelect = (project) => {
+    setSelectedProject(project);
+    onProjectSelect(project);
+  };
+
   return (
     <div className="flex-1 flex flex-col md:max-w-[80%] md:mx-auto w-full">
       <div className="fixed top-0 left-0 right-0 md:relative bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 border-b">
@@ -461,10 +514,12 @@ export function Chat({
         )}
         {messages.length === 0 && showStackPacks ? (
           <EmptyState
-            selectedEnvironment={selectedEnvironment}
-            setSelectedEnvironment={setSelectedEnvironment}
-            stackPacks={stackPacks}
-            onStackPackSelect={onStackPackSelect}
+            selectedStack={selectedStack}
+            stacks={stacks}
+            onStackSelect={handleStackSelect}
+            selectedProject={selectedProject}
+            projects={projects}
+            onProjectSelect={handleProjectSelect}
           />
         ) : (
           <MessageList messages={messages} fixCodeBlocks={fixCodeBlocks} />

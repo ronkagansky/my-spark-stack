@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from db.database import init_db, get_db
 from db.models import Project
 from contextlib import asynccontextmanager
@@ -7,7 +8,7 @@ from datetime import datetime, timedelta
 import asyncio
 import modal
 
-from routers import auth, projects, websockets, stacks
+from routers import project_socket, auth, projects, stacks
 
 
 async def periodic_task():
@@ -69,7 +70,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(projects.router)
-app.include_router(websockets.router)
+app.include_router(project_socket.router)
 app.include_router(stacks.router)
 
 if __name__ == "__main__":

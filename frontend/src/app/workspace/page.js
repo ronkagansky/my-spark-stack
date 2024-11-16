@@ -136,8 +136,12 @@ export default function WorkspacePage({ projectId }) {
     };
   }, [projectId]);
 
-  const handleStackPackSelect = async (stackPackId) => {
+  const handleStackPackSelect = (stackPackId) => {
     setProjectStackPackId(stackPackId);
+  };
+
+  const handleProjectSelect = (projectId) => {
+    setProjectId(projectId);
   };
 
   const handleSendMessage = async (message) => {
@@ -233,7 +237,8 @@ export default function WorkspacePage({ projectId }) {
           onSendMessage={handleSendMessage}
           projectTitle={projectTitle}
           status={status}
-          onStackPackSelect={handleStackPackSelect}
+          onProjectSelect={handleProjectSelect}
+          onStackSelect={handleStackPackSelect}
           showStackPacks={projectId === 'new'}
           suggestedFollowUps={suggestedFollowUps}
         />

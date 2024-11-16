@@ -94,6 +94,7 @@ class Stack(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False, unique=True)
     description = Column(Text, nullable=False)
+    prompt = Column(Text, nullable=False)
     from_registry = Column(String, nullable=False)
     sandbox_init_cmd = Column(Text, nullable=False)
     sandbox_start_cmd = Column(Text, nullable=False)

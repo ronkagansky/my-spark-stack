@@ -2,22 +2,22 @@ from pydantic import BaseModel
 
 
 class StackPack(BaseModel):
-    id: str
     title: str
     description: str
     from_registry: str
+    sandbox_init_cmd: str
     sandbox_start_cmd: str
-    stack_description: str
+    prompt: str
 
 
 PACKS = [
     StackPack(
-        id="vanilla-react",
         title="Vanilla React",
         description="A simple JS React App. Best for starting from scratch with minimal dependencies.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-vanilla-react@sha256:8e4377feb2f989f7bea506aacb477936ae08aa95c68d5fb5fe8cec2395fa4342",
-        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm run start",
-        stack_description="""
+        sandbox_init_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi",
+        sandbox_start_cmd="cd frontend && npm run start",
+        prompt="""
 You are building a vanilla React app.
 
 The user choose to use a vanilla app so avoid adding any additional dependencies unless they are explicitly asked for.
@@ -34,12 +34,12 @@ Tips:
 """.strip(),
     ),
     StackPack(
-        id="nextjs-shadcn",
         title="Nextjs Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a nice UI.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:1e4d19582567f98b4672d346472867dcb475e32bdb8e2c43a9ee6b0bdf4a57c5",
-        sandbox_start_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi && cd frontend && npm run dev",
-        stack_description="""
+        sandbox_init_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi",
+        sandbox_start_cmd="cd frontend && npm run dev",
+        prompt="""
 You are building a Nextjs app with Shadcn UI.
 
 The user choose to use a Nextjs app with Shadcn UI so avoid adding any additional dependencies unless they are explicitly asked for.
@@ -61,9 +61,3 @@ Tips:
 """.strip(),
     ),
 ]
-
-DEFAULT_STACK_PACK_ID = "nextjs-shadcn"
-
-
-def get_pack_by_id(id: str) -> StackPack:
-    return next((pack for pack in PACKS if pack.id == id), None)
