@@ -29,7 +29,7 @@ export default function AuthPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create account',
+        description: 'Failed to create account',
         variant: 'destructive',
       });
     } finally {

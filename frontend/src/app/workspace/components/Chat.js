@@ -51,20 +51,20 @@ const EmptyState = ({
           <SelectValue placeholder="Select a Stack" />
         </SelectTrigger>
         <SelectContent className="max-h-[500px] w-full">
-          <SelectItem value={null} className="py-2 w-full">
-            <div className="flex flex-col gap-1 w-full">
-              <span className="font-medium">Pick stack for me</span>
-              <p className="text-sm text-muted-foreground break-words whitespace-normal w-full pr-4">
+          <SelectItem value={null} className="py-2">
+            <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
+              <span className="font-medium truncate">Auto Pick Stack</span>
+              <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
                 Let AI choose the best stack for your project based on your
                 first prompt.
               </p>
             </div>
           </SelectItem>
           {stackPacks?.map((pack) => (
-            <SelectItem key={pack.id} value={pack.id} className="py-2 w-full">
-              <div className="flex flex-col gap-1 w-full">
-                <span className="font-medium">{pack.title}</span>
-                <p className="text-sm text-muted-foreground break-words whitespace-normal w-full pr-4">
+            <SelectItem key={pack.id} value={pack.id} className="py-2">
+              <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
+                <span className="font-medium truncate">{pack.title}</span>
+                <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
                   {pack.description}
                 </p>
               </div>

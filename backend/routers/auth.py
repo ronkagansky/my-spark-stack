@@ -7,7 +7,7 @@ import secrets
 import os
 
 from db.database import get_db
-from db.models import User
+from db.models import User, Team, TeamMember, Project, TeamRole, Stack
 from schemas.models import UserCreate, UserResponse, AuthResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -40,11 +40,28 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
 
-    new_user = User(username=user.username)
-    db.add(new_user)
+    # Start transaction
     try:
+        # Create user
+        new_user = User(username=user.username)
+        db.add(new_user)
+        db.flush()  # Flush to get the user ID
+
+        # Create personal team
+        personal_team = Team(name=f"{user.username}'s Team")
+        db.add(personal_team)
+        db.flush()
+
+        # Add user as team admin
+        team_member = TeamMember(
+            team_id=personal_team.id, user_id=new_user.id, role=TeamRole.ADMIN
+        )
+        db.add(team_member)
+
         db.commit()
         db.refresh(new_user)
+
+        # Generate token
         token = jwt.encode(
             {"sub": new_user.username, "exp": datetime.utcnow() + timedelta(days=30)},
             SECRET_KEY,

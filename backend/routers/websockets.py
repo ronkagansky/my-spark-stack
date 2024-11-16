@@ -9,7 +9,7 @@ import asyncio
 from sandbox.sandbox import DevSandbox
 from agents.agent import Agent, ChatMessage, parse_file_changes
 from db.database import get_db
-from db.models import Project, ChatMessage as DbChatMessage
+from db.models import Project, Message as DbChatMessage
 from routers.auth import get_current_user_from_token
 from sqlalchemy.orm import Session
 
