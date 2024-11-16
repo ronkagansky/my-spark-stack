@@ -3,7 +3,8 @@ from typing import Dict, List, Callable, Optional
 from enum import Enum
 from asyncio import create_task, Lock
 from pydantic import BaseModel
-
+import datetime
+import asyncio
 from sandbox.sandbox import DevSandbox
 from agents.agent import Agent, ChatMessage, parse_file_changes
 from db.database import get_db
@@ -81,6 +82,7 @@ class ProjectManager:
         self.lock: Lock = Lock()
         self.sandbox_status = SandboxStatus.OFFLINE
         self.sandbox = None
+        self.sandbox_file_paths: Optional[List[str]] = None
         self.tunnels = {}
 
     async def _manage_sandbox_task(self):
@@ -92,6 +94,7 @@ class ProjectManager:
         self.sandbox_status = SandboxStatus.READY
         tunnels = await self.sandbox.sb.tunnels.aio()
         self.tunnels = {port: tunnel.url for port, tunnel in tunnels.items()}
+        self.sandbox_file_paths = await self.sandbox.get_file_paths()
         await self.emit_project(await self._get_project_status())
         for agent in self.chat_agents.values():
             agent.sandbox = self.sandbox
@@ -100,14 +103,11 @@ class ProjectManager:
         create_task(self._manage_sandbox_task())
 
     async def _get_project_status(self):
-        file_paths = None
-        if self.sandbox:
-            file_paths = await self.sandbox.get_file_paths()
         return ProjectStatusResponse(
             project_id=self.project_id,
             sandbox_status=self.sandbox_status,
             tunnels=self.tunnels,
-            file_paths=file_paths,
+            file_paths=self.sandbox_file_paths,
         )
 
     async def add_chat_socket(self, chat_id: int, websocket: WebSocket):
@@ -153,7 +153,7 @@ class ProjectManager:
         )
         messages = [_db_message_to_message(m) for m in db_messages]
         total_content = ""
-        async for partial_message in agent.step(messages):
+        async for partial_message in agent.step(messages, self.sandbox_file_paths):
             total_content += partial_message.delta_content
             await self.emit_chat(
                 chat_id,
@@ -164,12 +164,15 @@ class ProjectManager:
 
         resp_message = ChatMessage(role="assistant", content=total_content)
         db_resp_message = _message_to_db_message(resp_message, chat_id)
+        project = self.db.query(Project).filter(Project.id == self.project_id).first()
+        project.modal_sandbox_last_used_at = datetime.datetime.now()
         self.db.add(db_resp_message)
         self.db.commit()
 
-        await _apply_file_changes(agent, total_content)
-
-        follow_ups = await agent.suggest_follow_ups(messages + [resp_message])
+        _, follow_ups = await asyncio.gather(
+            _apply_file_changes(agent, total_content),
+            agent.suggest_follow_ups(messages + [resp_message]),
+        )
 
         await self.emit_chat(
             chat_id,
@@ -181,22 +184,27 @@ class ProjectManager:
         )
 
         self.sandbox_status = SandboxStatus.READY
+        self.sandbox_file_paths = await self.sandbox.get_file_paths()
         await self.emit_project(await self._get_project_status())
         self.lock.release()
 
     async def emit_project(self, data: BaseModel):
-        for chat_id in self.chat_sockets:
-            await self.emit_chat(chat_id, data)
+        await asyncio.gather(
+            *[self.emit_chat(chat_id, data) for chat_id in self.chat_sockets]
+        )
 
     async def emit_chat(self, chat_id: int, data: BaseModel):
         if chat_id not in self.chat_sockets:
             return
         sockets = list(self.chat_sockets[chat_id])
-        for socket in sockets:
+
+        async def _try_send(socket: WebSocket):
             try:
                 await socket.send_json(data.model_dump())
             except Exception:
                 self.chat_sockets[chat_id].remove(socket)
+
+        await asyncio.gather(*[_try_send(socket) for socket in sockets])
 
 
 project_managers: Dict[int, ProjectManager] = {}

@@ -130,6 +130,7 @@ const MessageList = ({ messages, fixCodeBlocks }) => (
                 ))}
               </div>
             )}
+            {msg.thinking_content}
             <ReactMarkdown
               components={components}
               rehypePlugins={[rehypeRaw]}

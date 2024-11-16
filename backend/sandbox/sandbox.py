@@ -187,6 +187,7 @@ for path, base64_content in files:
                 project.modal_sandbox_id,
             )
 
+            expires_in = 3 * 60 * 60
             image = modal.Image.from_registry(stack.from_registry, add_python=None)
             sb = await modal.Sandbox.create.aio(
                 "sh",
@@ -196,12 +197,15 @@ for path, base64_content in files:
                 volumes={"/app": vol},
                 image=image,
                 encrypted_ports=[3000],
-                timeout=3 * 60 * 60,
+                timeout=expires_in,
                 cpu=1,
                 memory=1024,
             )
             project.modal_sandbox_id = sb.object_id
             project.modal_sandbox_last_used_at = datetime.datetime.now()
+            project.modal_sandbox_expires_at = (
+                datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
+            )
             db.commit()
             await sb.set_tags.aio({"project_id": str(project_id)})
         else:

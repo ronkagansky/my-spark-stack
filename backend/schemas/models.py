@@ -49,6 +49,8 @@ class MessageResponse(BaseModel):
 class ProjectResponse(BaseModel):
     id: int
     name: str
+    created_at: datetime
+    updated_at: datetime
     description: Optional[str]
 
     class Config:
@@ -58,6 +60,8 @@ class ProjectResponse(BaseModel):
 class ChatResponse(BaseModel):
     id: int
     name: str
+    created_at: datetime
+    updated_at: datetime
     messages: Optional[List[MessageResponse]] = None
     project: Optional[ProjectResponse] = None
 

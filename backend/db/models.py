@@ -73,7 +73,7 @@ class TeamRole(PyEnum):
     MEMBER = "member"
 
 
-class TeamMember(Base):
+class TeamMember(TimestampMixin, Base):
     __tablename__ = "team_members"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -90,7 +90,7 @@ class TeamMember(Base):
     user = relationship("User", back_populates="team_memberships")
 
 
-class Stack(Base):
+class Stack(TimestampMixin, Base):
     __tablename__ = "stacks"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -108,7 +108,7 @@ class Stack(Base):
     )
 
 
-class Chat(Base):
+class Chat(TimestampMixin, Base):
     __tablename__ = "chats"
 
     id = Column(Integer, primary_key=True, index=True)

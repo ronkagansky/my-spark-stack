@@ -122,10 +122,23 @@ export default function WorkspacePage({ chatId }) {
             if (lastMessage?.role === 'assistant') {
               return [
                 ...prev.slice(0, -1),
-                { ...lastMessage, content: lastMessage.content + data.content },
+                {
+                  ...lastMessage,
+                  content: lastMessage.content + data.content,
+                  thinking_content:
+                    (lastMessage?.thinking_content || '') +
+                    data.thinking_content,
+                },
               ];
             }
-            return [...prev, { role: 'assistant', content: data.content }];
+            return [
+              ...prev,
+              {
+                role: 'assistant',
+                content: data.content,
+                thinking_content: data.thinking_content,
+              },
+            ];
           });
         };
 
