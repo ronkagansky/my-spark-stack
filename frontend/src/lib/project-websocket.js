@@ -1,10 +1,9 @@
 import { API_URL } from '@/lib/api';
 
 export class ProjectWebSocketService {
-  constructor(projectId) {
+  constructor(chatId) {
     this.ws = null;
-    this.listeners = new Set();
-    this.projectId = projectId;
+    this.chatId = chatId;
   }
 
   connect() {
@@ -20,25 +19,8 @@ export class ProjectWebSocketService {
     }
 
     this.ws = new WebSocket(
-      `${wsProtocol}${baseUrl}/api/ws/project-chat/${this.projectId}?token=${token}`
+      `${wsProtocol}${baseUrl}/api/ws/chat/${this.chatId}?token=${token}`
     );
-
-    this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.notifyListeners(data);
-    };
-
-    this.ws.onclose = (event) => {
-      console.log('WebSocket connection closed', event.code, event.reason);
-      // Only attempt to reconnect if it wasn't closed due to auth errors
-      if (![4001, 4003].includes(event.code)) {
-        setTimeout(() => this.connect(), 5000);
-      }
-    };
-
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
   }
 
   disconnect() {
@@ -54,17 +36,5 @@ export class ProjectWebSocketService {
     } else {
       console.error('WebSocket is not connected');
     }
-  }
-
-  addListener(callback) {
-    this.listeners.add(callback);
-  }
-
-  removeListener(callback) {
-    this.listeners.delete(callback);
-  }
-
-  notifyListeners(data) {
-    this.listeners.forEach((listener) => listener(data));
   }
 }

@@ -141,15 +141,15 @@ const MessageList = ({ messages, fixCodeBlocks }) => (
 );
 
 const ChatInput = ({
+  disabled,
   message,
   setMessage,
   handleSubmit,
   handleKeyDown,
   handleChipClick,
-  respStreaming,
   suggestedFollowUps,
   chatPlaceholder,
-  isSettingUp,
+  status,
   onImageAttach,
   imageAttachments,
   onRemoveImage,
@@ -161,7 +161,7 @@ const ChatInput = ({
         <button
           key={prompt}
           type="button"
-          disabled={respStreaming || isSettingUp}
+          disabled={disabled}
           onClick={() => handleChipClick(prompt)}
           className="px-3 py-1 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
         >
@@ -215,7 +215,7 @@ const ChatInput = ({
         type="button"
         size="icon"
         variant="outline"
-        disabled={respStreaming || isSettingUp}
+        disabled={disabled}
         onClick={onScreenshot}
       >
         <Scan className="h-4 w-4" />
@@ -224,20 +224,28 @@ const ChatInput = ({
         type="button"
         size="icon"
         variant="outline"
-        disabled={respStreaming || isSettingUp}
+        disabled={disabled}
         onClick={() => document.getElementById('imageInput').click()}
       >
         <ImageIcon className="h-4 w-4" />
       </Button>
-      <Button type="submit" size="icon" disabled={respStreaming || isSettingUp}>
+      <Button type="submit" size="icon" disabled={disabled}>
         <SendIcon className="h-4 w-4" />
       </Button>
     </div>
   </form>
 );
 
+const statusMap = {
+  NEW_CHAT: { status: 'Ready', color: 'bg-gray-500' },
+  DISCONNECTED: { status: 'Disconnected', color: 'bg-gray-500' },
+  OFFLINE: { status: 'Offline', color: 'bg-gray-500' },
+  BUILDING: { status: 'Setting up (~3m)', color: 'bg-yellow-500' },
+  READY: { status: 'Ready', color: 'bg-green-500' },
+  WORKING: { status: 'Updating...', color: 'bg-green-500' },
+};
+
 export function Chat({
-  respStreaming,
   messages,
   onSendMessage,
   projectTitle,
@@ -388,18 +396,6 @@ export function Chat({
     }
   };
 
-  useEffect(() => {
-    if (status?.status.includes('Disconnected') && messages.length > 0) {
-      const timer = setTimeout(() => {
-        window.location.reload();
-      }, 10000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [status?.status, messages.length]);
-
-  const isSettingUp = status?.status.includes('Setting up');
-
   const handleRemoveImage = (index) => {
     setImageAttachments((prev) => prev.filter((_, i) => i !== index));
     // Clear the file input if all images are removed
@@ -495,9 +491,11 @@ export function Chat({
         <div className="px-4 py-2.5 pt-16 md:pt-2.5 flex items-center justify-between gap-4">
           <h1 className="text-base font-semibold truncate">{projectTitle}</h1>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className={`w-2 h-2 rounded-full ${status.color}`} />
+            <div
+              className={`w-2 h-2 rounded-full ${statusMap[status].color}`}
+            />
             <span className="text-sm text-muted-foreground capitalize">
-              {status.status}
+              {statusMap[status].status}
             </span>
           </div>
         </div>
@@ -506,7 +504,7 @@ export function Chat({
         className="flex-1 overflow-auto p-4 pt-28 md:pt-4 relative"
         onScroll={handleScroll}
       >
-        {!showStackPacks && messages.length <= 1 && isSettingUp && (
+        {!showStackPacks && messages.length <= 1 && status === 'BUILDING' && (
           <>
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -532,13 +530,13 @@ export function Chat({
       </div>
       <div className="border-t p-4">
         <ChatInput
+          disabled={!['NEW_CHAT', 'READY'].includes(status)}
           message={message}
           setMessage={setMessage}
           handleSubmit={handleSubmit}
           handleKeyDown={handleKeyDown}
           handleChipClick={handleChipClick}
-          respStreaming={respStreaming}
-          isSettingUp={isSettingUp}
+          status={status}
           suggestedFollowUps={
             suggestedFollowUps &&
             suggestedFollowUps.length > 0 &&

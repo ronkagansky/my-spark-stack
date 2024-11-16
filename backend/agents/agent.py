@@ -5,7 +5,7 @@ import re
 import os
 import json
 
-from db.models import Project
+from db.models import Project, Stack
 from sandbox.sandbox import DevSandbox
 
 
@@ -17,6 +17,7 @@ class ChatImage(BaseModel):
 
 
 class ChatMessage(BaseModel):
+    id: Optional[int] = None
     role: str
     content: str
     images: Optional[List[ChatImage]] = None
@@ -174,9 +175,9 @@ def _parse_follow_ups(content: str) -> List[str]:
 
 
 class Agent:
-    def __init__(self, project: Project):
+    def __init__(self, project: Project, stack: Stack):
         self.project = project
-        self.stack = get_pack_by_id(project.stack_pack_id)
+        self.stack = stack
         self.sandbox = None
 
     def set_sandbox(self, sandbox: DevSandbox):
@@ -201,7 +202,7 @@ class Agent:
         project_text = self._get_project_text()
         system_prompt = SYSTEM_FOLLOW_UP_PROMPT.format(
             project_text=project_text,
-            stack_text=self.stack.stack_description,
+            stack_text=self.stack.prompt,
         )
         resp = await client.chat.completions.create(
             model="gpt-4o-mini",
@@ -231,7 +232,7 @@ class Agent:
 
         system_prompt = SYSTEM_PROMPT.format(
             project_text=project_text,
-            stack_text=self.stack.stack_description,
+            stack_text=self.stack.prompt,
             files_text=files_text,
         )
 

@@ -15,17 +15,13 @@ export default function WorkspacePage({ chatId }) {
   const [projectId, setProjectId] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [respStreaming, setRespStreaming] = useState(false);
   const [chatTitle, setChatTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
   const [projectFileTree, setProjectFileTree] = useState([]);
   const [projectStackPackId, setProjectStackPackId] = useState(null);
   const [suggestedFollowUps, setSuggestedFollowUps] = useState([]);
   const [previewHash, setPreviewHash] = useState(1);
-  const [status, setStatus] = useState({
-    status: 'Disconnected',
-    color: 'bg-gray-500',
-  });
+  const [status, setStatus] = useState('NEW_CHAT');
   const webSocketRef = useRef(null);
 
   useEffect(() => {
@@ -41,18 +37,26 @@ export default function WorkspacePage({ chatId }) {
     if (webSocketRef.current) {
       webSocketRef.current.disconnect();
     }
-
     const ws = new ProjectWebSocketService(wsProjectId);
+    webSocketRef.current = ws;
 
     const connectWS = async () => {
       try {
+        const date = +new Date();
         await new Promise((resolve, reject) => {
           ws.connect();
           ws.ws.onopen = () => resolve();
           ws.ws.onerror = (error) => reject(error);
-          ws.ws.onclose = () => {
-            setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
-            setProjectPreviewUrl(null);
+          ws.ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            handleSocketMessage(data);
+          };
+          ws.ws.onclose = (e) => {
+            setStatus('DISCONNECTED');
+            console.log('WebSocket connection closed', e.code, e.reason);
+            if ([1002, 1003].includes(e.code)) {
+              initializeWebSocket(chatId);
+            }
           };
           setTimeout(
             () => reject(new Error('WebSocket connection timeout')),
@@ -60,30 +64,35 @@ export default function WorkspacePage({ chatId }) {
           );
         });
 
-        setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
-
         const handleSocketMessage = (data) => {
-          console.log('handleMessage', data);
-          if (data.for_type === 'sandbox_status') {
-            handleSandboxStatus(data);
+          console.log('handleMessage', data, date);
+          if (data.for_type === 'status') {
+            handleStatus(data);
+          } else if (data.for_type === 'chat_update') {
+            handleChatUpdate(data);
           } else if (data.for_type === 'chat_chunk') {
             handleChatChunk(data);
-          } else if (data.for_type === 'sandbox_file_tree') {
-            handleSandboxFileTree(data);
           }
         };
 
-        const handleSandboxStatus = (data) => {
-          if (data.status === 'READY') {
-            setStatus({ status: 'Ready', color: 'bg-green-500' });
-            setProjectPreviewUrl(data.tunnels[3000]);
-          } else if (data.status === 'BUILDING') {
-            setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
-          }
+        const handleStatus = (data) => {
+          setStatus(data.sandbox_status);
         };
 
-        const handleSandboxFileTree = (data) => {
-          setProjectFileTree(data.paths);
+        const handleChatUpdate = (data) => {
+          setMessages((prev) => {
+            const existingMessageIndex = prev.findIndex(
+              (m) => m.id === data.message.id
+            );
+            if (existingMessageIndex >= 0) {
+              return [
+                ...prev.slice(0, existingMessageIndex),
+                data.message,
+                ...prev.slice(existingMessageIndex + 1),
+              ];
+            }
+            return [...prev, data.message];
+          });
         };
 
         const handleChatChunk = (data) => {
@@ -97,18 +106,40 @@ export default function WorkspacePage({ chatId }) {
             }
             return [...prev, { role: 'assistant', content: data.content }];
           });
-          if (data.complete) {
-            setRespStreaming(false);
-            setPreviewHash((prev) => prev + 1);
-          }
-          if (data.suggested_follow_ups) {
-            setSuggestedFollowUps(data.suggested_follow_ups);
-          }
         };
 
-        ws.addListener(handleSocketMessage);
-        webSocketRef.current = ws;
+        // const handleSandboxStatus = (data) => {
+        //   if (data.status === 'READY') {
+        //     setStatus({ status: 'Ready', color: 'bg-green-500' });
+        //     setProjectPreviewUrl(data.tunnels[3000]);
+        //   } else if (data.status === 'BUILDING') {
+        //     setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
+        //   }
+        // };
 
+        // const handleSandboxFileTree = (data) => {
+        //   setProjectFileTree(data.paths);
+        // };
+
+        // const handleChatChunk = (data) => {
+        //   setMessages((prev) => {
+        //     const lastMessage = prev[prev.length - 1];
+        //     if (lastMessage?.role === 'assistant') {
+        //       return [
+        //         ...prev.slice(0, -1),
+        //         { ...lastMessage, content: lastMessage.content + data.content },
+        //       ];
+        //     }
+        //     return [...prev, { role: 'assistant', content: data.content }];
+        //   });
+        //   if (data.complete) {
+        //     setRespStreaming(false);
+        //     setPreviewHash((prev) => prev + 1);
+        //   }
+        //   if (data.suggested_follow_ups) {
+        //     setSuggestedFollowUps(data.suggested_follow_ups);
+        //   }
+        // };
         return ws;
       } catch (error) {
         console.error('WebSocket connection failed:', error);
@@ -120,19 +151,18 @@ export default function WorkspacePage({ chatId }) {
     return { ws };
   };
 
-  // useEffect(() => {
-  //   if (projectId !== 'new') {
-  //     initializeWebSocket(projectId).catch((error) => {
-  //       console.error('Failed to initialize WebSocket:', error);
-  //     });
-  //   }
-
-  //   return () => {
-  //     if (webSocketRef.current) {
-  //       webSocketRef.current.disconnect();
-  //     }
-  //   };
-  // }, [projectId]);
+  useEffect(() => {
+    if (chatId !== 'new') {
+      initializeWebSocket(chatId).catch((error) => {
+        console.error('Failed to initialize WebSocket:', error);
+      });
+    }
+    return () => {
+      if (webSocketRef.current) {
+        webSocketRef.current.disconnect();
+      }
+    };
+  }, [chatId]);
 
   const handleStackPackSelect = (stackPackId) => {
     setProjectStackPackId(stackPackId);
@@ -150,8 +180,6 @@ export default function WorkspacePage({ chatId }) {
       content: message.content,
       images: message.images || [],
     };
-    setRespStreaming(true);
-    setMessages((prev) => [...prev, userMessage]);
     if (chatId === 'new') {
       const chat = await api.createChat({
         name: message.content,
@@ -163,13 +191,14 @@ export default function WorkspacePage({ chatId }) {
       addChat(chat);
       setTimeout(() => router.push(`/workspace/${chat.id}`), 100);
     } else {
-      webSocketRef.current.sendMessage({ chat: [...messages, userMessage] });
+      webSocketRef.current.sendMessage(userMessage);
     }
   };
 
   useEffect(() => {
     (async () => {
       if (chatId !== 'new') {
+        setStatus('DISCONNECTED');
         const chat = await api.getChat(chatId);
         setChatTitle(chat.name);
         const existingMessages =
@@ -183,22 +212,10 @@ export default function WorkspacePage({ chatId }) {
         setMessages([]);
         setProjectPreviewUrl(null);
         setProjectFileTree([]);
-        setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
+        setStatus('NEW_CHAT');
       }
     })();
   }, [chatId]);
-
-  // useEffect(() => {
-  //   if (
-  //     webSocketRef.current &&
-  //     status?.status.includes('Ready') &&
-  //     messages.length === 1 &&
-  //     !respStreaming
-  //   ) {
-  //     setRespStreaming(true);
-  //     webSocketRef.current.sendMessage({ chat: messages });
-  //   }
-  // }, [messages, status?.status, webSocketRef.current, respStreaming]);
 
   return (
     <div className="flex h-screen bg-background">
@@ -215,7 +232,6 @@ export default function WorkspacePage({ chatId }) {
           </div>
         )}
         <Chat
-          respStreaming={respStreaming}
           connected={!!webSocketRef.current}
           messages={messages}
           onSendMessage={handleSendMessage}
