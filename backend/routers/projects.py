@@ -13,11 +13,12 @@ from schemas.models import (
 from sandbox.sandbox import DevSandbox
 from routers.auth import get_current_user_from_token
 
-router = APIRouter(prefix="/api/projects", tags=["projects"])
+router = APIRouter(prefix="/api/teams/{team_id}/projects", tags=["projects"])
 
 
 @router.get("", response_model=List[ProjectResponse])
 async def get_user_projects(
+    team_id: int,
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
@@ -26,12 +27,10 @@ async def get_user_projects(
         .join(Team, Project.team_id == Team.id)
         .join(TeamMember, Team.id == TeamMember.team_id)
         .filter(
-            or_(
-                Project.user_id == current_user.id,  # User owns the project
-                and_(
-                    TeamMember.user_id == current_user.id,  # User is team member
-                    TeamMember.team_id == Project.team_id,
-                ),
+            and_(
+                Team.id == team_id,
+                TeamMember.user_id == current_user.id,
+                TeamMember.team_id == Project.team_id,
             ),
         )
         .all()
@@ -41,6 +40,7 @@ async def get_user_projects(
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
+    team_id: int,
     project_id: int,
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
@@ -50,13 +50,11 @@ async def get_project(
         .join(Team, Project.team_id == Team.id)
         .join(TeamMember, Team.id == TeamMember.team_id)
         .filter(
-            Project.id == project_id,
-            or_(
-                Project.user_id == current_user.id,  # User owns the project
-                and_(
-                    TeamMember.user_id == current_user.id,  # User is team member
-                    TeamMember.team_id == Project.team_id,
-                ),
+            and_(
+                Team.id == team_id,
+                Project.id == project_id,
+                TeamMember.user_id == current_user.id,
+                TeamMember.team_id == Project.team_id,
             ),
         )
         .first()
@@ -69,12 +67,13 @@ async def get_project(
 
 @router.get("/{project_id}/file/{path:path}", response_model=ProjectFileContentResponse)
 async def get_project_file(
+    team_id: int,
     project_id: int,
     path: str,
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    project = await get_project(project_id, current_user, db)
+    project = await get_project(team_id, project_id, current_user, db)
     sandbox = await DevSandbox.get_or_create(project.id)
     return ProjectFileContentResponse(
         path=path, content=await sandbox.read_file_contents(path)

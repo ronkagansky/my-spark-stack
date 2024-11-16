@@ -15,8 +15,14 @@ router = APIRouter(prefix="/api/chats", tags=["chats"])
 @router.get("", response_model=List[ChatResponse])
 async def get_user_chats(
     current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
 ):
-    return current_user.chats
+    return (
+        db.query(Chat)
+        .filter(Chat.user_id == current_user.id)
+        .options(joinedload(Chat.messages), joinedload(Chat.project))
+        .all()
+    )
 
 
 @router.get("/{chat_id}", response_model=ChatResponse)
@@ -27,8 +33,8 @@ async def get_chat(
 ):
     chat = (
         db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.owner_id == current_user.id)
-        .options(joinedload(Chat.chat_messages))
+        .filter(Chat.id == chat_id, Chat.user_id == current_user.id)
+        .options(joinedload(Chat.messages), joinedload(Chat.project))
         .first()
     )
     if chat is None:
@@ -111,13 +117,11 @@ async def delete_chat(
 ):
     chat = (
         db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.owner_id == current_user.id)
+        .filter(Chat.id == chat_id, Chat.user_id == current_user.id)
         .first()
     )
     if chat is None:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    await DevSandbox.delete(chat.id)
+        raise HTTPException(status_code=404, detail="Chat not found")
 
     db.delete(chat)
     try:
@@ -138,7 +142,7 @@ async def update_chat(
 ):
     chat = (
         db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.owner_id == current_user.id)
+        .filter(Chat.id == chat_id, Chat.user_id == current_user.id)
         .first()
     )
     if chat is None:

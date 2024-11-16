@@ -94,32 +94,34 @@ class ApiClient {
     return this._get('/api/chats');
   }
 
-  async getUserProjects() {
-    return this._get('/api/projects');
-  }
-
-  async getProject(projectId) {
-    return this._get(`/api/projects/${projectId}`);
-  }
-
   async createChat(chat) {
     return this._post('/api/chats', chat);
   }
 
-  async getProjectFile(projectId, filePath) {
-    return this._get(`/api/projects/${projectId}/file/${filePath}`);
+  async getChat(chatId) {
+    return this._get(`/api/chats/${chatId}`);
   }
 
-  async deleteProject(projectId) {
-    return this._delete(`/api/projects/${projectId}`);
+  async getTeamProjects(teamId) {
+    return this._get(`/api/teams/${teamId}/projects`);
   }
 
-  async updateProject(projectId, updates) {
-    return this._patch(`/api/projects/${projectId}`, updates);
+  async getProject(teamId, projectId) {
+    return this._get(`/api/teams/${teamId}/projects/${projectId}`);
+  }
+
+  async getProjectFile(teamId, projectId, filePath) {
+    return this._get(
+      `/api/teams/${teamId}/projects/${projectId}/file/${filePath}`
+    );
   }
 
   async getStackPacks() {
     return this._get('/api/stacks');
+  }
+
+  async deleteChat(chatId) {
+    return this._delete(`/api/chats/${chatId}`);
   }
 }
 

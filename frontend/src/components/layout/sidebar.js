@@ -115,66 +115,90 @@ export const Sidebar = () => {
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground font-medium px-2">
-                Recent Chats
-              </div>
-              {[...chats]
-                .sort((a, b) => b.id - a.id)
-                .map((chat) => (
-                  <div
-                    key={chat.id}
-                    className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
-                    onClick={() => handleChatClick(chat.id)}
-                  >
-                    <div className="flex justify-between items-center">
-                      {editingChatId === chat.id ? (
-                        <form
-                          onSubmit={(e) => handleRenameSubmit(chat.id, e)}
-                          className="flex-1 mr-2"
-                          onClick={(e) => e.stopPropagation()}
+            <div className="space-y-4">
+              {Object.entries(
+                [...chats]
+                  .sort((a, b) => b.id - a.id)
+                  .reduce((acc, chat) => {
+                    const projectName = chat.project?.name || 'No Project';
+                    if (!acc[projectName]) {
+                      acc[projectName] = [];
+                    }
+                    acc[projectName].push(chat);
+                    return acc;
+                  }, {})
+              )
+                .sort(([, chatsA], [, chatsB]) => {
+                  // Get the highest chat ID from each project
+                  const maxIdA = Math.max(...chatsA.map((chat) => chat.id));
+                  const maxIdB = Math.max(...chatsB.map((chat) => chat.id));
+                  return maxIdB - maxIdA;
+                })
+                .map(([projectName, projectChats]) => (
+                  <div key={projectName}>
+                    <div className="text-sm text-muted-foreground font-medium px-2 mb-2">
+                      {projectName}
+                    </div>
+                    <div className="space-y-1">
+                      {projectChats.map((chat) => (
+                        <div
+                          key={chat.id}
+                          className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
+                          onClick={() => handleChatClick(chat.id)}
                         >
-                          <input
-                            type="text"
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            className="w-full px-1 py-0.5 text-sm bg-background border rounded"
-                            autoFocus
-                            onBlur={(e) => handleRenameSubmit(chat.id, e)}
-                          />
-                        </form>
-                      ) : (
-                        <span className="truncate pr-2 text-sm">
-                          {chat.name}
-                        </span>
-                      )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem
-                            onClick={(e) => handleRename(chat.id, e)}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => handleDelete(chat.id, e)}
-                            className="text-red-600 focus:text-red-600 focus:bg-red-100"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                          <div className="flex justify-between items-center">
+                            {editingChatId === chat.id ? (
+                              <form
+                                onSubmit={(e) => handleRenameSubmit(chat.id, e)}
+                                className="flex-1 mr-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="text"
+                                  value={editingName}
+                                  onChange={(e) =>
+                                    setEditingName(e.target.value)
+                                  }
+                                  className="w-full px-1 py-0.5 text-sm bg-background border rounded"
+                                  autoFocus
+                                  onBlur={(e) => handleRenameSubmit(chat.id, e)}
+                                />
+                              </form>
+                            ) : (
+                              <span className="truncate pr-2 text-sm">
+                                {chat.name}
+                              </span>
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleRename(chat.id, e)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleDelete(chat.id, e)}
+                                  className="text-red-600 focus:text-red-600 focus:bg-red-100"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}

@@ -31,15 +31,28 @@ class ChatCreate(BaseModel):
     team_id: Optional[int] = None
 
 
-class ChatResponse(BaseModel):
-    id: int
-    name: str
+class MessageResponse(BaseModel):
+    role: str
+    content: str
+
+    class Config:
+        from_attributes = True
 
 
 class ProjectResponse(BaseModel):
     id: int
     name: str
     description: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class ChatResponse(BaseModel):
+    id: int
+    name: str
+    messages: Optional[List[MessageResponse]] = None
+    project: Optional[ProjectResponse] = None
 
     class Config:
         from_attributes = True

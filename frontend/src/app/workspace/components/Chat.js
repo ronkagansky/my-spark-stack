@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useUser } from '@/context/user-context';
 import { api } from '@/lib/api';
 
 const STARTER_PROMPTS = [
@@ -246,6 +247,7 @@ export function Chat({
   showStackPacks = false,
   suggestedFollowUps = [],
 }) {
+  const { team } = useUser();
   const [message, setMessage] = useState('');
   const [imageAttachments, setImageAttachments] = useState([]);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -268,16 +270,13 @@ export function Chat({
   }, []);
 
   useEffect(() => {
+    if (!team?.id) return;
     const fetchProjects = async () => {
-      try {
-        const projects = await api.getUserProjects();
-        setProjects(projects);
-      } catch (error) {
-        console.error('Failed to fetch projects:', error);
-      }
+      const projects = await api.getTeamProjects(team.id);
+      setProjects(projects);
     };
     fetchProjects();
-  }, []);
+  }, [team?.id]);
 
   const fixCodeBlocks = (content) => {
     content = content.replace(

@@ -170,19 +170,14 @@ export default function WorkspacePage({ chatId }) {
   useEffect(() => {
     (async () => {
       if (chatId !== 'new') {
-        try {
-          const project = await api.getProject(chatId);
-          setChatTitle(project.name);
-          const existingMessages =
-            project?.chat_messages.map((m) => ({
-              role: m.role,
-              content: m.content,
-            })) || [];
-          setMessages(existingMessages);
-          setProjectStackPackId(project.stack_pack_id);
-        } catch (error) {
-          console.error('Failed to load project details:', error);
-        }
+        const chat = await api.getChat(chatId);
+        setChatTitle(chat.name);
+        const existingMessages =
+          chat?.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })) || [];
+        setMessages(existingMessages);
       } else {
         setChatTitle('New Chat');
         setMessages([]);
