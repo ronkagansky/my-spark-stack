@@ -276,9 +276,8 @@ export default function WorkspacePage({ chatId }) {
         <RightPanel
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
-          projectPreviewUrl={
-            projectPreviewUrl ? `${projectPreviewUrl}?v=${previewHash}` : null
-          }
+          projectPreviewUrl={projectPreviewUrl}
+          projectPreviewHash={previewHash}
           projectFileTree={projectFileTree}
           project={project}
           chatId={chatId}

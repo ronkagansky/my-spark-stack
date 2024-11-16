@@ -11,6 +11,7 @@ export function RightPanel({
   isOpen,
   onClose,
   projectPreviewUrl,
+  projectPreviewHash,
   projectFileTree,
   project,
 }) {
@@ -69,7 +70,10 @@ export function RightPanel({
         <div className="p-4">
           <div className="rounded-lg border bg-muted/40 h-[calc(100vh-8rem)]">
             {selectedTab === 'preview' ? (
-              <PreviewTab projectPreviewUrl={projectPreviewUrl} />
+              <PreviewTab
+                projectPreviewUrl={projectPreviewUrl}
+                projectPreviewHash={projectPreviewHash}
+              />
             ) : selectedTab === 'editor' ? (
               <FilesTab projectFileTree={projectFileTree} project={project} />
             ) : (

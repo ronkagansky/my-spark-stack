@@ -14,10 +14,14 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
-export function PreviewTab({ projectPreviewUrl }) {
+export function PreviewTab({ projectPreviewUrl, projectPreviewHash }) {
   const [viewport, setViewport] = useState('full');
   const [scale, setScale] = useState(1);
+  const [path, setPath] = useState('/');
+  const debouncedPath = useDebounce(path, 500);
   const containerRef = useRef(null);
 
   const viewportStyles = {
@@ -58,6 +62,10 @@ export function PreviewTab({ projectPreviewUrl }) {
     }
   };
 
+  useEffect(() => {
+    handleRefresh();
+  }, [projectPreviewHash, debouncedPath]);
+
   if (!projectPreviewUrl) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -68,33 +76,44 @@ export function PreviewTab({ projectPreviewUrl }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-2 border-b flex items-center justify-between">
-        <Select value={viewport} onValueChange={(value) => setViewport(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select viewport" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="full">
-              <div className="flex items-center gap-2">
-                <Maximize2 className="h-4 w-4" />
-                <span>Full Width</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="desktop">
-              <div className="flex items-center gap-2">
-                <Monitor className="h-4 w-4" />
-                <span>Desktop</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="mobile">
-              <div className="flex items-center gap-2">
-                <Smartphone className="h-4 w-4" />
-                <span>Mobile</span>
-              </div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex gap-2">
+      <div className="p-2 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={viewport}
+            onValueChange={(value) => setViewport(value)}
+          >
+            <SelectTrigger className="w-[140px] sm:w-[180px]">
+              <SelectValue placeholder="Select viewport" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="full">
+                <div className="flex items-center gap-2">
+                  <Maximize2 className="h-4 w-4" />
+                  <span>Full Width</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="desktop">
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-4 w-4" />
+                  <span>Desktop</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="mobile">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4" />
+                  <span>Mobile</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            value={path}
+            onChange={(e) => setPath(e.target.value)}
+            className="w-full sm:w-[120px]"
+            placeholder="Path (e.g. /)"
+          />
+        </div>
+        <div className="flex gap-2 self-end sm:self-auto">
           <Button variant="ghost" size="icon" onClick={handleRefresh}>
             <RotateCw className="h-4 w-4" />
           </Button>
@@ -124,7 +143,7 @@ export function PreviewTab({ projectPreviewUrl }) {
           }}
         >
           <iframe
-            src={projectPreviewUrl}
+            src={`${projectPreviewUrl}${path}`}
             style={viewportStyles[viewport]}
             className="border shadow-sm bg-white"
             title="Project Preview"
