@@ -10,7 +10,7 @@ import { Chat } from './components/Chat';
 import { RightPanel } from './components/RightPanel';
 
 export default function WorkspacePage({ chatId }) {
-  const { addChat, team } = useUser();
+  const { addChat, team, refreshProjects } = useUser();
   const router = useRouter();
   const [projectId, setProjectId] = useState(null);
   const [project, setProject] = useState(null);
@@ -191,6 +191,7 @@ export default function WorkspacePage({ chatId }) {
         team_id: team.id,
         seed_prompt: message.content,
       });
+      await refreshProjects();
       addChat(chat);
       router.push(
         `/chats/${chat.id}?message=${encodeURIComponent(

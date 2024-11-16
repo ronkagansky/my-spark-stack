@@ -40,6 +40,7 @@ class ChatChunkResponse(BaseModel):
     for_type: str = "chat_chunk"
     role: str
     content: str
+    thinking_content: str
 
 
 def _message_to_db_message(message: ChatMessage, chat_id: int) -> DbChatMessage:
@@ -158,7 +159,9 @@ class ProjectManager:
             await self.emit_chat(
                 chat_id,
                 ChatChunkResponse(
-                    role="assistant", content=partial_message.delta_content
+                    role="assistant",
+                    content=partial_message.delta_content,
+                    thinking_content=partial_message.delta_thinking_content,
                 ),
             )
 

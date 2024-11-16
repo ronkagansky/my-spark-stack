@@ -103,6 +103,19 @@ const EmptyState = ({
   </div>
 );
 
+const ThinkingContent = ({ thinkingContent }) => {
+  let lastHeader = [...thinkingContent.matchAll(/### ([\s\S]+?)\n/g)].at(
+    -1
+  )?.[1];
+  return (
+    <div className="prose prose-sm max-w-none ">
+      <div className="inline-block px-2 py-1 mb-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md animate-pulse">
+        {lastHeader || 'Thinking...'}
+      </div>
+    </div>
+  );
+};
+
 const MessageList = ({ messages, fixCodeBlocks }) => (
   <div className="space-y-4">
     {messages.map((msg, index) => (
@@ -130,7 +143,9 @@ const MessageList = ({ messages, fixCodeBlocks }) => (
                 ))}
               </div>
             )}
-            {msg.thinking_content}
+            {!msg.content && msg.thinking_content && (
+              <ThinkingContent thinkingContent={msg.thinking_content} />
+            )}
             <ReactMarkdown
               components={components}
               rehypePlugins={[rehypeRaw]}
@@ -324,7 +339,10 @@ export function Chat({
           JSON.stringify({ filename, content })
         )}</file-update>`
     );
-    content = content.replace(/```[^`]+$/, '<file-loading>...</file-loading>');
+    content = content.replace(
+      /```[\s\S]+$/,
+      '<file-loading>...</file-loading>'
+    );
     return content;
   };
 

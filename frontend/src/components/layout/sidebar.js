@@ -104,8 +104,8 @@ export const Sidebar = () => {
   }, {});
   Object.entries(projectIdToChats).sort(([projectIdA], [projectIdB]) => {
     return (
-      new Date(projects.find((p) => p.id === projectIdB).created_at) -
-      new Date(projects.find((p) => p.id === projectIdA).created_at)
+      new Date(projects.find((p) => p.id === projectIdB)?.created_at) -
+      new Date(projects.find((p) => p.id === projectIdA)?.created_at)
     );
   });
 
