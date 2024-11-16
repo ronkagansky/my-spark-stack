@@ -185,7 +185,6 @@ export default function WorkspacePage({ chatId }) {
     if (chatId === 'new') {
       const chat = await api.createChat({
         name: message.content,
-        description: `Project started on ${new Date().toLocaleDateString()}`,
         stack_id: projectStackPackId,
         project_id: projectId,
         team_id: team.id,
@@ -262,6 +261,18 @@ export default function WorkspacePage({ chatId }) {
     })();
   }, [projectId, team?.id]);
 
+  const handleReconnect = async () => {
+    if (chatId !== 'new') {
+      try {
+        setStatus('CONNECTING');
+        await initializeWebSocket(chatId);
+      } catch (error) {
+        console.error('Failed to reconnect:', error);
+        setStatus('DISCONNECTED');
+      }
+    }
+  };
+
   return (
     <div className="flex h-screen bg-background">
       <div className="flex-1 flex flex-col md:flex-row">
@@ -286,6 +297,7 @@ export default function WorkspacePage({ chatId }) {
           onStackSelect={handleStackPackSelect}
           showStackPacks={chatId === 'new'}
           suggestedFollowUps={suggestedFollowUps}
+          onReconnect={handleReconnect}
         />
         <RightPanel
           isOpen={isPreviewOpen}

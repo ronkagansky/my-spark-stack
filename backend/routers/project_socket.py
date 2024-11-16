@@ -205,7 +205,10 @@ class ProjectManager:
             try:
                 await socket.send_json(data.model_dump())
             except Exception:
-                self.chat_sockets[chat_id].remove(socket)
+                try:
+                    self.chat_sockets[chat_id].remove(socket)
+                except ValueError:
+                    pass
 
         await asyncio.gather(*[_try_send(socket) for socket in sockets])
 

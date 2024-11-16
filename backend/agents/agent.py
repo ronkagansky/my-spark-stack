@@ -89,11 +89,14 @@ They will be able to edit files and run arbitrary commands in the sandbox.
 
 Answer the following questions:
 1. What is being asked by the most recent message? (general question, command to build something, etc.)
+1a. What steps below are worth considering (lean towards including more steps)?
 2. Which files are relevant to the question or would be needed to perform the request?
 3. For EACH stack-specific tip, what do you need to keep in mind or how does this adjust your plan?
 4. Finally, what are the full sequence of steps to take to answer the question?
 4a. What commands might you need to run?
-4b. What high level changes do you need to make to the files?
+4b. What files should we cat to see what we have?
+4c. What high level changes do you need to make to the files?
+4d. Be specific about how it should be done based on the stack and project notes.
 5. Verify your plan makes sense given the stack and project. Make any adjustments as needed.
 
 Output you response in markdown (not with code block) using "###" for brief headings and your plan/answers in each section.
@@ -110,7 +113,7 @@ Output you response in markdown (not with code block) using "###" for brief head
 
 You can customize the heading titles for each section but make them "thinking" related suffixed with "...". Feel free to omit sections if they obviously don't apply.
 
-DO NOT include any code blocks in your response or text outside of the markdown h3 headings. This should be advice only.
+DO NOT include any code blocks in your response or text outside of the markdown h3 headings. This should be ADVICE ONLY.
 """
 
 SYSTEM_EXEC_PROMPT = """

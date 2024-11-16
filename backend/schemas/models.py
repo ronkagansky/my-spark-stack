@@ -30,7 +30,6 @@ class ImageUploadSignURL(BaseModel):
 
 class ChatCreate(BaseModel):
     name: str
-    description: Optional[str] = None
     stack_id: Optional[int] = None
     project_id: Optional[int] = None
     team_id: Optional[int] = None

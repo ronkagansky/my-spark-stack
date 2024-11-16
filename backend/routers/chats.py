@@ -72,12 +72,12 @@ async def create_chat(
         if stack is None:
             raise HTTPException(status_code=404, detail="Stack not found")
 
-    project_name, chat_name = await name_chat(chat.seed_prompt)
+    project_name, project_description, chat_name = await name_chat(chat.seed_prompt)
 
     if chat.project_id is None:
         project = Project(
             name=project_name,
-            description=chat.description,
+            description=project_description,
             user_id=current_user.id,
             team_id=team_id,
             stack_id=stack.id,

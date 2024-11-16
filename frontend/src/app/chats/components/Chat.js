@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
-import { SendIcon, Loader2, ImageIcon, X, Scan } from 'lucide-react';
+import { SendIcon, Loader2, ImageIcon, X, Scan, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import rehypeRaw from 'rehype-raw';
 import {
@@ -198,6 +198,8 @@ const ChatInput = ({
   onRemoveImage,
   onScreenshot,
   uploadingImages,
+  status,
+  onReconnect,
 }) => (
   <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
     <div className="flex flex-wrap gap-2">
@@ -257,13 +259,29 @@ const ChatInput = ({
       >
         <ImageIcon className="h-4 w-4" />
       </Button>
-      <Button type="submit" size="icon" disabled={disabled || uploadingImages}>
-        {uploadingImages ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <SendIcon className="h-4 w-4" />
-        )}
-      </Button>
+      {status === 'DISCONNECTED' ? (
+        <Button
+          type="button"
+          onClick={onReconnect}
+          variant="destructive"
+          className="flex items-center gap-2"
+        >
+          <span>Reconnect</span>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      ) : (
+        <Button
+          type="submit"
+          size="icon"
+          disabled={disabled || uploadingImages}
+        >
+          {uploadingImages ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <SendIcon className="h-4 w-4" />
+          )}
+        </Button>
+      )}
     </div>
   </form>
 );
@@ -283,6 +301,11 @@ const statusMap = {
   },
   READY: { status: 'Ready', color: 'bg-green-500', animate: false },
   WORKING: { status: 'Updating...', color: 'bg-green-500', animate: true },
+  CONNECTING: {
+    status: 'Connecting...',
+    color: 'bg-yellow-500',
+    animate: true,
+  },
 };
 
 export function Chat({
@@ -294,6 +317,7 @@ export function Chat({
   onProjectSelect,
   showStackPacks = false,
   suggestedFollowUps = [],
+  onReconnect,
 }) {
   const { projects } = useUser();
   const [message, setMessage] = useState('');
@@ -516,6 +540,7 @@ export function Chat({
           handleKeyDown={handleKeyDown}
           handleChipClick={handleChipClick}
           status={status}
+          onReconnect={onReconnect}
           suggestedFollowUps={
             suggestedFollowUps && suggestedFollowUps.length > 0
               ? suggestedFollowUps

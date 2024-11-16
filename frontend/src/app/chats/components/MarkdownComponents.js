@@ -56,7 +56,7 @@ export function FileUpdate({ children }) {
 
 function FileLoading() {
   return (
-    <div className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 text-white rounded-md animate-gradient bg-[length:200%_200%]">
+    <div className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md animate-gradient bg-[length:200%_200%]">
       ...
     </div>
   );
