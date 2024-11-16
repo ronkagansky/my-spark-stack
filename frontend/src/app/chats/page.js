@@ -18,6 +18,7 @@ export default function WorkspacePage({ chatId }) {
   const [messages, setMessages] = useState([]);
   const [chatTitle, setChatTitle] = useState('New Chat');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
+  const [projectPreviewPath, setProjectPreviewPath] = useState('/');
   const [projectFileTree, setProjectFileTree] = useState([]);
   const [projectStackPackId, setProjectStackPackId] = useState(null);
   const [suggestedFollowUps, setSuggestedFollowUps] = useState([]);
@@ -130,7 +131,6 @@ export default function WorkspacePage({ chatId }) {
 
         return ws;
       } catch (error) {
-        console.error('WebSocket connection failed:', error);
         setStatus('DISCONNECTED');
       }
     };
@@ -277,6 +277,8 @@ export default function WorkspacePage({ chatId }) {
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           projectPreviewUrl={projectPreviewUrl}
+          projectPreviewPath={projectPreviewPath}
+          setProjectPreviewPath={setProjectPreviewPath}
           projectPreviewHash={previewHash}
           projectFileTree={projectFileTree}
           project={project}

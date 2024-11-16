@@ -17,11 +17,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 
-export function PreviewTab({ projectPreviewUrl, projectPreviewHash }) {
+export function PreviewTab({
+  projectPreviewUrl,
+  projectPreviewHash,
+  projectPreviewPath,
+  setProjectPreviewPath,
+}) {
   const [viewport, setViewport] = useState('full');
   const [scale, setScale] = useState(1);
-  const [path, setPath] = useState('/');
-  const debouncedPath = useDebounce(path, 500);
+  const debouncedPath = useDebounce(projectPreviewPath, 500);
   const containerRef = useRef(null);
 
   const viewportStyles = {
@@ -107,8 +111,8 @@ export function PreviewTab({ projectPreviewUrl, projectPreviewHash }) {
             </SelectContent>
           </Select>
           <Input
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
+            value={projectPreviewPath}
+            onChange={(e) => setProjectPreviewPath(e.target.value)}
             className="w-full sm:w-[120px]"
             placeholder="Path (e.g. /)"
           />
@@ -143,7 +147,7 @@ export function PreviewTab({ projectPreviewUrl, projectPreviewHash }) {
           }}
         >
           <iframe
-            src={`${projectPreviewUrl}${path}`}
+            src={`${projectPreviewUrl}${debouncedPath}`}
             style={viewportStyles[viewport]}
             className="border shadow-sm bg-white"
             title="Project Preview"
