@@ -237,12 +237,20 @@ const ChatInput = ({
 );
 
 const statusMap = {
-  NEW_CHAT: { status: 'Ready', color: 'bg-gray-500' },
-  DISCONNECTED: { status: 'Disconnected', color: 'bg-gray-500' },
-  OFFLINE: { status: 'Offline', color: 'bg-gray-500' },
-  BUILDING: { status: 'Setting up (~3m)', color: 'bg-yellow-500' },
-  READY: { status: 'Ready', color: 'bg-green-500' },
-  WORKING: { status: 'Updating...', color: 'bg-green-500' },
+  NEW_CHAT: { status: 'Ready', color: 'bg-gray-500', animate: false },
+  DISCONNECTED: {
+    status: 'Disconnected',
+    color: 'bg-gray-500',
+    animate: false,
+  },
+  OFFLINE: { status: 'Offline', color: 'bg-gray-500', animate: false },
+  BUILDING: {
+    status: 'Setting up (~3m)',
+    color: 'bg-yellow-500',
+    animate: true,
+  },
+  READY: { status: 'Ready', color: 'bg-green-500', animate: false },
+  WORKING: { status: 'Updating...', color: 'bg-green-500', animate: true },
 };
 
 export function Chat({
@@ -492,7 +500,9 @@ export function Chat({
           <h1 className="text-base font-semibold truncate">{projectTitle}</h1>
           <div className="flex items-center gap-2 flex-shrink-0">
             <div
-              className={`w-2 h-2 rounded-full ${statusMap[status].color}`}
+              className={`w-2 h-2 rounded-full ${statusMap[status].color} ${
+                statusMap[status].animate ? 'animate-pulse' : ''
+              }`}
             />
             <span className="text-sm text-muted-foreground capitalize">
               {statusMap[status].status}
@@ -504,16 +514,18 @@ export function Chat({
         className="flex-1 overflow-auto p-4 pt-28 md:pt-4 relative"
         onScroll={handleScroll}
       >
-        {!showStackPacks && messages.length <= 1 && status === 'BUILDING' && (
-          <>
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">
-                Booting up your development environment... ~3 minutes
-              </p>
-            </div>
-          </>
-        )}
+        {!showStackPacks &&
+          messages.length <= 1 &&
+          ['BUILDING', 'OFFLINE'].includes(status) && (
+            <>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Booting up your development environment... ~3 minutes
+                </p>
+              </div>
+            </>
+          )}
         {messages.length === 0 && showStackPacks ? (
           <EmptyState
             selectedStack={selectedStack}

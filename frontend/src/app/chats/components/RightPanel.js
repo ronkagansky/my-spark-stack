@@ -4,15 +4,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { X as XIcon, PanelRight as PanelRightIcon } from 'lucide-react';
 import { PreviewTab } from './PreviewTab';
-import { EditorTab } from './EditorTab';
+import { FilesTab } from './FilesTab';
 
-export function Preview({
+export function RightPanel({
   isOpen,
   onClose,
   projectPreviewUrl,
   projectFileTree,
   projectId,
-  chatId,
 }) {
   const [selectedTab, setSelectedTab] = useState('preview');
 
@@ -64,7 +63,7 @@ export function Preview({
             {selectedTab === 'preview' ? (
               <PreviewTab projectPreviewUrl={projectPreviewUrl} />
             ) : (
-              <EditorTab
+              <FilesTab
                 projectFileTree={projectFileTree}
                 projectId={projectId}
               />

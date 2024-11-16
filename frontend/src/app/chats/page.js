@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ProjectWebSocketService } from '@/lib/project-websocket';
 import { api } from '@/lib/api';
 import { Chat } from './components/Chat';
-import { Preview } from './components/Preview';
+import { RightPanel } from './components/RightPanel';
 
 export default function WorkspacePage({ chatId }) {
   const { addChat, team } = useUser();
@@ -76,6 +76,12 @@ export default function WorkspacePage({ chatId }) {
 
         const handleStatus = (data) => {
           setStatus(data.sandbox_status);
+          if (data.tunnels) {
+            setProjectPreviewUrl(data.tunnels[3000]);
+          }
+          if (data.file_paths) {
+            setProjectFileTree(data.file_paths);
+          }
         };
 
         const handleChatUpdate = (data) => {
@@ -105,6 +111,7 @@ export default function WorkspacePage({ chatId }) {
           if (data.follow_ups) {
             setSuggestedFollowUps(data.follow_ups);
           }
+          setPreviewHash((prev) => prev + 1);
         };
 
         const handleChatChunk = (data) => {
@@ -120,38 +127,6 @@ export default function WorkspacePage({ chatId }) {
           });
         };
 
-        // const handleSandboxStatus = (data) => {
-        //   if (data.status === 'READY') {
-        //     setStatus({ status: 'Ready', color: 'bg-green-500' });
-        //     setProjectPreviewUrl(data.tunnels[3000]);
-        //   } else if (data.status === 'BUILDING') {
-        //     setStatus({ status: 'Setting up (~3m)', color: 'bg-yellow-500' });
-        //   }
-        // };
-
-        // const handleSandboxFileTree = (data) => {
-        //   setProjectFileTree(data.paths);
-        // };
-
-        // const handleChatChunk = (data) => {
-        //   setMessages((prev) => {
-        //     const lastMessage = prev[prev.length - 1];
-        //     if (lastMessage?.role === 'assistant') {
-        //       return [
-        //         ...prev.slice(0, -1),
-        //         { ...lastMessage, content: lastMessage.content + data.content },
-        //       ];
-        //     }
-        //     return [...prev, { role: 'assistant', content: data.content }];
-        //   });
-        //   if (data.complete) {
-        //     setRespStreaming(false);
-        //     setPreviewHash((prev) => prev + 1);
-        //   }
-        //   if (data.suggested_follow_ups) {
-        //     setSuggestedFollowUps(data.suggested_follow_ups);
-        //   }
-        // };
         return ws;
       } catch (error) {
         console.error('WebSocket connection failed:', error);
@@ -283,7 +258,7 @@ export default function WorkspacePage({ chatId }) {
           showStackPacks={chatId === 'new'}
           suggestedFollowUps={suggestedFollowUps}
         />
-        <Preview
+        <RightPanel
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           projectPreviewUrl={

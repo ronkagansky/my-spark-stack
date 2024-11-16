@@ -27,6 +27,7 @@ class ProjectStatusResponse(BaseModel):
     project_id: int
     sandbox_status: SandboxStatus
     tunnels: Dict[int, str]
+    file_paths: Optional[List[str]] = None
 
 
 class ChatUpdateResponse(BaseModel):
@@ -71,32 +72,6 @@ async def _apply_file_changes(agent: Agent, total_content: str):
             )
 
 
-# async def _create_sandbox(
-#     send_json: Callable[[BaseModel], None], agent: Agent, project_id: int
-# ):
-#     try:
-#         await send_json(
-#             SandboxStatusResponse(status=SandboxStatus.BUILDING, tunnels={})
-#         )
-
-#         sandbox = await DevSandbox.get_or_create(project_id)
-#         agent.set_sandbox(sandbox)
-#         await sandbox.wait_for_up()
-
-#         paths = await sandbox.get_file_paths()
-#         await send_json(SandboxFileTreeResponse(paths=paths))
-
-#         tunnels = await sandbox.sb.tunnels.aio()
-#         await send_json(
-#             SandboxStatusResponse(
-#                 status=SandboxStatus.READY,
-#                 tunnels={port: tunnel.url for port, tunnel in tunnels.items()},
-#             )
-#         )
-#     except Exception as e:
-#         print("create_sandbox() error", e)
-
-
 class ProjectManager:
     def __init__(self, db: Session, project_id: int):
         self.db = db
@@ -104,24 +79,34 @@ class ProjectManager:
         self.chat_sockets: Dict[int, List[WebSocket]] = {}
         self.chat_agents: Dict[int, Agent] = {}
         self.sandbox_status = SandboxStatus.OFFLINE
+        self.sandbox = None
         self.tunnels = {}
 
     async def _manage_sandbox_task(self):
         print(f"Managing sandbox for project {self.project_id}...")
         self.sandbox_status = SandboxStatus.BUILDING
-        await asyncio.sleep(1)
+        await self.emit_project(await self._get_project_status())
+        self.sandbox = await DevSandbox.get_or_create(self.project_id)
+        await self.sandbox.wait_for_up()
         self.sandbox_status = SandboxStatus.READY
-        self.tunnels = {3000: "http://localhost:3000"}
-        await self.emit_project(self._get_project_status())
+        tunnels = await self.sandbox.sb.tunnels.aio()
+        self.tunnels = {port: tunnel.url for port, tunnel in tunnels.items()}
+        await self.emit_project(await self._get_project_status())
+        for agent in self.chat_agents.values():
+            agent.sandbox = self.sandbox
 
     def start(self):
         create_task(self._manage_sandbox_task())
 
-    def _get_project_status(self):
+    async def _get_project_status(self):
+        file_paths = None
+        if self.sandbox:
+            file_paths = await self.sandbox.get_file_paths()
         return ProjectStatusResponse(
             project_id=self.project_id,
             sandbox_status=self.sandbox_status,
             tunnels=self.tunnels,
+            file_paths=file_paths,
         )
 
     async def add_chat_socket(self, chat_id: int, websocket: WebSocket):
@@ -133,7 +118,7 @@ class ProjectManager:
             self.chat_agents[chat_id] = Agent(project, stack)
             self.chat_sockets[chat_id] = []
         self.chat_sockets[chat_id].append(websocket)
-        await self.emit_project(self._get_project_status())
+        await self.emit_project(await self._get_project_status())
 
     def remove_chat_socket(self, chat_id: int, websocket: WebSocket):
         self.chat_sockets[chat_id].remove(websocket)
@@ -143,7 +128,7 @@ class ProjectManager:
 
     async def on_chat_message(self, chat_id: int, message: ChatMessage):
         self.sandbox_status = SandboxStatus.WORKING
-        await self.emit_project(self._get_project_status())
+        await self.emit_project(await self._get_project_status())
 
         db_message = _message_to_db_message(message, chat_id)
         self.db.add(db_message)
@@ -179,6 +164,8 @@ class ProjectManager:
         self.db.add(db_resp_message)
         self.db.commit()
 
+        await _apply_file_changes(agent, total_content)
+
         follow_ups = await agent.suggest_follow_ups(messages + [resp_message])
 
         await self.emit_chat(
@@ -191,7 +178,7 @@ class ProjectManager:
         )
 
         self.sandbox_status = SandboxStatus.READY
-        await self.emit_project(self._get_project_status())
+        await self.emit_project(await self._get_project_status())
 
     async def emit_project(self, data: BaseModel):
         for chat_id in self.chat_sockets:
@@ -236,43 +223,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
         while True:
             raw_data = await websocket.receive_text()
             data = ChatMessage.model_validate_json(raw_data)
-
             await pm.on_chat_message(chat_id, data)
-
-            # while not agent.sandbox or not agent.sandbox.ready:
-            #     await asyncio.sleep(1)
-
-            # total_content = ""
-            # async for partial_message in agent.step(data.chat):
-            #     total_content += partial_message.delta_content
-            #     await send_json(
-            #         ChatChunkResponse(
-            #             content=partial_message.delta_content, complete=False
-            #         )
-            #     )
-
-            # _, _, follow_ups = await asyncio.gather(
-            #     _save_chat_messages(
-            #         db,
-            #         project_id,
-            #         data.chat + [ChatMessage(role="assistant", content=total_content)],
-            #     ),
-            #     _apply_file_changes(agent, total_content),
-            #     _get_follow_ups(
-            #         agent,
-            #         data.chat + [ChatMessage(role="assistant", content=total_content)],
-            #     ),
-            # )
-
-            # await send_json(
-            #     SandboxFileTreeResponse(paths=await agent.sandbox.get_file_paths())
-            # )
-
-            # await send_json(
-            #     ChatChunkResponse(
-            #         content="", complete=True, suggested_follow_ups=follow_ups
-            #     )
-            # )
     except Exception as e:
         print("websocket loop error", e)
     finally:

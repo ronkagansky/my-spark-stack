@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useUser } from '@/context/user-context';
 
 function getLanguageFromFilename(filename) {
   const extension = filename.split('.').pop().toLowerCase();
@@ -36,8 +37,9 @@ function getLanguageFromFilename(filename) {
   return languageMap[extension] || 'plaintext';
 }
 
-export function EditorTab({ projectFileTree, projectId }) {
+export function FilesTab({ projectFileTree, projectId }) {
   const defaultFile = '/app/my-app/src/App.js';
+  const { team } = useUser();
   const [selectedFile, setSelectedFile] = useState(() =>
     projectFileTree.includes(defaultFile) ? defaultFile : null
   );
@@ -52,11 +54,11 @@ export function EditorTab({ projectFileTree, projectId }) {
   }, []);
 
   const handleFileSelect = async (filename) => {
-    if (!filename) return;
+    if (!filename || !team) return;
     setSelectedFile(filename);
     setIsLoading(true);
     try {
-      const response = await api.getProjectFile(projectId, filename);
+      const response = await api.getProjectFile(team.id, projectId, filename);
       setFileContent(response.content);
     } catch (error) {
       console.error('Error loading file:', error);
