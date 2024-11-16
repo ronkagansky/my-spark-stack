@@ -18,6 +18,7 @@ class UserResponse(BaseModel):
 class TeamResponse(BaseModel):
     id: int
     name: str
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -33,6 +34,7 @@ class ChatCreate(BaseModel):
     stack_id: Optional[int] = None
     project_id: Optional[int] = None
     team_id: Optional[int] = None
+    seed_prompt: Optional[str] = None
 
 
 class MessageResponse(BaseModel):
@@ -77,6 +79,11 @@ class AuthResponse(BaseModel):
 
 
 class ChatUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 

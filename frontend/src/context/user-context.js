@@ -9,8 +9,11 @@ const UserContext = createContext({
   team: null,
   teams: [],
   chats: [],
+  projects: [],
   createAccount: async () => {},
   addChat: async () => {},
+  refreshChats: async () => {},
+  refreshProjects: async () => {},
 });
 
 export function UserProvider({ children }) {
@@ -18,6 +21,7 @@ export function UserProvider({ children }) {
   const [chats, setChats] = useState([]);
   const [teams, setTeams] = useState([]);
   const [team, setTeam] = useState(null);
+  const [projects, setProjects] = useState([]);
 
   useEffect(() => {
     if (localStorage.getItem('token')) {
@@ -37,6 +41,12 @@ export function UserProvider({ children }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (team?.id) {
+      api.getTeamProjects(team.id).then(setProjects);
+    }
+  }, [team?.id]);
+
   const createAccount = async (username) => {
     const user = await api.createAccount(username);
     setUser(user);
@@ -52,6 +62,11 @@ export function UserProvider({ children }) {
     setChats(chats);
   };
 
+  const refreshProjects = async () => {
+    const projects = await api.getTeamProjects(team.id);
+    setProjects(projects);
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -59,9 +74,11 @@ export function UserProvider({ children }) {
         chats,
         teams,
         team,
+        projects,
         createAccount,
         addChat,
         refreshChats,
+        refreshProjects,
       }}
     >
       {children}

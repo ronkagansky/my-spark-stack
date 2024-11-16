@@ -12,7 +12,7 @@ export function RightPanel({
   onClose,
   projectPreviewUrl,
   projectFileTree,
-  projectId,
+  project,
 }) {
   const [selectedTab, setSelectedTab] = useState('preview');
 
@@ -71,12 +71,9 @@ export function RightPanel({
             {selectedTab === 'preview' ? (
               <PreviewTab projectPreviewUrl={projectPreviewUrl} />
             ) : selectedTab === 'editor' ? (
-              <FilesTab
-                projectFileTree={projectFileTree}
-                projectId={projectId}
-              />
+              <FilesTab projectFileTree={projectFileTree} project={project} />
             ) : (
-              <ProjectTab projectId={projectId} />
+              <ProjectTab project={project} />
             )}
           </div>
         </div>

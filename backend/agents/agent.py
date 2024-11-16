@@ -1,15 +1,11 @@
-from openai import AsyncOpenAI
 from pydantic import BaseModel
 from typing import AsyncGenerator, List, Dict, Any, Callable, Optional
 import re
-import os
 import json
 
 from db.models import Project, Stack
 from sandbox.sandbox import DevSandbox
-
-
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from agents.prompts import oai_client, chat_complete, MAIN_MODEL
 
 
 class ChatMessage(BaseModel):
@@ -46,7 +42,7 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
         if sandbox is None:
             return "This environment is still booting up! Try again in a minute."
         result = await sandbox.run_command(command, workdir=workdir)
-        print(f"$ {command} -> {result}")
+        print(f"$ {command} -> {result[:20]}")
         if result == "":
             result = "<empty response>"
         return result
@@ -200,14 +196,7 @@ class Agent:
             project_text=project_text,
             stack_text=self.stack.prompt,
         )
-        resp = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": conversation_text[-10000:]},
-            ],
-        )
-        content = resp.choices[0].message.content
+        content = await chat_complete(system_prompt, conversation_text[-10000:])
         try:
             return _parse_follow_ups(content)
         except Exception:
@@ -254,8 +243,8 @@ class Agent:
         running = True
 
         while running:
-            stream = await client.chat.completions.create(
-                model="gpt-4o",
+            stream = await oai_client.chat.completions.create(
+                model=MAIN_MODEL,
                 messages=oai_chat,
                 tools=[tool.to_oai_tool() for tool in tools],
                 stream=True,

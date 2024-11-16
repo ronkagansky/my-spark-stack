@@ -1,37 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, GitBranch, Calendar } from 'lucide-react';
+import { FileText, GitBranch, Calendar, Pencil } from 'lucide-react';
+import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useUser } from '@/context/user-context';
 
-export function ProjectTab({ projectId }) {
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchProject() {
-      try {
-        const data = await api.getProject(projectId);
-        setProject(data);
-      } catch (error) {
-        console.error('Failed to fetch project:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProject();
-  }, [projectId]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Loading project information...
-      </div>
-    );
-  }
+export function ProjectTab({ project }) {
+  const { team, refreshProjects } = useUser();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(project?.name);
+  const [editedDescription, setEditedDescription] = useState(
+    project?.description
+  );
 
   if (!project) {
     return (
@@ -41,12 +26,56 @@ export function ProjectTab({ projectId }) {
     );
   }
 
+  const handleSave = async () => {
+    try {
+      await api.updateProject(team.id, project.id, {
+        name: editedName,
+        description: editedDescription,
+      });
+      setIsEditing(false);
+      await refreshProjects();
+    } catch (error) {
+      console.error('Failed to update project:', error);
+    }
+  };
+
   return (
     <ScrollArea className="h-full p-6">
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">{project.name}</h2>
-          <p className="text-muted-foreground">{project.description}</p>
+        <div className="group relative">
+          {isEditing ? (
+            <div className="space-y-4">
+              <Input
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                className="text-2xl font-bold"
+              />
+              <Textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="text-muted-foreground"
+              />
+              <div className="space-x-2">
+                <Button onClick={handleSave}>Save</Button>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold mb-2">{project.name}</h2>
+              <p className="text-muted-foreground">{project.description}</p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => setIsEditing(true)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="grid gap-4">

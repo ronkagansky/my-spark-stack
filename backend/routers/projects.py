@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from sqlalchemy.orm import joinedload
-from sqlalchemy import or_, and_
+from sqlalchemy import and_
 
 from db.database import get_db
 from db.models import User, Project, Team, TeamMember
+from db.queries import get_project_for_user
 from schemas.models import (
     ProjectResponse,
     ProjectFileContentResponse,
+    ProjectUpdate,
 )
 from sandbox.sandbox import DevSandbox
 from routers.auth import get_current_user_from_token
@@ -45,23 +46,26 @@ async def get_project(
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    project = (
-        db.query(Project)
-        .join(Team, Project.team_id == Team.id)
-        .join(TeamMember, Team.id == TeamMember.team_id)
-        .filter(
-            and_(
-                Team.id == team_id,
-                Project.id == project_id,
-                TeamMember.user_id == current_user.id,
-                TeamMember.team_id == Project.team_id,
-            ),
-        )
-        .first()
-    )
-
+    project = get_project_for_user(db, team_id, project_id, current_user)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@router.patch("/{project_id}", response_model=ProjectResponse)
+async def update_project(
+    team_id: int,
+    project_id: int,
+    project_data: ProjectUpdate,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = get_project_for_user(db, team_id, project_id, current_user)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project.name = project_data.name
+    project.description = project_data.description
+    db.commit()
     return project
 
 

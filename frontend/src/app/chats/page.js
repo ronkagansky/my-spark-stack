@@ -13,6 +13,7 @@ export default function WorkspacePage({ chatId }) {
   const { addChat, team } = useUser();
   const router = useRouter();
   const [projectId, setProjectId] = useState(null);
+  const [project, setProject] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [chatTitle, setChatTitle] = useState('New Chat');
@@ -130,7 +131,7 @@ export default function WorkspacePage({ chatId }) {
         return ws;
       } catch (error) {
         console.error('WebSocket connection failed:', error);
-        setStatus({ status: 'Disconnected', color: 'bg-gray-500' });
+        setStatus('DISCONNECTED');
       }
     };
 
@@ -156,6 +157,7 @@ export default function WorkspacePage({ chatId }) {
   };
 
   const handleProjectSelect = (projectId) => {
+    setProject(null);
     setProjectId(projectId);
   };
 
@@ -174,6 +176,7 @@ export default function WorkspacePage({ chatId }) {
         stack_id: projectStackPackId,
         project_id: projectId,
         team_id: team.id,
+        seed_prompt: message.content,
       });
       addChat(chat);
       router.push(
@@ -198,6 +201,8 @@ export default function WorkspacePage({ chatId }) {
             content: m.content,
           })) || [];
         setMessages(existingMessages);
+        setProject(chat.project);
+        setProjectId(chat.project.id);
       } else {
         setChatTitle('New Chat');
         setMessages([]);
@@ -233,6 +238,15 @@ export default function WorkspacePage({ chatId }) {
     })();
   }, [chatId, status]);
 
+  useEffect(() => {
+    (async () => {
+      if (projectId && team?.id) {
+        const project = await api.getProject(team.id, projectId);
+        setProject(project);
+      }
+    })();
+  }, [projectId, team?.id]);
+
   return (
     <div className="flex h-screen bg-background">
       <div className="flex-1 flex flex-col md:flex-row">
@@ -265,7 +279,7 @@ export default function WorkspacePage({ chatId }) {
             projectPreviewUrl ? `${projectPreviewUrl}?v=${previewHash}` : null
           }
           projectFileTree={projectFileTree}
-          projectId={projectId}
+          project={project}
           chatId={chatId}
         />
       </div>

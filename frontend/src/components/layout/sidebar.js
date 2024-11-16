@@ -23,7 +23,7 @@ import { api } from '@/lib/api';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
-  const { user, chats, refreshChats, team } = useUser();
+  const { user, chats, refreshChats, team, projects } = useUser();
   const router = useRouter();
   const [editingChatId, setEditingChatId] = React.useState(null);
   const [editingName, setEditingName] = React.useState('');
@@ -94,6 +94,21 @@ export const Sidebar = () => {
     </Button>
   );
 
+  const projectIdToChats = chats.reduce((acc, chat) => {
+    const projectId = chat.project?.id || 'no-project';
+    if (!acc[projectId]) {
+      acc[projectId] = [];
+    }
+    if (!projects[projectId]) {
+      projects[projectId] = chat.project;
+    }
+    acc[projectId].push(chat);
+    return acc;
+  }, {});
+  Object.entries(projectIdToChats).sort(([projectIdA], [projectIdB]) => {
+    return projects[projectIdB].created_at - projects[projectIdA].created_at;
+  });
+
   return (
     <>
       {toggleButton}
@@ -116,28 +131,11 @@ export const Sidebar = () => {
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             <div className="space-y-4">
-              {Object.entries(
-                [...chats]
-                  .sort((a, b) => b.id - a.id)
-                  .reduce((acc, chat) => {
-                    const projectName = chat.project?.name || 'No Project';
-                    if (!acc[projectName]) {
-                      acc[projectName] = [];
-                    }
-                    acc[projectName].push(chat);
-                    return acc;
-                  }, {})
-              )
-                .sort(([, chatsA], [, chatsB]) => {
-                  // Get the highest chat ID from each project
-                  const maxIdA = Math.max(...chatsA.map((chat) => chat.id));
-                  const maxIdB = Math.max(...chatsB.map((chat) => chat.id));
-                  return maxIdB - maxIdA;
-                })
-                .map(([projectName, projectChats]) => (
-                  <div key={projectName}>
+              {Object.entries(projectIdToChats).map(
+                ([projectId, projectChats]) => (
+                  <div key={projectId}>
                     <div className="text-sm text-muted-foreground font-medium px-2 mb-2">
-                      {projectName}
+                      {projects[projectId]?.name}
                     </div>
                     <div className="space-y-1">
                       {projectChats.map((chat) => (
@@ -201,7 +199,8 @@ export const Sidebar = () => {
                       ))}
                     </div>
                   </div>
-                ))}
+                )
+              )}
             </div>
           </div>
           <div className="p-4 border-t">

@@ -63,6 +63,7 @@ const EmptyState = ({
             },
           ]
             .concat(projects ?? [])
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
             .map((project) => (
               <SelectItem key={project.id} value={project.id} className="py-2">
                 <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
@@ -288,14 +289,13 @@ export function Chat({
   showStackPacks = false,
   suggestedFollowUps = [],
 }) {
-  const { team } = useUser();
+  const { team, projects } = useUser();
   const [message, setMessage] = useState('');
   const [imageAttachments, setImageAttachments] = useState([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const messagesEndRef = useRef(null);
   const [selectedStack, setSelectedStack] = useState(null);
   const [stacks, setStackPacks] = useState([]);
-  const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
 
@@ -310,15 +310,6 @@ export function Chat({
     };
     fetchStackPacks();
   }, []);
-
-  useEffect(() => {
-    if (!team?.id) return;
-    const fetchProjects = async () => {
-      const projects = await api.getTeamProjects(team.id);
-      setProjects(projects);
-    };
-    fetchProjects();
-  }, [team?.id]);
 
   const fixCodeBlocks = (content) => {
     content = content.replace(

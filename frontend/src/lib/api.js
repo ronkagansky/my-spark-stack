@@ -133,6 +133,13 @@ class ApiClient {
       content_type: contentType,
     });
   }
+
+  async updateProject(teamId, projectId, projectData) {
+    return this._patch(
+      `/api/teams/${teamId}/projects/${projectId}`,
+      projectData
+    );
+  }
 }
 
 // Export singleton instance

@@ -37,7 +37,7 @@ function getLanguageFromFilename(filename) {
   return languageMap[extension] || 'plaintext';
 }
 
-export function FilesTab({ projectFileTree, projectId }) {
+export function FilesTab({ projectFileTree, project }) {
   const defaultFile = '/app/my-app/src/App.js';
   const { team } = useUser();
   const [selectedFile, setSelectedFile] = useState(() =>
@@ -54,11 +54,11 @@ export function FilesTab({ projectFileTree, projectId }) {
   }, []);
 
   const handleFileSelect = async (filename) => {
-    if (!filename || !team) return;
+    if (!filename || !team || !project) return;
     setSelectedFile(filename);
     setIsLoading(true);
     try {
-      const response = await api.getProjectFile(team.id, projectId, filename);
+      const response = await api.getProjectFile(team.id, project.id, filename);
       setFileContent(response.content);
     } catch (error) {
       console.error('Error loading file:', error);
