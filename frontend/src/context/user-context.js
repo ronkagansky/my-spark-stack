@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { webSocketService } from '../lib/project-websocket';
 
 const UserContext = createContext({
   user: null,

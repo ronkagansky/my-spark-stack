@@ -289,7 +289,7 @@ export function Chat({
   showStackPacks = false,
   suggestedFollowUps = [],
 }) {
-  const { team, projects } = useUser();
+  const { projects } = useUser();
   const [message, setMessage] = useState('');
   const [imageAttachments, setImageAttachments] = useState([]);
   const [autoScroll, setAutoScroll] = useState(true);

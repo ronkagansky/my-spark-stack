@@ -95,18 +95,18 @@ export const Sidebar = () => {
   );
 
   const projectIdToChats = chats.reduce((acc, chat) => {
-    const projectId = chat.project?.id || 'no-project';
+    const projectId = chat.project?.id;
     if (!acc[projectId]) {
       acc[projectId] = [];
-    }
-    if (!projects[projectId]) {
-      projects[projectId] = chat.project;
     }
     acc[projectId].push(chat);
     return acc;
   }, {});
   Object.entries(projectIdToChats).sort(([projectIdA], [projectIdB]) => {
-    return projects[projectIdB].created_at - projects[projectIdA].created_at;
+    return (
+      new Date(projects.find((p) => p.id === projectIdB).created_at) -
+      new Date(projects.find((p) => p.id === projectIdA).created_at)
+    );
   });
 
   return (
@@ -135,7 +135,7 @@ export const Sidebar = () => {
                 ([projectId, projectChats]) => (
                   <div key={projectId}>
                     <div className="text-sm text-muted-foreground font-medium px-2 mb-2">
-                      {projects[projectId]?.name}
+                      {projects.find((p) => p.id === +projectId)?.name}
                     </div>
                     <div className="space-y-1">
                       {projectChats.map((chat) => (
