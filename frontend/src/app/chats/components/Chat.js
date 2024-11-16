@@ -127,6 +127,18 @@ const MessageList = ({ messages, fixCodeBlocks }) => (
         </div>
         <div className="flex-1">
           <div className="mt-1 prose prose-sm max-w-none">
+            {msg.images && msg.images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {msg.images.map((img, imgIndex) => (
+                  <img
+                    key={imgIndex}
+                    src={img}
+                    alt={`Message attachment ${imgIndex + 1}`}
+                    className="max-h-48 max-w-[300px] object-contain rounded-lg"
+                  />
+                ))}
+              </div>
+            )}
             <ReactMarkdown
               components={components}
               rehypePlugins={[rehypeRaw]}
@@ -147,7 +159,7 @@ const ImageAttachments = ({ attachments, onRemove }) => (
     {attachments.map((img, index) => (
       <div key={index} className="relative inline-block">
         <img
-          src={img.data}
+          src={img}
           alt={`attachment ${index + 1}`}
           className="max-h-32 max-w-[200px] object-contain rounded-lg"
         />
@@ -369,28 +381,26 @@ export function Chat({
   const handleImageAttach = async (e) => {
     const files = Array.from(e.target.files);
     setUploadingImages(true);
-
     try {
-      for (const file of files) {
-        const resizedImage = await resizeImage(file);
-        const { upload_url, url } = await api.getImageUploadUrl();
-        const base64Response = await fetch(resizedImage.data);
-        const blob = await base64Response.blob();
-        await fetch(upload_url, {
-          method: 'PUT',
-          body: blob,
-          headers: {
-            'Content-Type': resizedImage.type,
-          },
-        });
-        setImageAttachments((prev) => [
-          ...prev,
-          {
-            ...resizedImage,
-            data: url,
-          },
-        ]);
-      }
+      const processedImages = await Promise.all(
+        files.map(async (file) => {
+          const resizedImage = await resizeImage(file);
+          const { upload_url, url } = await api.getImageUploadUrl(
+            resizedImage.type
+          );
+          const blob = await fetch(resizedImage.data).then((res) => res.blob());
+          await fetch(upload_url, {
+            method: 'PUT',
+            body: blob,
+            headers: {
+              'Content-Type': resizedImage.type,
+            },
+          });
+          return url;
+        })
+      );
+
+      setImageAttachments((prev) => [...prev, ...processedImages]);
     } catch (err) {
       console.error('Error processing image:', err);
     } finally {
@@ -408,11 +418,25 @@ export function Chat({
   };
 
   const handleScreenshot = async () => {
+    setUploadingImages(true);
     try {
       const screenshot = await captureScreenshot();
-      setImageAttachments((prev) => [...prev, screenshot]);
+      const { upload_url, url } = await api.getImageUploadUrl(screenshot.type);
+
+      const blob = await fetch(screenshot.data).then((res) => res.blob());
+      await fetch(upload_url, {
+        method: 'PUT',
+        body: blob,
+        headers: {
+          'Content-Type': screenshot.type,
+        },
+      });
+      setImageAttachments((prev) => [...prev, url]);
     } catch (err) {
-      console.error('Error taking screenshot:', err);
+      console.error('Error taking/uploading screenshot:', err);
+      // You might want to show an error message to the user here
+    } finally {
+      setUploadingImages(false);
     }
   };
 

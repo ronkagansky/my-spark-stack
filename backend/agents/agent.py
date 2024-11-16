@@ -12,15 +12,11 @@ from sandbox.sandbox import DevSandbox
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-class ChatImage(BaseModel):
-    data: str
-
-
 class ChatMessage(BaseModel):
     id: Optional[int] = None
     role: str
     content: str
-    images: Optional[List[ChatImage]] = None
+    images: Optional[List[str]] = None
 
 
 class PartialChatMessage(BaseModel):
@@ -246,7 +242,7 @@ class Agent:
                         []
                         if not message.images
                         else [
-                            {"type": "image_url", "image_url": {"url": img.data}}
+                            {"type": "image_url", "image_url": {"url": img}}
                             for img in message.images
                         ]
                     ),

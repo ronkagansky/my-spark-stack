@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getProject } from '@/lib/api';
+import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText, GitBranch, Calendar } from 'lucide-react';
@@ -13,7 +13,7 @@ export function ProjectTab({ projectId }) {
   useEffect(() => {
     async function fetchProject() {
       try {
-        const data = await getProject(projectId);
+        const data = await api.getProject(projectId);
         setProject(data);
       } catch (error) {
         console.error('Failed to fetch project:', error);

@@ -23,10 +23,14 @@ class TeamResponse(BaseModel):
         from_attributes = True
 
 
+class ImageUploadSignURL(BaseModel):
+    content_type: str
+
+
 class ChatCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    stack_id: Optional[str] = None
+    stack_id: Optional[int] = None
     project_id: Optional[int] = None
     team_id: Optional[int] = None
 
@@ -34,6 +38,7 @@ class ChatCreate(BaseModel):
 class MessageResponse(BaseModel):
     role: str
     content: str
+    images: Optional[List[str]] = None
 
     class Config:
         from_attributes = True

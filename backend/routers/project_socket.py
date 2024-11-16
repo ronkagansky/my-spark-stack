@@ -47,6 +47,7 @@ def _message_to_db_message(message: ChatMessage, chat_id: int) -> DbChatMessage:
     return DbChatMessage(
         role=message.role,
         content=message.content,
+        images=message.images,
         chat_id=chat_id,
     )
 
@@ -56,6 +57,7 @@ def _db_message_to_message(db_message: DbChatMessage) -> ChatMessage:
         id=db_message.id,
         role=db_message.role,
         content=db_message.content,
+        images=db_message.images,
     )
 
 

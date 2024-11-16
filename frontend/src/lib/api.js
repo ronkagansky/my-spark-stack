@@ -128,8 +128,10 @@ class ApiClient {
     return this._delete(`/api/chats/${chatId}`);
   }
 
-  async getImageUploadUrl(chatId) {
-    return this._post(`/api/uploads/image-upload-url`);
+  async getImageUploadUrl(contentType) {
+    return this._post(`/api/uploads/image-upload-url`, {
+      content_type: contentType,
+    });
   }
 }
 

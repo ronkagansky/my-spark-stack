@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 import aioboto3
+from botocore.config import Config
 import uuid
 
 from db.database import get_aws_client, BUCKET_NAME
+from schemas.models import ImageUploadSignURL
 from db.models import User
 from routers.auth import get_current_user_from_token
 
@@ -11,23 +13,22 @@ router = APIRouter(prefix="/api/uploads", tags=["uploads"])
 
 @router.post("/image-upload-url")
 async def generate_image_upload_url(
+    data: ImageUploadSignURL,
     current_user: User = Depends(get_current_user_from_token),
     aws_client: aioboto3.Session = Depends(get_aws_client),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    file_key = f"/image_uploads/{uuid.uuid4()}"
+    file_key = f"image_uploads/{uuid.uuid4()}"
     try:
-        async with aws_client.client(
-            "s3", config=aioboto3.Config(signature_version="s3v4")
-        ) as s3:
+        async with aws_client.client("s3") as s3:
             presigned_url = await s3.generate_presigned_url(
                 "put_object",
                 Params={
                     "Bucket": BUCKET_NAME,
                     "Key": file_key,
-                    "ContentType": "image/*",
+                    "ContentType": data.content_type,
                 },
                 ExpiresIn=3600,
             )
