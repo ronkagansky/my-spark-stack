@@ -90,8 +90,21 @@ export default function WorkspacePage({ chatId }) {
                 ...prev.slice(existingMessageIndex + 1),
               ];
             }
+            const lastMessage = prev[prev.length - 1];
+            if (
+              lastMessage?.role === 'assistant' &&
+              data.message.role === 'assistant'
+            ) {
+              return [
+                ...prev.slice(0, -1),
+                { ...lastMessage, content: data.message.content },
+              ];
+            }
             return [...prev, data.message];
           });
+          if (data.follow_ups) {
+            setSuggestedFollowUps(data.follow_ups);
+          }
         };
 
         const handleChatChunk = (data) => {

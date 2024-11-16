@@ -33,6 +33,7 @@ class ChatUpdateResponse(BaseModel):
     for_type: str = "chat_update"
     chat_id: int
     message: ChatMessage
+    follow_ups: Optional[List[str]] = None
 
 
 class ChatChunkResponse(BaseModel):
@@ -68,10 +69,6 @@ async def _apply_file_changes(agent: Agent, total_content: str):
             await agent.sandbox.write_file_contents(
                 [(change.path, change.content) for change in changes]
             )
-
-
-async def _get_follow_ups(agent: Agent, chat_messages: List[ChatMessage]):
-    return await agent.suggest_follow_ups(chat_messages)
 
 
 # async def _create_sandbox(
@@ -177,11 +174,21 @@ class ProjectManager:
                 ),
             )
 
-        db_resp_message = _message_to_db_message(
-            ChatMessage(role="assistant", content=total_content), chat_id
-        )
+        resp_message = ChatMessage(role="assistant", content=total_content)
+        db_resp_message = _message_to_db_message(resp_message, chat_id)
         self.db.add(db_resp_message)
         self.db.commit()
+
+        follow_ups = await agent.suggest_follow_ups(messages + [resp_message])
+
+        await self.emit_chat(
+            chat_id,
+            ChatUpdateResponse(
+                chat_id=chat_id,
+                message=_db_message_to_message(db_resp_message),
+                follow_ups=follow_ups,
+            ),
+        )
 
         self.sandbox_status = SandboxStatus.READY
         await self.emit_project(self._get_project_status())
