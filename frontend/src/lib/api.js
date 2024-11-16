@@ -102,6 +102,10 @@ class ApiClient {
     return this._get(`/api/chats/${chatId}`);
   }
 
+  async updateChat(chatId, chat) {
+    return this._patch(`/api/chats/${chatId}`, chat);
+  }
+
   async getTeamProjects(teamId) {
     return this._get(`/api/teams/${teamId}/projects`);
   }

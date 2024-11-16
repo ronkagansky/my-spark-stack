@@ -29,7 +29,7 @@ export default function WorkspacePage({ chatId }) {
       router.push('/');
     }
     if (!chatId) {
-      router.push('/workspace/new');
+      router.push('/chats/new');
     }
   }, [chatId]);
 
@@ -42,7 +42,6 @@ export default function WorkspacePage({ chatId }) {
 
     const connectWS = async () => {
       try {
-        const date = +new Date();
         await new Promise((resolve, reject) => {
           ws.connect();
           ws.ws.onopen = () => resolve();
@@ -65,7 +64,7 @@ export default function WorkspacePage({ chatId }) {
         });
 
         const handleSocketMessage = (data) => {
-          console.log('handleMessage', data, date);
+          console.log('handleMessage', data);
           if (data.for_type === 'status') {
             handleStatus(data);
           } else if (data.for_type === 'chat_update') {
@@ -189,7 +188,11 @@ export default function WorkspacePage({ chatId }) {
         team_id: team.id,
       });
       addChat(chat);
-      setTimeout(() => router.push(`/workspace/${chat.id}`), 100);
+      router.push(
+        `/chats/${chat.id}?message=${encodeURIComponent(
+          JSON.stringify(userMessage)
+        )}`
+      );
     } else {
       webSocketRef.current.sendMessage(userMessage);
     }
@@ -216,6 +219,31 @@ export default function WorkspacePage({ chatId }) {
       }
     })();
   }, [chatId]);
+
+  useEffect(() => {
+    (async () => {
+      if (status === 'READY') {
+        const params = new URLSearchParams(window.location.search);
+        const messageParam = params.get('message');
+        if (messageParam) {
+          try {
+            const message = JSON.parse(decodeURIComponent(messageParam));
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.delete('message');
+            router.replace(
+              `${window.location.pathname}?${searchParams.toString()}`,
+              {
+                scroll: false,
+              }
+            );
+            await webSocketRef.current.sendMessage(message);
+          } catch (error) {
+            console.error('Failed to process message parameter:', error);
+          }
+        }
+      }
+    })();
+  }, [chatId, status]);
 
   return (
     <div className="flex h-screen bg-background">

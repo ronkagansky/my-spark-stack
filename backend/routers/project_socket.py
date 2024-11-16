@@ -229,6 +229,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
         while True:
             raw_data = await websocket.receive_text()
             data = ChatMessage.model_validate_json(raw_data)
+
             await pm.on_chat_message(chat_id, data)
 
             # while not agent.sandbox or not agent.sandbox.ready:

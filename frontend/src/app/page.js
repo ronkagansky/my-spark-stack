@@ -9,7 +9,7 @@ export default function HomePage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      router.push('/workspace/new');
+      router.push('/chats/new');
     } else {
       router.push('/auth');
     }

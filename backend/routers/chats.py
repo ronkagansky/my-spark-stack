@@ -5,6 +5,7 @@ from sqlalchemy.orm import joinedload
 
 from db.database import get_db
 from db.models import User, Chat, Team, Project, Stack
+from db.queries import get_chat_for_user
 from schemas.models import ChatCreate, ChatUpdate, ChatResponse
 from sandbox.sandbox import DevSandbox
 from routers.auth import get_current_user_from_token
@@ -140,11 +141,7 @@ async def update_chat(
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    chat = (
-        db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.user_id == current_user.id)
-        .first()
-    )
+    chat = get_chat_for_user(db, chat_id, current_user)
     if chat is None:
         raise HTTPException(status_code=404, detail="Chat not found")
 

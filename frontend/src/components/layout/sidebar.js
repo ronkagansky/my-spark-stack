@@ -29,12 +29,12 @@ export const Sidebar = () => {
   const [editingName, setEditingName] = React.useState('');
 
   const handleChatClick = (chatId) => {
-    router.push(`/workspace/${chatId}`);
+    router.push(`/chats/${chatId}`);
     setIsMobileOpen(false);
   };
 
   const handleNewChat = () => {
-    router.push('/workspace/new');
+    router.push('/chats/new');
     setIsMobileOpen(false);
   };
 
@@ -69,8 +69,8 @@ export const Sidebar = () => {
         // Refresh the projects list by calling the context update
         await refreshChats();
         // If we're currently on the deleted project's page, redirect to home
-        if (window.location.pathname.includes(`/workspace/${chatId}`)) {
-          router.push('/workspace/new');
+        if (window.location.pathname.includes(`/chats/${chatId}`)) {
+          router.push('/chats/new');
         }
       } catch (error) {
         console.error('Failed to delete chat:', error);
