@@ -7,7 +7,6 @@ from db.database import get_db
 from db.models import User, Chat, Team, Project, Stack
 from db.queries import get_chat_for_user
 from schemas.models import ChatCreate, ChatUpdate, ChatResponse
-from sandbox.sandbox import DevSandbox
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])

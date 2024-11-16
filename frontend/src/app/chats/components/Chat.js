@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { useUser } from '@/context/user-context';
 import { api } from '@/lib/api';
+import { resizeImage, captureScreenshot } from '@/lib/image';
 
 const STARTER_PROMPTS = [
   'Build a cat facts app with catfact.ninja API',
@@ -80,6 +81,7 @@ const EmptyState = ({
         onValueChange={(value) => {
           onStackSelect(value);
         }}
+        disabled={selectedProject !== null}
       >
         <SelectTrigger className="w-full py-10">
           <SelectValue placeholder="Select a Stack" />
@@ -140,6 +142,29 @@ const MessageList = ({ messages, fixCodeBlocks }) => (
   </div>
 );
 
+const ImageAttachments = ({ attachments, onRemove }) => (
+  <div className="flex flex-wrap gap-2">
+    {attachments.map((img, index) => (
+      <div key={index} className="relative inline-block">
+        <img
+          src={img.data}
+          alt={`attachment ${index + 1}`}
+          className="max-h-32 max-w-[200px] object-contain rounded-lg"
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="secondary"
+          className="absolute top-1 right-1 h-6 w-6"
+          onClick={() => onRemove(index)}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    ))}
+  </div>
+);
+
 const ChatInput = ({
   disabled,
   message,
@@ -149,11 +174,11 @@ const ChatInput = ({
   handleChipClick,
   suggestedFollowUps,
   chatPlaceholder,
-  status,
   onImageAttach,
   imageAttachments,
   onRemoveImage,
   onScreenshot,
+  uploadingImages,
 }) => (
   <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
     <div className="flex flex-wrap gap-2">
@@ -171,26 +196,10 @@ const ChatInput = ({
     </div>
     <div className="flex flex-col gap-4">
       {imageAttachments.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {imageAttachments.map((img, index) => (
-            <div key={index} className="relative inline-block">
-              <img
-                src={img.data}
-                alt={`attachment ${index + 1}`}
-                className="max-h-32 max-w-[200px] object-contain rounded-lg"
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="secondary"
-                className="absolute top-1 right-1 h-6 w-6"
-                onClick={() => onRemoveImage(index)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
+        <ImageAttachments
+          attachments={imageAttachments}
+          onRemove={onRemoveImage}
+        />
       )}
       <div className="flex gap-4">
         <Input
@@ -229,8 +238,12 @@ const ChatInput = ({
       >
         <ImageIcon className="h-4 w-4" />
       </Button>
-      <Button type="submit" size="icon" disabled={disabled}>
-        <SendIcon className="h-4 w-4" />
+      <Button type="submit" size="icon" disabled={disabled || uploadingImages}>
+        {uploadingImages ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <SendIcon className="h-4 w-4" />
+        )}
       </Button>
     </div>
   </form>
@@ -272,6 +285,7 @@ export function Chat({
   const [stacks, setStackPacks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   useEffect(() => {
     const fetchStackPacks = async () => {
@@ -354,53 +368,33 @@ export function Chat({
 
   const handleImageAttach = async (e) => {
     const files = Array.from(e.target.files);
+    setUploadingImages(true);
 
-    for (const file of files) {
-      const img = new Image();
-      const reader = new FileReader();
-
-      await new Promise((resolve) => {
-        reader.onload = (e) => {
-          img.src = e.target.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1000;
-            const MAX_HEIGHT = 1000;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-              if (width > MAX_WIDTH) {
-                height *= MAX_WIDTH / width;
-                width = MAX_WIDTH;
-              }
-            } else {
-              if (height > MAX_HEIGHT) {
-                width *= MAX_HEIGHT / height;
-                height = MAX_HEIGHT;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const resizedDataUrl = canvas.toDataURL(file.type, 0.7);
-
-            setImageAttachments((prev) => [
-              ...prev,
-              {
-                data: resizedDataUrl,
-                name: file.name,
-                type: file.type,
-              },
-            ]);
-            resolve();
-          };
-        };
-        reader.readAsDataURL(file);
-      });
+    try {
+      for (const file of files) {
+        const resizedImage = await resizeImage(file);
+        const { upload_url, url } = await api.getImageUploadUrl();
+        const base64Response = await fetch(resizedImage.data);
+        const blob = await base64Response.blob();
+        await fetch(upload_url, {
+          method: 'PUT',
+          body: blob,
+          headers: {
+            'Content-Type': resizedImage.type,
+          },
+        });
+        setImageAttachments((prev) => [
+          ...prev,
+          {
+            ...resizedImage,
+            data: url,
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error('Error processing image:', err);
+    } finally {
+      setUploadingImages(false);
     }
   };
 
@@ -415,69 +409,8 @@ export function Chat({
 
   const handleScreenshot = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        preferCurrentTab: true,
-        video: {
-          displaySurface: 'browser',
-        },
-      });
-
-      // Create video element to capture the stream
-      const video = document.createElement('video');
-      video.srcObject = stream;
-
-      // Wait for the video to load metadata
-      await new Promise((resolve) => {
-        video.onloadedmetadata = resolve;
-      });
-      video.play();
-
-      // Create canvas and draw the video frame
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-
-      // Stop all tracks
-      stream.getTracks().forEach((track) => track.stop());
-
-      // Resize the screenshot if needed
-      const MAX_WIDTH = 1000;
-      const MAX_HEIGHT = 1000;
-      let width = canvas.width;
-      let height = canvas.height;
-
-      if (width > height) {
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
-        }
-      } else {
-        if (height > MAX_HEIGHT) {
-          width *= MAX_HEIGHT / height;
-          height = MAX_HEIGHT;
-        }
-      }
-
-      // Create resized canvas
-      const resizedCanvas = document.createElement('canvas');
-      resizedCanvas.width = width;
-      resizedCanvas.height = height;
-      const resizedCtx = resizedCanvas.getContext('2d');
-      resizedCtx.drawImage(canvas, 0, 0, width, height);
-
-      // Convert to data URL
-      const dataUrl = resizedCanvas.toDataURL('image/jpeg', 0.7);
-
-      setImageAttachments((prev) => [
-        ...prev,
-        {
-          data: dataUrl,
-          name: 'screenshot.jpg',
-          type: 'image/jpeg',
-        },
-      ]);
+      const screenshot = await captureScreenshot();
+      setImageAttachments((prev) => [...prev, screenshot]);
     } catch (err) {
       console.error('Error taking screenshot:', err);
     }
@@ -490,6 +423,7 @@ export function Chat({
 
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
+    setSelectedStack(null);
     onProjectSelect(project);
   };
 
@@ -567,6 +501,7 @@ export function Chat({
           imageAttachments={imageAttachments}
           onRemoveImage={handleRemoveImage}
           onScreenshot={handleScreenshot}
+          uploadingImages={uploadingImages}
         />
       </div>
     </div>

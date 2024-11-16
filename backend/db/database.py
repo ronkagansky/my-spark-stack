@@ -2,9 +2,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
-
+import aioboto3
 
 POSTGRES_URL = os.environ.get("DATABASE_URL", "")
+BUCKET_NAME = os.environ.get("BUCKET_NAME", "prompt-stack")
 
 engine = create_engine(POSTGRES_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -45,3 +46,8 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def get_aws_client():
+    client = aioboto3.Session()
+    yield client

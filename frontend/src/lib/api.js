@@ -127,6 +127,10 @@ class ApiClient {
   async deleteChat(chatId) {
     return this._delete(`/api/chats/${chatId}`);
   }
+
+  async getImageUploadUrl(chatId) {
+    return this._post(`/api/uploads/image-upload-url`);
+  }
 }
 
 // Export singleton instance

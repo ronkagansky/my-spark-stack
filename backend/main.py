@@ -9,7 +9,7 @@ import asyncio
 import modal
 
 from sandbox.sandbox import maintain_prepared_sandboxes
-from routers import project_socket, auth, projects, stacks, teams, chats
+from routers import project_socket, auth, projects, stacks, teams, chats, uploads
 
 
 async def periodic_task():
@@ -51,7 +51,7 @@ app.include_router(project_socket.router)
 app.include_router(stacks.router)
 app.include_router(teams.router)
 app.include_router(chats.router)
-
+app.include_router(uploads.router)
 if __name__ == "__main__":
     init_db()
     import uvicorn

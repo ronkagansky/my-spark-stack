@@ -235,8 +235,8 @@ async def maintain_prepared_sandboxes(db: Session):
                 volumes={"/app": vol},
                 image=image,
                 timeout=5 * 60,
-                cpu=1,
-                memory=512,
+                cpu=0.5,
+                memory=256,
             )
             await sb.wait.aio()
             psb = PreparedSandbox(

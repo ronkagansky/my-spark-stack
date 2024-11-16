@@ -23,7 +23,7 @@ import { api } from '@/lib/api';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
-  const { user, chats, refreshChats } = useUser();
+  const { user, chats, refreshChats, team } = useUser();
   const router = useRouter();
   const [editingChatId, setEditingChatId] = React.useState(null);
   const [editingName, setEditingName] = React.useState('');
@@ -206,12 +206,19 @@ export const Sidebar = () => {
           </div>
           <div className="p-4 border-t">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarImage src="" />
-                  <AvatarFallback>{user.username[0]}</AvatarFallback>
-                </Avatar>
-                <span className="font-medium">{user.username}</span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src="" />
+                    <AvatarFallback>{user.username[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{user.username}</span>
+                </div>
+                {team && (
+                  <span className="text-sm text-muted-foreground ml-[3.25rem]">
+                    {team.name}
+                  </span>
+                )}
               </div>
             </div>
           </div>

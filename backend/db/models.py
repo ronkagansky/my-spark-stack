@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum
+from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
@@ -35,6 +35,7 @@ class Project(TimestampMixin, Base):
 
     modal_sandbox_last_used_at = Column(DateTime(timezone=True), nullable=True)
     modal_sandbox_id = Column(String, nullable=True)
+    modal_sandbox_expires_at = Column(DateTime(timezone=True), nullable=True)
     modal_volume_label = Column(String, nullable=True)
 
     team_id = Column(
@@ -133,6 +134,7 @@ class Message(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
+    images = Column(ARRAY(String), nullable=True)
 
     chat_id = Column(
         Integer, ForeignKey("chats.id", ondelete="CASCADE"), nullable=False

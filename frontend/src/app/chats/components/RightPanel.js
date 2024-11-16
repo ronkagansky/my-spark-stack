@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X as XIcon, PanelRight as PanelRightIcon } from 'lucide-react';
 import { PreviewTab } from './PreviewTab';
 import { FilesTab } from './FilesTab';
+import { ProjectTab } from './ProjectTab';
 
 export function RightPanel({
   isOpen,
@@ -46,6 +47,13 @@ export function RightPanel({
             >
               Files
             </Button>
+            <Button
+              variant={selectedTab === 'info' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedTab('info')}
+            >
+              Project
+            </Button>
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -62,11 +70,13 @@ export function RightPanel({
           <div className="rounded-lg border bg-muted/40 h-[calc(100vh-8rem)]">
             {selectedTab === 'preview' ? (
               <PreviewTab projectPreviewUrl={projectPreviewUrl} />
-            ) : (
+            ) : selectedTab === 'editor' ? (
               <FilesTab
                 projectFileTree={projectFileTree}
                 projectId={projectId}
               />
+            ) : (
+              <ProjectTab projectId={projectId} />
             )}
           </div>
         </div>

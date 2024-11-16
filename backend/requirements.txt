@@ -8,3 +8,4 @@ alembic==1.14.0
 openai==1.54.3
 uvicorn[standard]
 python-jose[cryptography]==3.3.0
+aioboto3==13.2.0
