@@ -191,7 +191,7 @@ class ProjectManager:
         for socket in sockets:
             try:
                 await socket.send_json(data.model_dump())
-            except RuntimeError:
+            except Exception:
                 self.chat_sockets[chat_id].remove(socket)
 
 

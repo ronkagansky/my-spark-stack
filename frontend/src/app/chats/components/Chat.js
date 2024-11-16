@@ -17,22 +17,12 @@ import {
 import { useUser } from '@/context/user-context';
 import { api } from '@/lib/api';
 import { resizeImage, captureScreenshot } from '@/lib/image';
+import { components } from '@/app/chats/components/MarkdownComponents';
 
 const STARTER_PROMPTS = [
   'Build a cat facts app with catfact.ninja API',
   'Build a maps app for coffee shops in SF',
 ];
-
-const FileUpdate = (props) => {
-  return (
-    <div className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md">
-      {props.children}
-    </div>
-  );
-};
-const components = {
-  'file-update': FileUpdate,
-};
 
 const EmptyState = ({
   selectedStack,
@@ -313,16 +303,25 @@ export function Chat({
 
   const fixCodeBlocks = (content) => {
     content = content.replace(
-      /```[\w.]+\n[#/]+ (\S+)\n[\s\S]+?```/g,
-      '<file-update>$1</file-update>'
+      /```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```/g,
+      (_, filename, content) =>
+        `<file-update>${btoa(
+          JSON.stringify({ filename, content })
+        )}</file-update>`
     );
     content = content.replace(
-      /```[\w.]+\n[/*]+ (\S+) \*\/\n[\s\S]+?```/g,
-      '<file-update>$1</file-update>'
+      /```[\w.]+\n[/*]+ (\S+) \*\/\n([\s\S]+?)```/g,
+      (_, filename, content) =>
+        `<file-update>${btoa(
+          JSON.stringify({ filename, content })
+        )}</file-update>`
     );
     content = content.replace(
-      /```[\w.]+\n<!-- (\S+) -->\n[\s\S]+?```/g,
-      '<file-update>$1</file-update>'
+      /```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```/g,
+      (_, filename, content) =>
+        `<file-update>${btoa(
+          JSON.stringify({ filename, content })
+        )}</file-update>`
     );
     content = content.replace(/```[^`]+$/, '...');
     return content;

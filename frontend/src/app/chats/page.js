@@ -185,6 +185,7 @@ export default function WorkspacePage({ chatId }) {
         )}`
       );
     } else {
+      setStatus('WORKING');
       webSocketRef.current.sendMessage(userMessage);
     }
   };
