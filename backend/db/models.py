@@ -54,11 +54,16 @@ class Project(TimestampMixin, Base):
     chats = relationship("Chat", back_populates="project", cascade="all, delete-orphan")
 
 
+class TeamPlanType(PyEnum):
+    FREE = "free"
+
+
 class Team(TimestampMixin, Base):
     __tablename__ = "teams"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    plan_type = Column(Enum(TeamPlanType), nullable=False, default=TeamPlanType.FREE)
 
     # Relationships
     members = relationship(
@@ -84,7 +89,7 @@ class TeamMember(TimestampMixin, Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    role = Column(Enum(TeamRole), nullable=False)
+    role = Column(Enum(TeamRole), nullable=False, default=TeamRole.MEMBER)
 
     # Relationships
     team = relationship("Team", back_populates="members")

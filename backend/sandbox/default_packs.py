@@ -15,15 +15,15 @@ _SETUP_GIT_CMD = "git init && git config --global user.email 'bot@prompt-stack.s
 
 PACKS = [
     StackPack(
-        title="Vanilla React",
-        description="A simple JS React App. Best for starting from scratch with minimal dependencies.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-vanilla-react@sha256:8e4377feb2f989f7bea506aacb477936ae08aa95c68d5fb5fe8cec2395fa4342",
+        title="Vanilla Nextjs",
+        description="A simple Nextjs App. Best for starting from scratch with minimal components.",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-vanilla-nextjs@sha256:8e4377feb2f989f7bea506aacb477936ae08aa95c68d5fb5fe8cec2395fa4342",
         sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
-        sandbox_start_cmd="cd /app/frontend && npm run start",
+        sandbox_start_cmd="cd /app/frontend && npm run dev",
         prompt="""
-You are building a vanilla React app.
+You are building a Nextjs app.
 
-The user choose to use a vanilla app so avoid adding any additional dependencies unless they are explicitly asked for.
+The user choose to use a "vanilla" app so avoid adding any additional dependencies unless they are explicitly asked for.
 
 Already included:
 - react-router-dom (use for all routing needs, note this is v6.xx)
@@ -39,7 +39,7 @@ Tips:
     ),
     StackPack(
         title="Nextjs Shadcn",
-        description="A Nextjs app with Shadcn UI. Best for building a modern web app with a nice UI.",
+        description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:1e4d19582567f98b4672d346472867dcb475e32bdb8e2c43a9ee6b0bdf4a57c5",
         sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd="cd /app/frontend && npm run dev",

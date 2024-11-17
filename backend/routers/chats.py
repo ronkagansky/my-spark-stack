@@ -130,10 +130,9 @@ async def delete_chat(
     remaining_chats = db.query(Chat).filter(Chat.project_id == project_id).first()
     project_deleted = None
     if not remaining_chats:
-        project = db.query(Project).filter(Project.id == project_id).first()
-        if project:
-            db.delete(project)
-            project_deleted = project
+        project_deleted = db.query(Project).filter(Project.id == project_id).first()
+        if project_deleted:
+            db.delete(project_deleted)
 
     db.commit()
 

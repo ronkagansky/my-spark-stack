@@ -15,8 +15,13 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-RUN npx --yes create-react-app frontend && \
+RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
     cd frontend && \
-    npm install react-router-dom
+    npm install lucide-react --force && \
+    (echo "\n\n\n" | npx shadcn@latest init --defaults --force --yes) && \
+    (echo "\n\n\n" | npx shadcn@latest add --yes --all) && \
+    npm run build && \
+    ls -asl /frontend && \
+    cat /frontend/package.json
 
 EXPOSE 3000
