@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
@@ -27,6 +28,7 @@ export const Sidebar = () => {
   const router = useRouter();
   const [editingChatId, setEditingChatId] = React.useState(null);
   const [editingName, setEditingName] = React.useState('');
+  const { toast } = useToast();
 
   const handleChatClick = (chatId) => {
     router.push(`/chats/${chatId}`);
@@ -65,7 +67,11 @@ export const Sidebar = () => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this chat?')) {
       try {
-        await api.deleteChat(chatId);
+        const { message } = await api.deleteChat(chatId);
+        toast({
+          title: 'Deleted',
+          description: message,
+        });
         // Refresh the projects list by calling the context update
         await refreshChats();
         // If we're currently on the deleted project's page, redirect to home

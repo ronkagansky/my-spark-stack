@@ -6,10 +6,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   FileText,
   GitBranch,
-  Calendar,
   Pencil,
   Loader2,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useRouter } from 'next/navigation';
 
 export function ProjectTab({ project, onSendMessage }) {
   const { team, refreshProjects } = useUser();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(project?.name);
   const [editedDescription, setEditedDescription] = useState(
@@ -35,6 +37,8 @@ export function ProjectTab({ project, onSendMessage }) {
   );
   const [gitLog, setGitLog] = useState([]);
   const [isLoadingGitLog, setIsLoadingGitLog] = useState(true);
+  const [chats, setChats] = useState([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
 
   useEffect(() => {
     const fetchGitLog = async () => {
@@ -48,10 +52,22 @@ export function ProjectTab({ project, onSendMessage }) {
       }
     };
 
-    if (project) {
+    const fetchChats = async () => {
+      try {
+        const chatData = await api.getProjectChats(team.id, project.id);
+        setChats(chatData);
+      } catch (error) {
+        console.error('Failed to fetch chats:', error);
+      } finally {
+        setIsLoadingChats(false);
+      }
+    };
+
+    if (project && team?.id) {
       fetchGitLog();
+      fetchChats();
     }
-  }, [project, team.id]);
+  }, [project, team?.id]);
 
   if (!project) {
     return (
@@ -80,6 +96,24 @@ export function ProjectTab({ project, onSendMessage }) {
       content: `Revert changes using \`git revert ${hash}..HEAD\``,
       images: [],
     });
+  };
+
+  const handleDeleteProject = async () => {
+    if (
+      confirm(
+        'Are you sure you want to delete this project? This action cannot be undone.'
+      )
+    ) {
+      try {
+        await api.deleteProject(team.id, project.id);
+        await refreshProjects();
+        await refreshChats();
+        router.push('/chats/new');
+        router.refresh();
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+      }
+    }
   };
 
   return (
@@ -123,7 +157,7 @@ export function ProjectTab({ project, onSendMessage }) {
                 <h3 className="font-semibold mb-2">Custom Instructions</h3>
                 <p className="text-muted-foreground">
                   {project.custom_instructions ||
-                    'No custom instructions set for this project'}
+                    'No custom instructions set for this project.'}
                 </p>
               </Card>
               <TooltipProvider>
@@ -148,6 +182,43 @@ export function ProjectTab({ project, onSendMessage }) {
         </div>
 
         <div className="grid gap-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-4 w-4" />
+              <h3 className="font-semibold">Chats</h3>
+            </div>
+            {isLoadingChats ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : chats?.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                No chats in this project yet.
+              </div>
+            ) : (
+              <ScrollArea className="h-[250px]">
+                <div className="space-y-2">
+                  {chats?.map((chat) => (
+                    <div
+                      key={chat.id}
+                      className="flex items-start gap-3 text-sm p-2 hover:bg-muted rounded-md cursor-pointer"
+                      onClick={() => router.push(`/chats/${chat.id}`)}
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {chat.name || 'Untitled Chat'}
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {new Date(chat.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </Card>
+
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <GitBranch className="h-4 w-4" />
@@ -197,6 +268,17 @@ export function ProjectTab({ project, onSendMessage }) {
               </ScrollArea>
             )}
           </Card>
+        </div>
+
+        <div className="pt-6 border-t">
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={handleDeleteProject}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Project
+          </Button>
         </div>
       </div>
     </ScrollArea>

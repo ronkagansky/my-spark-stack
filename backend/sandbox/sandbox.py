@@ -114,8 +114,6 @@ for path, base64_content in files:
     with open(path, 'w') as f:
         f.write(base64.b64decode(base64_content).decode('utf-8'))
 
-os.system("git config --global user.email 'bot@prompt-stack.sshh.io'")
-os.system("git config --global user.name 'Prompt Stack Bot'")
 os.system("git add -A")
 os.system("git commit -m '{commit_message}'")
 """
@@ -146,6 +144,24 @@ os.system("git commit -m '{commit_message}'")
             pass
         try:
             await modal.Volume.delete.aio(f"prompt-stack-vol-project-{project_id}")
+        except:
+            pass
+
+    @classmethod
+    async def destroy_project_resources(cls, project: Project):
+        sb = None
+        vol = None
+        if project.modal_sandbox_id:
+            sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
+        if project.modal_volume_label:
+            vol = modal.Volume.from_name(project.modal_volume_label)
+
+        try:
+            await sb.terminate.aio()
+        except:
+            pass
+        try:
+            await vol.delete.aio()
         except:
             pass
 
@@ -202,7 +218,7 @@ os.system("git commit -m '{commit_message}'")
                 image=image,
                 encrypted_ports=[3000],
                 timeout=expires_in,
-                cpu=1,
+                cpu=0.25,
                 memory=1024,
             )
             project.modal_sandbox_id = sb.object_id
@@ -246,7 +262,7 @@ async def maintain_prepared_sandboxes(db: Session):
                 volumes={"/app": vol},
                 image=image,
                 timeout=5 * 60,
-                cpu=0.5,
+                cpu=0.25,
                 memory=256,
             )
             await sb.wait.aio()

@@ -7,6 +7,7 @@ from db.database import get_db
 from db.models import User, Chat, Team, Project, Stack
 from db.queries import get_chat_for_user
 from agents.prompts import name_chat
+from sandbox.sandbox import DevSandbox
 from schemas.models import ChatCreate, ChatUpdate, ChatResponse
 from routers.auth import get_current_user_from_token
 
@@ -123,14 +124,23 @@ async def delete_chat(
     if chat is None:
         raise HTTPException(status_code=404, detail="Chat not found")
 
+    project_id = chat.project_id
     db.delete(chat)
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
 
-    return {"message": "Project deleted successfully"}
+    remaining_chats = db.query(Chat).filter(Chat.project_id == project_id).first()
+    project_deleted = None
+    if not remaining_chats:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if project:
+            db.delete(project)
+            project_deleted = project
+
+    db.commit()
+
+    if project_deleted:
+        await DevSandbox.destroy_project_resources(project_deleted)
+
+    return {"message": "Chat deleted successfully"}
 
 
 @router.patch("/{chat_id}", response_model=ChatResponse)

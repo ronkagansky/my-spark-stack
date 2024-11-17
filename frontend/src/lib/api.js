@@ -144,6 +144,14 @@ class ApiClient {
       projectData
     );
   }
+
+  async getProjectChats(teamId, projectId) {
+    return this._get(`/api/teams/${teamId}/projects/${projectId}/chats`);
+  }
+
+  async deleteProject(teamId, projectId) {
+    return this._delete(`/api/teams/${teamId}/projects/${projectId}`);
+  }
 }
 
 // Export singleton instance
