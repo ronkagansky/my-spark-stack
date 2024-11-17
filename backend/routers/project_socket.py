@@ -111,8 +111,16 @@ class ProjectManager:
         for agent in self.chat_agents.values():
             agent.sandbox = self.sandbox
 
+    async def _try_manage_sandbox(self):
+        while True:
+            try:
+                await self._manage_sandbox_task()
+            except Exception as e:
+                print("Error managing sandbox", e)
+            await asyncio.sleep(30)
+
     def start(self):
-        create_task(self._manage_sandbox_task())
+        create_task(self._try_manage_sandbox())
 
     async def _get_project_status(self):
         return ProjectStatusResponse(

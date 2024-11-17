@@ -222,7 +222,7 @@ os.system("git commit -m '{commit_message}'")
                 image=image,
                 encrypted_ports=[3000],
                 timeout=expires_in,
-                cpu=0.25,
+                cpu=0.125,
                 memory=1024,
             )
             project.modal_sandbox_id = sb.object_id
@@ -266,7 +266,7 @@ async def maintain_prepared_sandboxes(db: Session):
                 volumes={"/app": vol},
                 image=image,
                 timeout=5 * 60,
-                cpu=0.25,
+                cpu=0.125,
                 memory=256,
             )
             await sb.wait.aio()

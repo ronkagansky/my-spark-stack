@@ -24,7 +24,8 @@ import { useToast } from '@/hooks/use-toast';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
-  const { user, chats, refreshChats, team, projects } = useUser();
+  const { user, chats, refreshChats, refreshProjects, team, projects } =
+    useUser();
   const router = useRouter();
   const [editingChatId, setEditingChatId] = React.useState(null);
   const [editingName, setEditingName] = React.useState('');
@@ -72,15 +73,13 @@ export const Sidebar = () => {
           title: 'Deleted',
           description: message,
         });
-        // Refresh the projects list by calling the context update
         await refreshChats();
-        // If we're currently on the deleted project's page, redirect to home
+        await refreshProjects();
         if (window.location.pathname.includes(`/chats/${chatId}`)) {
           router.push('/chats/new');
         }
       } catch (error) {
         console.error('Failed to delete chat:', error);
-        // You might want to add proper error handling/notification here
       }
     }
   };

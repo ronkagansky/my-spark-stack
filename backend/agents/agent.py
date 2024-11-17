@@ -110,16 +110,17 @@ They will be able to edit files, run arbitrary commands in the sandbox, and navi
 Answer the following questions:
 1. What is being asked by the most recent message?
 1a. Is this a general question, command to build something, etc.?
-1b. What steps below are worth considering (lean towards including more steps)?
 2. Which files are relevant to the question or would be needed to perform the request?
-2a. What page should the user be navigated to to see/verify the change?
-3. For EACH stack-specific tip, what do you need to keep in mind or how does this adjust your plan?
-4. Finally, what are the full sequence of steps to take to answer the question?
-4a. What commands might you need to run?
-4b. What files should we cat to see what we have?
-4c. What high level changes do you need to make to the files?
-4d. Be specific about how it should be done based on the stack and project notes.
-5. Verify your plan makes sense given the stack and project. Make any adjustments as needed.
+2a. What page should the user be navigated to to see/verify the change? (e.g. /settings since we are working on that page)
+3. What commands might you need to run?
+3a. What packages need to be installed?
+4. For EACH stack-specific tip, what do you need to keep in mind or how does this adjust your plan?
+5. Finally, what are the full sequence of steps to take to answer the question? (tools/commands -> generate files -> conclusion)
+5a. What commands should we run?
+5b. What files should we cat to see what we have?
+5c. What high level changes do you need to make to the files?
+5d. Be specific about how it should be done based on the stack and project notes.
+6. Verify your plan makes sense given the stack and project. Make any adjustments as needed.
 
 Output you response in markdown (not with code block) using "###" for brief headings and your plan/answers in each section.
 

@@ -11,7 +11,8 @@ class StackPack(BaseModel):
 
 
 _COPY_FRONTEND_CMD = "if [ ! -d 'frontend' ]; then cp -r /frontend .; fi"
-_SETUP_GIT_CMD = "git init && git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot' && git add -A && git commit -m 'Initial commit'"
+_SETUP_GIT_CMD = "git init && git config --global init.defaultBranch main && git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot' && git add -A && git commit -m 'Initial commit'"
+_START_NEXT_JS_CMD = "git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot' && cd /app/frontend && npm run dev"
 
 PACKS = [
     StackPack(
@@ -19,7 +20,7 @@ PACKS = [
         description="A simple Nextjs App. Best for starting from scratch with minimal components.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:7ef15857dc430f0af0ece838a0fd674dacf1e3bb3975aa2f240e9cdb9ce0297b",
         sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
-        sandbox_start_cmd="cd /app/frontend && npm run dev",
+        sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a Next.js app.
 
@@ -44,7 +45,7 @@ Code Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
 
 3rd Party Tips:
-- Use react-leaflet for maps
+- Use react-leaflet for maps (you need to install it)
 - Use https://random.imagecdn.app/<width>/<height> for placeholder images
 """.strip(),
     ),
@@ -53,7 +54,7 @@ Code Tips:
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:77487f76650266c353d485cc11b41e3d5c222c6abddd69942fddcb1d2e108a34",
         sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
-        sandbox_start_cmd="cd /app/frontend && npm run dev",
+        sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a Next.js app with Shadcn UI.
 
@@ -81,7 +82,7 @@ Code Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
 
 3rd Party Tips:
-- Use react-leaflet for maps
+- Use react-leaflet for maps (you need to install it)
 - Use https://random.imagecdn.app/<width>/<height> for placeholder images
 """.strip(),
     ),
