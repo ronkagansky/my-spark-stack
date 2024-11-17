@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import AsyncGenerator, List, Dict, Any, Callable, Optional
 import re
-import asyncio
 import json
 
 from db.models import Project, Stack
@@ -9,10 +8,9 @@ from sandbox.sandbox import DevSandbox
 from agents.prompts import (
     oai_client,
     chat_complete,
-    apply_smart_diff,
-    MAIN_MODEL,
-    FAST_MODEL,
 )
+from config import OPENAI_FAST_MODEL, OPENAI_MAIN_MODEL
+from agents.diff import remove_file_changes
 
 
 class ChatMessage(BaseModel):
@@ -43,13 +41,6 @@ class AgentTool(BaseModel):
                 "parameters": self.parameters,
             },
         }
-
-
-CODE_BLOCK_PATTERNS = [
-    r"```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```",  # Python-style comments (#)
-    r"```[\w.]+\n[/*]+ (\S+) \*/\n([\s\S]+?)```",  # C-style comments (/* */)
-    r"```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```",  # HTML-style comments <!-- -->
-]
 
 
 def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
@@ -312,7 +303,7 @@ class Agent:
             files_text=files_text,
         )
         stream = await oai_client.chat.completions.create(
-            model=FAST_MODEL,
+            model=OPENAI_FAST_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -392,7 +383,7 @@ class Agent:
 
         while running:
             stream = await oai_client.chat.completions.create(
-                model=MAIN_MODEL,
+                model=OPENAI_MAIN_MODEL,
                 messages=oai_chat,
                 tools=[tool.to_oai_tool() for tool in tools],
                 stream=True,
@@ -457,53 +448,3 @@ class Agent:
                     yield PartialChatMessage(
                         role="assistant", delta_content=delta.content
                     )
-
-
-class FileChange(BaseModel):
-    path: str
-    diff: str
-    content: str
-
-
-_DIFF_TIPS = {
-    r"<Link[^>]*>[\S\s]*?<a[^>]*>": "NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)",
-}
-
-
-async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChange]:
-    changes = []
-
-    for pattern in CODE_BLOCK_PATTERNS:
-        matches = re.finditer(pattern, content)
-        for match in matches:
-            file_path = match.group(1)
-            diff = match.group(2).strip()
-            changes.append(FileChange(path=file_path, diff=diff, content=diff))
-
-    async def _render_diff(change: FileChange) -> FileChange:
-        tips = []
-        for pattern, tip in _DIFF_TIPS.items():
-            if pattern in change.diff:
-                tips.append(tip)
-        if "existing code" not in change.diff and len(tips) == 0:
-            return change
-        original_content = await sandbox.read_file_contents(change.path)
-        new_content = await apply_smart_diff(
-            original_content, change.diff, "\n".join([f" - {t}" for t in tips])
-        )
-        print(f"Applying smart diff to {change.path}")
-        return FileChange(
-            path=change.path,
-            diff=change.diff,
-            content=new_content,
-        )
-
-    changes = await asyncio.gather(*[_render_diff(change) for change in changes])
-
-    return changes
-
-
-def remove_file_changes(content: str) -> str:
-    for pattern in CODE_BLOCK_PATTERNS:
-        content = re.sub(pattern, "", content)
-    return content

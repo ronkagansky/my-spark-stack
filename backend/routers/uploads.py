@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 import aioboto3
-from botocore.config import Config
 import uuid
 
-from db.database import get_aws_client, BUCKET_NAME
+from config import BUCKET_NAME
+from db.database import get_aws_client
 from schemas.models import ImageUploadSignURL
 from db.models import User
 from routers.auth import get_current_user_from_token

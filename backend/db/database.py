@@ -1,13 +1,16 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
 import aioboto3
 
-POSTGRES_URL = os.environ.get("DATABASE_URL", "")
-BUCKET_NAME = os.environ.get("BUCKET_NAME", "prompt-stack")
+from config import (
+    DATABASE_URL,
+    AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY,
+    AWS_REGION,
+)
 
-engine = create_engine(POSTGRES_URL)
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
@@ -61,8 +64,8 @@ def get_db():
 
 def get_aws_client():
     client = aioboto3.Session(
-        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-        region_name=os.environ.get("AWS_REGION", "us-east-1"),
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION,
     )
     yield client

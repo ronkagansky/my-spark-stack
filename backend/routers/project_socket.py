@@ -7,7 +7,8 @@ import datetime
 import asyncio
 
 from sandbox.sandbox import DevSandbox, SandboxNotReadyException
-from agents.agent import Agent, ChatMessage, parse_file_changes
+from agents.agent import Agent, ChatMessage
+from agents.diff import parse_file_changes
 from db.database import get_db
 from db.models import Project, Message as DbChatMessage, Stack
 from db.queries import get_chat_for_user
@@ -211,15 +212,19 @@ class ProjectManager:
         self.sandbox_file_paths = await self.sandbox.get_file_paths()
         await self.emit_project(await self._get_project_status())
 
-    async def on_chat_message(self, chat_id: int, message: ChatMessage):
-        if not await self.lock.acquire():
-            return
+    async def _try_handle_chat_message(self, chat_id: int, message: ChatMessage):
         try:
             await self._handle_chat_message(chat_id, message)
         except Exception as e:
             print("Error in chat message", e)
-        finally:
-            self.lock.release()
+            self.sandbox_status = SandboxStatus.READY
+            await self.emit_project(await self._get_project_status())
+
+    async def on_chat_message(self, chat_id: int, message: ChatMessage):
+        if not await self.lock.acquire():
+            return
+        await self._try_handle_chat_message(chat_id, message)
+        self.lock.release()
 
     async def emit_project(self, data: BaseModel):
         await asyncio.gather(

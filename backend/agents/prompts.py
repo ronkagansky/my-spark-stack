@@ -1,19 +1,17 @@
 from openai import AsyncOpenAI
 import datetime
 import re
-import os
 from typing import Tuple
 
-oai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from config import OPENAI_API_KEY, OPENAI_FAST_MODEL
 
-FAST_MODEL = os.getenv("OPENAI_FAST_MODEL", "gpt-4o-mini")
-MAIN_MODEL = os.getenv("OPENAI_MAIN_MODEL", "gpt-4o")
+oai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 
 async def chat_complete(
     system_prompt: str,
     user_prompt: str,
-    model: str = FAST_MODEL,
+    model: str = OPENAI_FAST_MODEL,
     temperature: float = 0.0,
 ) -> str:
     resp = await oai_client.chat.completions.create(
@@ -73,11 +71,4 @@ async def write_commit_message(content: str) -> str:
     return await chat_complete(
         "You are a helpful assistant that writes commit messages for git. Given the following changes, write a commit message for the changes. Respond only with the commit message. Do not use quotes or special characters.",
         content[:100000],
-    )
-
-
-async def apply_smart_diff(original_content: str, diff: str, tips: str) -> str:
-    return await chat_complete(
-        "You are a senior software engineer that applies code changes to a file. Given the original content, the diff, and the tips/adjustments, apply the changes to the content. Some code might need to be fixed based on the adjustments. Respond only with the updated content (no code blocks or other formatting).",
-        f"<original-content>\n{original_content}\n</original-content>\n\n<diff>\n{diff}\n</diff>\n\n<adjustments>\n{tips}\n</adjustments>",
     )

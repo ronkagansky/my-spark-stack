@@ -9,10 +9,10 @@ import os
 from db.database import get_db
 from db.models import User, Team, TeamMember, Project, TeamRole, Stack
 from schemas.models import UserCreate, UserResponse, AuthResponse
+from config import JWT_SECRET_KEY
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
 API_KEY_HEADER = APIKeyHeader(name="Authorization")
 
 
@@ -21,7 +21,7 @@ async def get_current_user_from_token(
 ):
     try:
         token = token.replace("Bearer ", "")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
         username = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -64,7 +64,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         # Generate token
         token = jwt.encode(
             {"sub": new_user.username, "exp": datetime.utcnow() + timedelta(days=30)},
-            SECRET_KEY,
+            JWT_SECRET_KEY,
             algorithm="HS256",
         )
         return AuthResponse(user=new_user, token=token)

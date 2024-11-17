@@ -75,13 +75,12 @@ class DevSandbox:
         self.ready = False
 
     async def wait_for_up(self):
+        tunnels = await self.sb.tunnels.aio()
+        tunnel_url = tunnels[3000].url
         while True:
-            tunnels = await self.sb.tunnels.aio()
-            tunnel_url = tunnels[3000].url
             if await _wait_for_up(tunnel_url):
                 break
-
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
         self.ready = True
 
     async def get_file_paths(self) -> List[str]:
@@ -213,7 +212,9 @@ os.system("git commit -m '{commit_message}'")
                 datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
             )
             db.commit()
-            await sb.set_tags.aio({"project_id": str(project_id)})
+            await sb.set_tags.aio(
+                {"project_id": str(project_id), "app": "prompt-stack"}
+            )
         else:
             print("Using existing sandbox for project", project.id)
             sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
@@ -251,6 +252,7 @@ async def maintain_prepared_sandboxes(db: Session):
                 cpu=0.125,
                 memory=256,
             )
+            await sb.set_tags.aio({"app": "prompt-stack"})
             await sb.wait.aio()
             psb = PreparedSandbox(
                 stack_id=stack.id,
