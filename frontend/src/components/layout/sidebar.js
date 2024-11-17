@@ -10,6 +10,7 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  MessageCircle,
 } from 'lucide-react';
 import { useUser } from '@/context/user-context';
 import { useRouter } from 'next/navigation';
@@ -107,12 +108,14 @@ export const Sidebar = () => {
     acc[projectId].push(chat);
     return acc;
   }, {});
-  Object.entries(projectIdToChats).sort(([projectIdA], [projectIdB]) => {
-    return (
-      new Date(projects.find((p) => p.id === projectIdB)?.created_at) -
-      new Date(projects.find((p) => p.id === projectIdA)?.created_at)
-    );
-  });
+  const sortedProjectIdToChats = Object.entries(projectIdToChats).sort(
+    ([projectIdA], [projectIdB]) => {
+      return (
+        new Date(projects.find((p) => +p.id === +projectIdB)?.created_at) -
+        new Date(projects.find((p) => +p.id === +projectIdA)?.created_at)
+      );
+    }
+  );
 
   return (
     <>
@@ -133,79 +136,86 @@ export const Sidebar = () => {
               <PlusIcon className="mr-2 h-4 w-4" />
               New Chat
             </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start mt-2"
+              size="sm"
+              onClick={() =>
+                window.open('https://forms.gle/VHkpxFnQXVxTqhaJ7', '_blank')
+              }
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Feedback
+            </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             <div className="space-y-4">
-              {Object.entries(projectIdToChats).map(
-                ([projectId, projectChats]) => (
-                  <div key={projectId}>
-                    <div className="text-sm text-muted-foreground font-medium px-2 mb-2">
-                      {projects.find((p) => p.id === +projectId)?.name}
-                    </div>
-                    <div className="space-y-1">
-                      {projectChats.map((chat) => (
-                        <div
-                          key={chat.id}
-                          className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
-                          onClick={() => handleChatClick(chat.id)}
-                        >
-                          <div className="flex justify-between items-center">
-                            {editingChatId === chat.id ? (
-                              <form
-                                onSubmit={(e) => handleRenameSubmit(chat.id, e)}
-                                className="flex-1 mr-2"
+              {sortedProjectIdToChats.map(([projectId, projectChats]) => (
+                <div key={projectId}>
+                  <div className="text-sm text-muted-foreground font-medium px-2 mb-2">
+                    {projects.find((p) => p.id === +projectId)?.name}
+                  </div>
+                  <div className="space-y-1">
+                    {projectChats.map((chat) => (
+                      <div
+                        key={chat.id}
+                        className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
+                        onClick={() => handleChatClick(chat.id)}
+                      >
+                        <div className="flex justify-between items-center">
+                          {editingChatId === chat.id ? (
+                            <form
+                              onSubmit={(e) => handleRenameSubmit(chat.id, e)}
+                              className="flex-1 mr-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="text"
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                className="w-full px-1 py-0.5 text-sm bg-background border rounded"
+                                autoFocus
+                                onBlur={(e) => handleRenameSubmit(chat.id, e)}
+                              />
+                            </form>
+                          ) : (
+                            <span className="truncate pr-2 text-sm">
+                              {chat.name}
+                            </span>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <input
-                                  type="text"
-                                  value={editingName}
-                                  onChange={(e) =>
-                                    setEditingName(e.target.value)
-                                  }
-                                  className="w-full px-1 py-0.5 text-sm bg-background border rounded"
-                                  autoFocus
-                                  onBlur={(e) => handleRenameSubmit(chat.id, e)}
-                                />
-                              </form>
-                            ) : (
-                              <span className="truncate pr-2 text-sm">
-                                {chat.name}
-                              </span>
-                            )}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                <DropdownMenuItem
-                                  onClick={(e) => handleRename(chat.id, e)}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Rename
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => handleDelete(chat.id, e)}
-                                  className="text-red-600 focus:text-red-600 focus:bg-red-100"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem
+                                onClick={(e) => handleRename(chat.id, e)}
+                              >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => handleDelete(chat.id, e)}
+                                className="text-red-600 focus:text-red-600 focus:bg-red-100"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )
-              )}
+                </div>
+              ))}
             </div>
           </div>
           <div className="p-4 border-t">

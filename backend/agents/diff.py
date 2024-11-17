@@ -20,13 +20,19 @@ _CODE_BLOCK_PATTERNS = [
 ]
 
 _DIFF_TIPS = {
-    r"<Link[^>]*>[\S\s]*?<a[^>]*>": "NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)",
+    r"<Link[^>]*>[\S\s]*?<a[^>]*>": "All <Link> tags should be free of <a> tags. Remove all <a> tags from <Link> tags.",
 }
 
 
 async def _apply_smart_diff(original_content: str, diff: str, tips: str) -> str:
     return await chat_complete(
-        "You are a senior software engineer that applies code changes to a file. Given the original content, the diff, and the tips/adjustments, apply the changes to the content. Some code might need to be fixed based on the adjustments. Respond only with the updated content (no code blocks or other formatting).",
+        """
+You are a senior software engineer that applies code changes to a file. Given the original content, the diff, and the tips/adjustments, apply the changes to the content. 
+
+You should also apply the <adjustments> provided even if this conflicts with the original diff.
+
+Respond ONLY with the updated content (no code blocks or other formatting).
+""".strip(),
         f"<original-content>\n{original_content}\n</original-content>\n\n<diff>\n{diff}\n</diff>\n\n<adjustments>\n{tips}\n</adjustments>",
     )
 
