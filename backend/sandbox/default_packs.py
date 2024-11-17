@@ -29,6 +29,7 @@ The user choose to use a "vanilla" app so avoid adding any additional dependenci
 Already included:
 - Next.js v15 (app already created)
 - tailwindcss
+- `npm install` already run
 
 Style Tips:
 - Use inline tailwind classes over custom css
@@ -65,6 +66,7 @@ Already included:
 - lucide-react
 - axios
 - All shadcn components are already installed (import them like `@/components/ui/button`)
+- `npm install` already run
 
 Style Tips:
 - Use inline tailwind classes over custom css

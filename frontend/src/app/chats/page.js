@@ -8,6 +8,7 @@ import { ProjectWebSocketService } from '@/lib/project-websocket';
 import { api } from '@/lib/api';
 import { Chat } from './components/Chat';
 import { RightPanel } from './components/RightPanel';
+import { useToast } from '@/hooks/use-toast';
 
 export default function WorkspacePage({ chatId }) {
   const { addChat, team, projects, refreshProjects } = useUser();
@@ -24,7 +25,7 @@ export default function WorkspacePage({ chatId }) {
   const [previewHash, setPreviewHash] = useState(1);
   const [status, setStatus] = useState('NEW_CHAT');
   const webSocketRef = useRef(null);
-
+  const { toast } = useToast();
   useEffect(() => {
     if (!localStorage.getItem('token')) {
       router.push('/');
@@ -190,6 +191,10 @@ export default function WorkspacePage({ chatId }) {
         project_id: projectId,
         team_id: team.id,
         seed_prompt: message.content,
+      });
+      toast({
+        title: 'Chat created',
+        description: 'Setting things up...',
       });
       await refreshProjects();
       addChat(chat);

@@ -115,6 +115,7 @@ class ProjectManager:
         while True:
             try:
                 await self._manage_sandbox_task()
+                break
             except Exception as e:
                 print("Error managing sandbox", e)
             await asyncio.sleep(30)

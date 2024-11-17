@@ -139,8 +139,6 @@ os.system("git commit -m '{commit_message}'")
 
     @classmethod
     async def destroy_project_resources(cls, project: Project):
-        sb = None
-        vol = None
         if project.modal_sandbox_id:
             sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
             try:
@@ -148,9 +146,8 @@ os.system("git commit -m '{commit_message}'")
             except Exception as e:
                 print("Error terminating sandbox", e)
         if project.modal_volume_label:
-            vol = await modal.Volume.lookup.aio(label=project.modal_volume_label)
             try:
-                await vol.delete.aio()
+                await modal.Volume.delete.aio(label=project.modal_volume_label)
             except Exception as e:
                 print("Error deleting volume", e)
 
