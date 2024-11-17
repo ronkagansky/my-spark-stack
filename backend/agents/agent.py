@@ -70,10 +70,30 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
     )
 
 
+def build_navigate_to_tool(agent: "Agent"):
+    async def func(path: str):
+        agent.working_page = path
+        print(f"Navigating user to {path}")
+        return "Navigating user to " + path
+
+    return AgentTool(
+        name="navigate_to",
+        description="Trigger the user's browser to navigate to the given path (e.g. /settings)",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+            },
+            "required": ["path"],
+        },
+        func=func,
+    )
+
+
 SYSTEM_PLAN_PROMPT = """
 You are a full-stack export developer on the platform Prompt Stack. You are given a project and a sandbox to develop in and are helping PLAN the next steps. You do not write code and only provide advice as a Senior Engineer.
 
-They will be able to edit files and run arbitrary commands in the sandbox.
+They will be able to edit files, run arbitrary commands in the sandbox, and navigate the user's browser.
 
 <project>
 {project_text}
@@ -88,9 +108,11 @@ They will be able to edit files and run arbitrary commands in the sandbox.
 </project-files>
 
 Answer the following questions:
-1. What is being asked by the most recent message? (general question, command to build something, etc.)
-1a. What steps below are worth considering (lean towards including more steps)?
+1. What is being asked by the most recent message?
+1a. Is this a general question, command to build something, etc.?
+1b. What steps below are worth considering (lean towards including more steps)?
 2. Which files are relevant to the question or would be needed to perform the request?
+2a. What page should the user be navigated to to see/verify the change?
 3. For EACH stack-specific tip, what do you need to keep in mind or how does this adjust your plan?
 4. Finally, what are the full sequence of steps to take to answer the question?
 4a. What commands might you need to run?
@@ -102,11 +124,11 @@ Answer the following questions:
 Output you response in markdown (not with code block) using "###" for brief headings and your plan/answers in each section.
 
 <example>
-### Analyzing the question...
+### Analyzing your question...
 
 ...
 
-### Finding files to edit...
+### Figuring out what files to edit...
 
 ...
 </example>
@@ -132,12 +154,15 @@ You are a full-stack export developer on the platform Prompt Stack. You are give
 </project-files>
 
 <tools->
-<run_command>
+<command name="run_command">
 You are able run shell commands in the sandbox.
 
 - This includes common tools like `npm`, `cat`, `ls`, `git`, etc. avoid any commands that require a GUI or interactivity.
 - DO NOT USE TOOLS to modify the content of files. You also do not need to display the commands you use.
-</run_command>
+</command>
+<command name="navigate_to">
+You are able to navigate the user's browser to a given path.
+</command>
 </tools>
 
 <plan>
@@ -212,6 +237,7 @@ class Agent:
         self.project = project
         self.stack = stack
         self.sandbox = None
+        self.working_page = None
 
     def set_sandbox(self, sandbox: DevSandbox):
         self.sandbox = sandbox
@@ -322,7 +348,7 @@ class Agent:
                 for message in messages
             ],
         ]
-        tools = [build_run_command_tool(self.sandbox)]
+        tools = [build_run_command_tool(self.sandbox), build_navigate_to_tool(self)]
         running = True
 
         while running:

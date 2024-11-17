@@ -211,16 +211,16 @@ export const Sidebar = () => {
           </div>
           <div className="p-4 border-t">
             <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex items-center space-x-3 min-w-0">
                   <Avatar>
                     <AvatarImage src="" />
                     <AvatarFallback>{user.username[0]}</AvatarFallback>
                   </Avatar>
-                  <span className="font-medium">{user.username}</span>
+                  <span className="font-medium truncate">{user.username}</span>
                 </div>
                 {team && (
-                  <span className="text-sm text-muted-foreground ml-[3.25rem]">
+                  <span className="text-sm text-muted-foreground ml-[3.25rem] truncate">
                     {team.name}
                   </span>
                 )}

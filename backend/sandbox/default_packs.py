@@ -15,53 +15,74 @@ _SETUP_GIT_CMD = "git init && git config --global user.email 'bot@prompt-stack.s
 
 PACKS = [
     StackPack(
-        title="Vanilla Nextjs",
+        title="Next.js",
         description="A simple Nextjs App. Best for starting from scratch with minimal components.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-vanilla-nextjs@sha256:8e4377feb2f989f7bea506aacb477936ae08aa95c68d5fb5fe8cec2395fa4342",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:7ef15857dc430f0af0ece838a0fd674dacf1e3bb3975aa2f240e9cdb9ce0297b",
         sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd="cd /app/frontend && npm run dev",
         prompt="""
-You are building a Nextjs app.
+You are building a Next.js app.
 
 The user choose to use a "vanilla" app so avoid adding any additional dependencies unless they are explicitly asked for.
 
 Already included:
-- react-router-dom (use for all routing needs, note this is v6.xx)
-- The react app is already created in /app/frontend (do not run `create-react-app`)
+- Next.js v15 (app already created)
+- tailwindcss
 
-Tips:
-- Put initial app changes in App.js and move to other files only as things get more complex
+Style Tips:
+- Use inline tailwind classes over custom css
+- Use tailwind colors over custom colors
+- Assume the user want's a nice look UI out of the box (so add styles as you create components and assume layouts based on what the user is building)
+
+Structure Tips:
+- Always use Next.js app router for new pages, creating /src/app/<page>/page.js
+- Always ensure new pages are somehow accessible from the main index page
+- Always include "use client" unless otherwise specified
+- NEVER modify layout.js and use page.js files for layouts
+
+Code Tips:
+- NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
+
+3rd Party Tips:
 - Use react-leaflet for maps
-- Use inline styles over custom css
-- Use https://random.imagecdn.app/<width>/<height> for random images
-- Always link new pages in App.js (or else the user will not see them)
+- Use https://random.imagecdn.app/<width>/<height> for placeholder images
 """.strip(),
     ),
     StackPack(
-        title="Nextjs Shadcn",
+        title="Next.js Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:1e4d19582567f98b4672d346472867dcb475e32bdb8e2c43a9ee6b0bdf4a57c5",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:77487f76650266c353d485cc11b41e3d5c222c6abddd69942fddcb1d2e108a34",
         sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd="cd /app/frontend && npm run dev",
         prompt="""
-You are building a Nextjs app with Shadcn UI.
+You are building a Next.js app with Shadcn UI.
 
-The user choose to use a Nextjs app with Shadcn UI so avoid adding any additional dependencies unless they are explicitly asked for.
+The user choose to use a Next.js app with Shadcn UI so avoid adding any additional dependencies unless they are explicitly asked for.
 
 Already included:
-- Nextjs App Router (use for routing)
-- `lucide-react` for icons
-- Most shadcn components are already installed with `npx shadcn@latest add --yes --all` (import them like `@/components/ui/button`)
-- The Nextjs app is already created in /app/frontend (do not run `create-next-app`)
+- Next.js v15 (app already created)
+- lucide-react
+- axios
+- All shadcn components are already installed (import them like `@/components/ui/button`)
 
-Tips:
-- Put initial app changes in src/app/page.js and move to other files only as things get more complex
-- Use react-leaflet for maps
+Style Tips:
+- Use inline tailwind classes over custom css
+- Use tailwind colors over custom colors
+- Prefer shadcn components as much as possible over custom components
+- Assume the user want's a nice look UI out of the box (so add styles as you create components and assume layouts based on what the user is building)
+
+Structure Tips:
+- Always use Next.js app router for new pages, creating /src/app/<page>/page.js
+- Always ensure new pages are somehow accessible from the main index page
 - Always include "use client" unless otherwise specified
-- Always use tailwind classes over custom css
-- Always link new pages in App.js (or else the user will not see them)
-- Always use app router for new pages, creating /src/app/<page>/page.js
-- Always use shadcn components over custom components
+- NEVER modify layout.js and use page.js files for layouts
+
+Code Tips:
+- NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
+
+3rd Party Tips:
+- Use react-leaflet for maps
+- Use https://random.imagecdn.app/<width>/<height> for placeholder images
 """.strip(),
     ),
 ]

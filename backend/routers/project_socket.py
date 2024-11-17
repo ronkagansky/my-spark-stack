@@ -6,10 +6,10 @@ from pydantic import BaseModel
 import datetime
 import asyncio
 
-from sandbox.sandbox import DevSandbox
+from sandbox.sandbox import DevSandbox, SandboxNotReadyException
 from agents.agent import Agent, ChatMessage, parse_file_changes
 from db.database import get_db
-from db.models import Project, Message as DbChatMessage, Chat, Stack
+from db.models import Project, Message as DbChatMessage, Stack
 from db.queries import get_chat_for_user
 from agents.prompts import write_commit_message
 from routers.auth import get_current_user_from_token
@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 class SandboxStatus(str, Enum):
     OFFLINE = "OFFLINE"
     BUILDING = "BUILDING"
+    BUILDING_WAITING = "BUILDING_WAITING"
     READY = "READY"
     WORKING = "WORKING"
 
@@ -36,6 +37,7 @@ class ChatUpdateResponse(BaseModel):
     chat_id: int
     message: ChatMessage
     follow_ups: Optional[List[str]] = None
+    navigate_to: Optional[str] = None
 
 
 class ChatChunkResponse(BaseModel):
@@ -93,7 +95,13 @@ class ProjectManager:
         print(f"Managing sandbox for project {self.project_id}...")
         self.sandbox_status = SandboxStatus.BUILDING
         await self.emit_project(await self._get_project_status())
-        self.sandbox = await DevSandbox.get_or_create(self.project_id)
+        while self.sandbox is None:
+            try:
+                self.sandbox = await DevSandbox.get_or_create(self.project_id)
+            except SandboxNotReadyException:
+                self.sandbox_status = SandboxStatus.BUILDING_WAITING
+                await self.emit_project(await self._get_project_status())
+            await asyncio.sleep(30)
         await self.sandbox.wait_for_up()
         self.sandbox_status = SandboxStatus.READY
         tunnels = await self.sandbox.sb.tunnels.aio()
@@ -186,6 +194,7 @@ class ProjectManager:
                 chat_id=chat_id,
                 message=_db_message_to_message(db_resp_message),
                 follow_ups=follow_ups,
+                navigate_to=agent.working_page,
             ),
         )
 

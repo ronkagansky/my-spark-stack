@@ -19,6 +19,10 @@ app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 IGNORE_PATHS = ["node_modules", ".git", ".next", "build"]
 
 
+class SandboxNotReadyException(Exception):
+    pass
+
+
 def _unique_id():
     return str(uuid.uuid4())
 
@@ -154,7 +158,7 @@ os.system("git commit -m '{commit_message}'")
         if project.modal_sandbox_id:
             sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
         if project.modal_volume_label:
-            vol = modal.Volume.from_name(project.modal_volume_label)
+            vol = await modal.Volume.lookup.aio(label=project.modal_volume_label)
 
         try:
             await sb.terminate.aio()
@@ -178,18 +182,18 @@ os.system("git commit -m '{commit_message}'")
                 .first()
             )
             if not existing_psb:
-                raise Exception(
-                    f"No prepared sandbox found for stack {stack.id} (project {project_id})"
+                raise SandboxNotReadyException(
+                    f"No prepared sandbox found for stack (stack={stack.id}, project={project_id})"
                 )
 
             project.modal_volume_label = existing_psb.modal_volume_label
             db.delete(existing_psb)
             db.commit()
             print(
-                f"Using existing prepared sandbox for project {existing_psb.id} -> {project_id}"
+                f"Using existing prepared sandbox for project (psb={existing_psb.id}, vol={project.modal_volume_label}) -> (project={project_id})"
             )
 
-        vol = modal.Volume.from_name(project.modal_volume_label)
+        vol = await modal.Volume.lookup.aio(label=project.modal_volume_label)
 
         if project.modal_sandbox_id:
             sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
@@ -277,3 +281,16 @@ async def maintain_prepared_sandboxes(db: Session):
         await asyncio.gather(*[create_single_sandbox() for _ in range(psboxes_to_add)])
 
     await asyncio.gather(*[create_sandbox_for_stack(stack) for stack in stacks])
+
+
+async def clean_up_project_resources(db: Session):
+    projects = (
+        db.query(Project)
+        .filter(
+            Project.modal_sandbox_id.isnot(None),
+            Project.modal_sandbox_last_used_at
+            < datetime.datetime.now() - datetime.timedelta(minutes=15),
+        )
+        .all()
+    )
+    print(f"Cleaning up {len(projects)} projects")

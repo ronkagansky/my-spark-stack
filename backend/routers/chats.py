@@ -67,7 +67,7 @@ async def create_chat(
 
     if chat.stack_id is None:
         # TODO: AI
-        stack = db.query(Stack).first()
+        stack = db.query(Stack).filter(Stack.title == "Next.js Shadcn").first()
     else:
         stack = db.query(Stack).filter(Stack.id == chat.stack_id).first()
         if stack is None:
@@ -127,7 +127,9 @@ async def delete_chat(
     project_id = chat.project_id
     db.delete(chat)
 
-    remaining_chats = db.query(Chat).filter(Chat.project_id == project_id).first()
+    remaining_chats = (
+        db.query(Chat).filter(Chat.project_id == project_id, Chat.id != chat_id).first()
+    )
     project_deleted = None
     if not remaining_chats:
         project_deleted = db.query(Project).filter(Project.id == project_id).first()

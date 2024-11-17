@@ -324,6 +324,11 @@ const statusMap = {
   },
   OFFLINE: { status: 'Offline', color: 'bg-gray-500', animate: false },
   BUILDING: {
+    status: 'Setting up (~1m)',
+    color: 'bg-yellow-500',
+    animate: true,
+  },
+  BUILDING_WAITING: {
     status: 'Setting up (~3m)',
     color: 'bg-yellow-500',
     animate: true,
@@ -507,12 +512,12 @@ export function Chat({
       >
         {!showStackPacks &&
           messages.length <= 1 &&
-          ['BUILDING', 'OFFLINE'].includes(status) && (
+          ['BUILDING', 'OFFLINE', 'BUILDING_WAITING'].includes(status) && (
             <>
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  Booting up your development environment... ~3 minutes
+                  Booting up your development environment...
                 </p>
               </div>
             </>

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import asyncio
 import modal
 
-from sandbox.sandbox import maintain_prepared_sandboxes
+from sandbox.sandbox import maintain_prepared_sandboxes, clean_up_project_resources
 from routers import project_socket, auth, projects, stacks, teams, chats, uploads
 
 
@@ -16,9 +16,11 @@ async def periodic_task():
     db = next(get_db())
     while True:
         try:
-            await maintain_prepared_sandboxes(db)
+            await asyncio.gather(
+                maintain_prepared_sandboxes(db), clean_up_project_resources(db)
+            )
         except Exception as e:
-            print("Error maintaining prepared sandboxes", e)
+            print("Error maintaining sandboxes", e)
         await asyncio.sleep(60)
 
 

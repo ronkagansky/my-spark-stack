@@ -112,6 +112,9 @@ export default function WorkspacePage({ chatId }) {
           if (data.follow_ups) {
             setSuggestedFollowUps(data.follow_ups);
           }
+          if (data.navigate_to) {
+            setProjectPreviewPath(data.navigate_to);
+          }
           setPreviewHash((prev) => prev + 1);
         };
 
@@ -248,15 +251,6 @@ export default function WorkspacePage({ chatId }) {
       }
     })();
   }, [chatId, status]);
-
-  useEffect(() => {
-    (async () => {
-      if (projectId && team?.id) {
-        const project = await api.getProject(team.id, projectId);
-        setProject(project);
-      }
-    })();
-  }, [projectId, team?.id]);
 
   const handleReconnect = async () => {
     if (chatId !== 'new') {
