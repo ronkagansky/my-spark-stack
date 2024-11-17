@@ -70,7 +70,7 @@ router = APIRouter(tags=["websockets"])
 
 async def _apply_file_changes(agent: Agent, total_content: str):
     if agent.sandbox:
-        changes = parse_file_changes(agent.sandbox, total_content)
+        changes = await parse_file_changes(agent.sandbox, total_content)
         if len(changes) > 0:
             commit_message = await write_commit_message(total_content)
             print("Applying Changes", [f.path for f in changes], repr(commit_message))

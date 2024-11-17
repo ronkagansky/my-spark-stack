@@ -76,5 +76,8 @@ async def write_commit_message(content: str) -> str:
     )
 
 
-async def pick_stack(seed_prompt: str) -> str:
-    pass
+async def apply_smart_diff(original_content: str, diff: str) -> str:
+    return await chat_complete(
+        "You are a senior software engineer that applies code changes to a file. Given the original content and the diff, apply the changes to the content. Respond only with the updated content (no code blocks or other formatting).",
+        f"<original-content>\n{original_content}\n</original-content>\n\n<diff>\n{diff}\n</diff>",
+    )

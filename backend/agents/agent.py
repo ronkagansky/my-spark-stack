@@ -1,11 +1,18 @@
 from pydantic import BaseModel
 from typing import AsyncGenerator, List, Dict, Any, Callable, Optional
 import re
+import asyncio
 import json
 
 from db.models import Project, Stack
 from sandbox.sandbox import DevSandbox
-from agents.prompts import oai_client, chat_complete, MAIN_MODEL, FAST_MODEL
+from agents.prompts import (
+    oai_client,
+    chat_complete,
+    apply_smart_diff,
+    MAIN_MODEL,
+    FAST_MODEL,
+)
 
 
 class ChatMessage(BaseModel):
@@ -120,6 +127,7 @@ Answer the following questions:
 5b. What files should we cat to see what we have?
 5c. What high level changes do you need to make to the files?
 5d. Be specific about how it should be done based on the stack and project notes.
+5e. Add a reminder they should use the `simple-code-block-template` to format their code.
 6. Verify your plan makes sense given the stack and project. Make any adjustments as needed.
 
 Output you response in markdown (not with code block) using "###" for brief headings and your plan/answers in each section.
@@ -191,18 +199,20 @@ YOU must use well formatted simplified code blocks to update files.
 ```
 </simple-code-block-template>
 
-You should literally output "... existing code ..." and write actual code in the {{ edit_1 }} and {{ edit_2 }} sections.
+You should literally output "... existing code ..." and write actual code in place of the {{ edit_1 }} and {{ edit_2 }} sections.
 
 <example>
 I'll now add a main function to the existing file.
 
 ```python
 # /app/backend/main.py
-# ... existing imports ...
+# ... existing code ...
 
 def main():
     print("Hello, world!")
 ```
+
+The file has been updated to include the main function.
 </example>
 </formatting-instructions>
 """
@@ -451,18 +461,33 @@ class Agent:
 
 class FileChange(BaseModel):
     path: str
+    diff: str
     content: str
 
 
-def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChange]:
+async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChange]:
     changes = []
 
     for pattern in CODE_BLOCK_PATTERNS:
         matches = re.finditer(pattern, content)
         for match in matches:
             file_path = match.group(1)
-            file_content = match.group(2).strip()
-            changes.append(FileChange(path=file_path, content=file_content))
+            diff = match.group(2).strip()
+            changes.append(FileChange(path=file_path, diff=diff, content=diff))
+
+    async def _render_diff(change: FileChange) -> FileChange:
+        if "existing code" not in change.diff:
+            return change
+        original_content = await sandbox.read_file_contents(change.path)
+        new_content = await apply_smart_diff(original_content, change.diff)
+        print(f"Applying smart diff to {change.path}")
+        return FileChange(
+            path=change.path,
+            diff=change.diff,
+            content=new_content,
+        )
+
+    changes = await asyncio.gather(*[_render_diff(change) for change in changes])
 
     return changes
 
