@@ -11,7 +11,7 @@ class StackPack(BaseModel):
 
 
 _COPY_FRONTEND_CMD = "if [ ! -d 'frontend' ]; then cp -r /frontend .; fi"
-_SETUP_GIT_CMD = "git init && git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot'"
+_SETUP_GIT_CMD = "git init && git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot' && git add -A && git commit -m 'Initial commit'"
 
 PACKS = [
     StackPack(
