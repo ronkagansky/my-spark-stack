@@ -55,7 +55,7 @@ class Project(TimestampMixin, Base):
 
 
 class TeamPlanType(PyEnum):
-    FREE = "free"
+    STANDARD = "standard"
 
 
 class Team(TimestampMixin, Base):
@@ -63,7 +63,10 @@ class Team(TimestampMixin, Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    plan_type = Column(Enum(TeamPlanType), nullable=False, default=TeamPlanType.FREE)
+    plan_type = Column(
+        Enum(TeamPlanType), nullable=False, default=TeamPlanType.STANDARD
+    )
+    credits = Column(Integer, nullable=False, default=0)
 
     # Relationships
     members = relationship(

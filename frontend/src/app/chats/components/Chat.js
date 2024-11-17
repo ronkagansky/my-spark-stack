@@ -4,7 +4,15 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
-import { SendIcon, Loader2, ImageIcon, X, Scan, RefreshCw } from 'lucide-react';
+import {
+  SendIcon,
+  Loader2,
+  ImageIcon,
+  X,
+  Scan,
+  RefreshCw,
+  Pencil,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import rehypeRaw from 'rehype-raw';
 import {
@@ -15,9 +23,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUser } from '@/context/user-context';
-import { api } from '@/lib/api';
+import { api, uploadImage } from '@/lib/api';
 import { resizeImage, captureScreenshot } from '@/lib/image';
 import { components } from '@/app/chats/components/MarkdownComponents';
+import { SketchDialog } from './SketchDialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const STARTER_PROMPTS = [
   'Build a cat facts app with catfact.ninja API',
@@ -200,91 +215,143 @@ const ChatInput = ({
   uploadingImages,
   status,
   onReconnect,
-}) => (
-  <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-    <div className="flex flex-wrap gap-2">
-      {suggestedFollowUps.map((prompt) => (
-        <button
-          key={prompt}
-          type="button"
-          disabled={disabled}
-          onClick={() => handleChipClick(prompt)}
-          className="px-3 py-1 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-        >
-          {prompt}
-        </button>
-      ))}
-    </div>
-    <div className="flex flex-col gap-4">
-      {imageAttachments.length > 0 && (
-        <ImageAttachments
-          attachments={imageAttachments}
-          onRemove={onRemoveImage}
-        />
-      )}
-      <div className="flex gap-4">
-        <Input
-          placeholder={chatPlaceholder}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="flex-1"
-        />
-      </div>
-    </div>
-    <div className="flex justify-end gap-2">
-      <input
-        type="file"
-        id="imageInput"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={onImageAttach}
-      />
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        disabled={disabled}
-        onClick={onScreenshot}
-      >
-        <Scan className="h-4 w-4" />
-      </Button>
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        disabled={disabled}
-        onClick={() => document.getElementById('imageInput').click()}
-      >
-        <ImageIcon className="h-4 w-4" />
-      </Button>
-      {status === 'DISCONNECTED' ? (
-        <Button
-          type="button"
-          onClick={onReconnect}
-          variant="destructive"
-          className="flex items-center gap-2"
-        >
-          <span>Reconnect</span>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      ) : (
-        <Button
-          type="submit"
-          size="icon"
-          disabled={disabled || uploadingImages}
-        >
-          {uploadingImages ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <SendIcon className="h-4 w-4" />
+  onSketchSubmit,
+}) => {
+  const [sketchOpen, setSketchOpen] = useState(false);
+
+  return (
+    <>
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <div className="flex flex-wrap gap-2">
+          {suggestedFollowUps.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              disabled={disabled}
+              onClick={() => handleChipClick(prompt)}
+              className="px-3 py-1 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-col gap-4">
+          {imageAttachments.length > 0 && (
+            <ImageAttachments
+              attachments={imageAttachments}
+              onRemove={onRemoveImage}
+            />
           )}
-        </Button>
-      )}
-    </div>
-  </form>
-);
+          <div className="flex gap-4">
+            <Input
+              placeholder={chatPlaceholder}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <input
+            type="file"
+            id="imageInput"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={onImageAttach}
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={disabled}
+                  onClick={onScreenshot}
+                >
+                  <Scan className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Take screenshot</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={disabled}
+                  onClick={() => document.getElementById('imageInput').click()}
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Upload image</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={disabled}
+                  onClick={() => setSketchOpen(true)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Draw sketch</TooltipContent>
+            </Tooltip>
+
+            {status === 'DISCONNECTED' ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    onClick={onReconnect}
+                    variant="destructive"
+                    className="flex items-center gap-2"
+                  >
+                    <span>Reconnect</span>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reconnect to server</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={disabled || uploadingImages}
+                  >
+                    {uploadingImages ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <SendIcon className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send message</TooltipContent>
+              </Tooltip>
+            )}
+          </TooltipProvider>
+        </div>
+      </form>
+
+      <SketchDialog
+        open={sketchOpen}
+        onOpenChange={setSketchOpen}
+        onSave={onSketchSubmit}
+      />
+    </>
+  );
+};
 
 const fixCodeBlocks = (content, partial) => {
   const replaceB64 = (_, filename, content) => {
@@ -423,21 +490,9 @@ export function Chat({
       const processedImages = await Promise.all(
         files.map(async (file) => {
           const resizedImage = await resizeImage(file);
-          const { upload_url, url } = await api.getImageUploadUrl(
-            resizedImage.type
-          );
-          const blob = await fetch(resizedImage.data).then((res) => res.blob());
-          await fetch(upload_url, {
-            method: 'PUT',
-            body: blob,
-            headers: {
-              'Content-Type': resizedImage.type,
-            },
-          });
-          return url;
+          return uploadImage(resizedImage.data, resizedImage.type);
         })
       );
-
       setImageAttachments((prev) => [...prev, ...processedImages]);
     } catch (err) {
       console.error('Error processing image:', err);
@@ -459,20 +514,10 @@ export function Chat({
     setUploadingImages(true);
     try {
       const screenshot = await captureScreenshot();
-      const { upload_url, url } = await api.getImageUploadUrl(screenshot.type);
-
-      const blob = await fetch(screenshot.data).then((res) => res.blob());
-      await fetch(upload_url, {
-        method: 'PUT',
-        body: blob,
-        headers: {
-          'Content-Type': screenshot.type,
-        },
-      });
+      const url = await uploadImage(screenshot.data, screenshot.type);
       setImageAttachments((prev) => [...prev, url]);
     } catch (err) {
       console.error('Error taking/uploading screenshot:', err);
-      // You might want to show an error message to the user here
     } finally {
       setUploadingImages(false);
     }
@@ -487,6 +532,18 @@ export function Chat({
     setSelectedProject(project);
     setSelectedStack(null);
     onProjectSelect(project);
+  };
+
+  const handleSketchSubmit = async (sketchDataUrl) => {
+    setUploadingImages(true);
+    try {
+      const url = await uploadImage(sketchDataUrl, 'image/png');
+      setImageAttachments((prev) => [...prev, url]);
+    } catch (err) {
+      console.error('Error uploading sketch:', err);
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   return (
@@ -565,6 +622,7 @@ export function Chat({
           onRemoveImage={handleRemoveImage}
           onScreenshot={handleScreenshot}
           uploadingImages={uploadingImages}
+          onSketchSubmit={handleSketchSubmit}
         />
       </div>
     </div>

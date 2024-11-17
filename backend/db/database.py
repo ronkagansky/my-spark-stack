@@ -13,10 +13,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def init_db():
-    # Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
+def _try_init_stacks():
     # Initialize database session
     db = SessionLocal()
     try:
@@ -38,6 +35,12 @@ def init_db():
         db.commit()
     finally:
         db.close()
+
+
+def init_db():
+    # Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    _try_init_stacks()
 
 
 def get_db():

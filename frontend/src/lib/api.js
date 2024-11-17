@@ -154,5 +154,27 @@ class ApiClient {
   }
 }
 
+export async function uploadImage(imageData, contentType) {
+  const { upload_url, url } = await api.getImageUploadUrl(contentType);
+
+  let blob;
+  if (imageData instanceof Blob) {
+    blob = imageData;
+  } else {
+    const response = await fetch(imageData);
+    blob = await response.blob();
+  }
+
+  await fetch(upload_url, {
+    method: 'PUT',
+    body: blob,
+    headers: {
+      'Content-Type': contentType || blob.type,
+    },
+  });
+
+  return url;
+}
+
 // Export singleton instance
 export const api = new ApiClient();

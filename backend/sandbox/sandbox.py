@@ -138,36 +138,21 @@ os.system("git commit -m '{commit_message}'")
         return "".join(content)
 
     @classmethod
-    async def delete(cls, project_id: int):
-        try:
-            async for sb in modal.Sandbox.list.aio(
-                tags={"project_id": str(project_id)}
-            ):
-                await sb.terminate.aio()
-        except:
-            pass
-        try:
-            await modal.Volume.delete.aio(f"prompt-stack-vol-project-{project_id}")
-        except:
-            pass
-
-    @classmethod
     async def destroy_project_resources(cls, project: Project):
         sb = None
         vol = None
         if project.modal_sandbox_id:
             sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
+            try:
+                await sb.terminate.aio()
+            except Exception as e:
+                print("Error terminating sandbox", e)
         if project.modal_volume_label:
             vol = await modal.Volume.lookup.aio(label=project.modal_volume_label)
-
-        try:
-            await sb.terminate.aio()
-        except:
-            pass
-        try:
-            await vol.delete.aio()
-        except:
-            pass
+            try:
+                await vol.delete.aio()
+            except Exception as e:
+                print("Error deleting volume", e)
 
     @classmethod
     async def get_or_create(cls, project_id: int) -> "DevSandbox":

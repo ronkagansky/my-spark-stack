@@ -281,6 +281,10 @@ class Agent:
         conversation_text = "\n\n".join(
             [f"<msg>{remove_file_changes(m.content)}</msg>" for m in messages]
         )
+        images = []
+        for m in messages[:-2]:
+            if m.images:
+                images.extend(m.images)
         system_prompt = SYSTEM_PLAN_PROMPT.format(
             project_text=project_text,
             stack_text=stack_text,
@@ -292,8 +296,21 @@ class Agent:
                 {"role": "system", "content": system_prompt},
                 {
                     "role": "user",
-                    "content": conversation_text
-                    + "\n\nProvide the plan in the correct format only.",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": conversation_text
+                            + "\n\nProvide the plan in the correct format only.",
+                        }
+                    ]
+                    + (
+                        []
+                        if not images
+                        else [
+                            {"type": "image_url", "image_url": {"url": img}}
+                            for img in images
+                        ]
+                    ),
                 },
             ],
             stream=True,
