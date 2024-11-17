@@ -158,41 +158,43 @@ export function ProjectTab({ project, onSendMessage }) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             ) : (
-              <div className="space-y-2">
-                {gitLog?.lines?.map((entry) => (
-                  <div
-                    key={entry.hash}
-                    className="flex items-start gap-3 text-sm"
-                  >
-                    <div className="text-muted-foreground font-mono">
-                      {entry.hash.substring(0, 7)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{entry.message}</div>
-                      <div className="text-muted-foreground text-xs">
-                        {new Date(entry.date).toLocaleDateString()}
+              <ScrollArea className="h-[250px]">
+                <div className="space-y-2">
+                  {gitLog?.lines?.map((entry) => (
+                    <div
+                      key={entry.hash}
+                      className="flex items-start gap-3 text-sm"
+                    >
+                      <div className="text-muted-foreground font-mono">
+                        {entry.hash.substring(0, 7)}
                       </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{entry.message}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {new Date(entry.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRestore(entry.hash)}
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Restore Version</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRestore(entry.hash)}
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Restore Version</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </Card>
         </div>

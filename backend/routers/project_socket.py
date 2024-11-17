@@ -133,9 +133,7 @@ class ProjectManager:
             del self.chat_sockets[chat_id]
             del self.chat_agents[chat_id]
 
-    async def on_chat_message(self, chat_id: int, message: ChatMessage):
-        if not await self.lock.acquire():
-            return
+    async def _handle_chat_message(self, chat_id: int, message: ChatMessage):
         self.sandbox_status = SandboxStatus.WORKING
         await self.emit_project(await self._get_project_status())
 
@@ -194,7 +192,16 @@ class ProjectManager:
         self.sandbox_status = SandboxStatus.READY
         self.sandbox_file_paths = await self.sandbox.get_file_paths()
         await self.emit_project(await self._get_project_status())
-        self.lock.release()
+
+    async def on_chat_message(self, chat_id: int, message: ChatMessage):
+        if not await self.lock.acquire():
+            return
+        try:
+            await self._handle_chat_message(chat_id, message)
+        except Exception as e:
+            print("Error in chat message", e)
+        finally:
+            self.lock.release()
 
     async def emit_project(self, data: BaseModel):
         await asyncio.gather(
