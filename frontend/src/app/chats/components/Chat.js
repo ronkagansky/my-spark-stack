@@ -116,7 +116,7 @@ const ThinkingContent = ({ thinkingContent }) => {
   );
 };
 
-const MessageList = ({ messages, fixCodeBlocks }) => (
+const MessageList = ({ messages, status }) => (
   <div className="space-y-4">
     {messages.map((msg, index) => (
       <div key={index} className="flex items-start gap-4">
@@ -152,7 +152,7 @@ const MessageList = ({ messages, fixCodeBlocks }) => (
               remarkPlugins={[remarkGfm]}
               className="w-full"
             >
-              {fixCodeBlocks(msg.content)}
+              {fixCodeBlocks(msg.content, status === 'WORKING')}
             </ReactMarkdown>
           </div>
         </div>
@@ -286,6 +286,35 @@ const ChatInput = ({
   </form>
 );
 
+const fixCodeBlocks = (content, partial) => {
+  const replaceB64 = (_, filename, content) => {
+    const b64 = Buffer.from(JSON.stringify({ filename, content })).toString(
+      'base64'
+    );
+    return `<file-update>${b64}</file-update>`;
+  };
+
+  content = content.replace(
+    /```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```/g,
+    replaceB64
+  );
+  content = content.replace(
+    /```[\w.]+\n[/*]+ (\S+) \*\/\n([\s\S]+?)```/g,
+    replaceB64
+  );
+  content = content.replace(
+    /```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```/g,
+    replaceB64
+  );
+  if (partial) {
+    content = content.replace(
+      /```[\s\S]+$/,
+      '<file-loading>...</file-loading>'
+    );
+  }
+  return content;
+};
+
 const statusMap = {
   NEW_CHAT: { status: 'Ready', color: 'bg-gray-500', animate: false },
   DISCONNECTED: {
@@ -340,33 +369,6 @@ export function Chat({
     };
     fetchStackPacks();
   }, []);
-
-  const fixCodeBlocks = (content) => {
-    const replaceB64 = (_, filename, content) => {
-      const b64 = Buffer.from(JSON.stringify({ filename, content })).toString(
-        'base64'
-      );
-      return `<file-update>${b64}</file-update>`;
-    };
-
-    content = content.replace(
-      /```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```/g,
-      replaceB64
-    );
-    content = content.replace(
-      /```[\w.]+\n[/*]+ (\S+) \*\/\n([\s\S]+?)```/g,
-      replaceB64
-    );
-    content = content.replace(
-      /```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```/g,
-      replaceB64
-    );
-    content = content.replace(
-      /```[\s\S]+$/,
-      '<file-loading>...</file-loading>'
-    );
-    return content;
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -525,7 +527,7 @@ export function Chat({
             onProjectSelect={handleProjectSelect}
           />
         ) : (
-          <MessageList messages={messages} fixCodeBlocks={fixCodeBlocks} />
+          <MessageList messages={messages} status={status} />
         )}
         <div ref={messagesEndRef} />
       </div>

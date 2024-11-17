@@ -94,27 +94,31 @@ class DevSandbox:
         except Exception as e:
             return f"Error: {e}"
 
-    async def write_file_contents(self, files: List[Tuple[str, str]]):
+    async def write_file_contents_and_commit(
+        self, files: List[Tuple[str, str]], commit_message: str
+    ):
         # Create a single Python command that writes all files at once
         files_data = []
         for path, content in files:
             encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
             files_data.append((path, encoded_content))
 
-        python_cmd = """
+        python_cmd = f"""
 import os
 import base64
 
-files = %s
+files = {str(files_data)}
 
 for path, base64_content in files:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w') as f:
         f.write(base64.b64decode(base64_content).decode('utf-8'))
-""" % str(
-            files_data
-        )
 
+os.system("git config --global user.email 'bot@prompt-stack.sshh.io'")
+os.system("git config --global user.name 'Prompt Stack Bot'")
+os.system("git add -A")
+os.system("git commit -m '{commit_message}'")
+"""
         proc = await self.sb.exec.aio(
             "python3",
             "-c",
@@ -217,17 +221,20 @@ for path, base64_content in files:
 
 async def maintain_prepared_sandboxes(db: Session):
     stacks = db.query(Stack).all()
-    for stack in stacks:
+
+    async def create_sandbox_for_stack(stack):
         psboxes = (
             db.query(PreparedSandbox).filter(PreparedSandbox.stack_id == stack.id).all()
         )
         psboxes_to_add = max(0, TARGET_SANDBOXES_PER_STACK - len(psboxes))
         if psboxes_to_add == 0:
-            continue
+            return
+
         print(
             f"Creating {psboxes_to_add} prepared sandboxes for stack {stack.title} ({stack.id})"
         )
-        for _ in range(psboxes_to_add):
+
+        async def create_single_sandbox():
             vol_id = f"prompt-stack-vol-{_unique_id()}"
             vol = modal.Volume.from_name(vol_id, create_if_missing=True)
             image = modal.Image.from_registry(stack.from_registry, add_python=None)
@@ -250,3 +257,7 @@ async def maintain_prepared_sandboxes(db: Session):
             )
             db.add(psb)
             db.commit()
+
+        await asyncio.gather(*[create_single_sandbox() for _ in range(psboxes_to_add)])
+
+    await asyncio.gather(*[create_sandbox_for_stack(stack) for stack in stacks])

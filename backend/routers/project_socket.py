@@ -1,15 +1,17 @@
 from fastapi import APIRouter, WebSocket, WebSocketException
-from typing import Dict, List, Callable, Optional
+from typing import Dict, List, Optional
 from enum import Enum
 from asyncio import create_task, Lock
 from pydantic import BaseModel
 import datetime
 import asyncio
+
 from sandbox.sandbox import DevSandbox
 from agents.agent import Agent, ChatMessage, parse_file_changes
 from db.database import get_db
 from db.models import Project, Message as DbChatMessage, Chat, Stack
 from db.queries import get_chat_for_user
+from agents.prompts import write_commit_message
 from routers.auth import get_current_user_from_token
 from sqlalchemy.orm import Session
 
@@ -68,9 +70,10 @@ async def _apply_file_changes(agent: Agent, total_content: str):
     if agent.sandbox:
         changes = parse_file_changes(agent.sandbox, total_content)
         if len(changes) > 0:
-            print("Applying Changes", [f.path for f in changes])
-            await agent.sandbox.write_file_contents(
-                [(change.path, change.content) for change in changes]
+            commit_message = await write_commit_message(total_content)
+            print("Applying Changes", [f.path for f in changes], repr(commit_message))
+            await agent.sandbox.write_file_contents_and_commit(
+                [(change.path, change.content) for change in changes], commit_message
             )
 
 
@@ -117,7 +120,9 @@ class ProjectManager:
                 self.db.query(Project).filter(Project.id == self.project_id).first()
             )
             stack = self.db.query(Stack).filter(Stack.id == project.stack_id).first()
-            self.chat_agents[chat_id] = Agent(project, stack)
+            agent = Agent(project, stack)
+            agent.sandbox = self.sandbox
+            self.chat_agents[chat_id] = agent
             self.chat_sockets[chat_id] = []
         self.chat_sockets[chat_id].append(websocket)
         await self.emit_project(await self._get_project_status())

@@ -226,7 +226,7 @@ class Agent:
         return await tool.func(**arguments)
 
     def _get_project_text(self) -> str:
-        return f"Name: {self.project.name}\nSandbox Status: {'Ready' if self.sandbox else 'Booting...'}".strip()
+        return f"Name: {self.project.name}\nSandbox Status: {'Ready' if self.sandbox else 'Booting...'}\nCustom Instructions: {self.project.custom_instructions}".strip()
 
     async def suggest_follow_ups(self, messages: List[ChatMessage]) -> List[str]:
         conversation_text = "\n\n".join(

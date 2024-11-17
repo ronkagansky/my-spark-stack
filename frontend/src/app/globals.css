@@ -97,4 +97,9 @@ body {
   p {
     margin-bottom: 0.5rem;
   }
+  code {
+    background-color: rgb(243 244 246);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+  }
 }

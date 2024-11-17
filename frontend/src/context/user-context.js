@@ -22,21 +22,24 @@ export function UserProvider({ children }) {
   const [team, setTeam] = useState(null);
   const [projects, setProjects] = useState([]);
 
+  const fetchUserData = async () => {
+    const [chats, teams] = await Promise.all([api.getChats(), api.getTeams()]);
+
+    setChats(chats);
+    setTeams(teams);
+
+    if (!localStorage.getItem('team') && teams.length > 0) {
+      setTeam(teams[0]);
+      localStorage.setItem('team', teams[0].id);
+    } else {
+      setTeam(teams.find((t) => t.id + '' === localStorage.getItem('team')));
+    }
+  };
+
   useEffect(() => {
     if (localStorage.getItem('token')) {
       api.getCurrentUser().then(setUser);
-      api.getChats().then(setChats);
-      api.getTeams().then((teams) => {
-        setTeams(teams);
-        if (!localStorage.getItem('team')) {
-          setTeam(teams[0]);
-          localStorage.setItem('team', teams[0].id);
-        } else {
-          setTeam(
-            teams.find((t) => t.id + '' === localStorage.getItem('team'))
-          );
-        }
-      });
+      fetchUserData();
     }
   }, []);
 
@@ -49,6 +52,7 @@ export function UserProvider({ children }) {
   const createAccount = async (username) => {
     const user = await api.createAccount(username);
     setUser(user);
+    await fetchUserData();
     return user;
   };
 

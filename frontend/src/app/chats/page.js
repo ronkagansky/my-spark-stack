@@ -10,10 +10,9 @@ import { Chat } from './components/Chat';
 import { RightPanel } from './components/RightPanel';
 
 export default function WorkspacePage({ chatId }) {
-  const { addChat, team, refreshProjects } = useUser();
+  const { addChat, team, projects, refreshProjects } = useUser();
   const router = useRouter();
   const [projectId, setProjectId] = useState(null);
-  const [project, setProject] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [chatTitle, setChatTitle] = useState('New Chat');
@@ -170,7 +169,6 @@ export default function WorkspacePage({ chatId }) {
   };
 
   const handleProjectSelect = (projectId) => {
-    setProject(null);
     setProjectId(projectId);
   };
 
@@ -215,7 +213,6 @@ export default function WorkspacePage({ chatId }) {
             content: m.content,
           })) || [];
         setMessages(existingMessages);
-        setProject(chat.project);
         setProjectId(chat.project.id);
       } else {
         setChatTitle('New Chat');
@@ -300,6 +297,7 @@ export default function WorkspacePage({ chatId }) {
           onReconnect={handleReconnect}
         />
         <RightPanel
+          onSendMessage={handleSendMessage}
           isOpen={isPreviewOpen}
           onClose={() => setIsPreviewOpen(false)}
           projectPreviewUrl={projectPreviewUrl}
@@ -307,7 +305,7 @@ export default function WorkspacePage({ chatId }) {
           setProjectPreviewPath={setProjectPreviewPath}
           projectPreviewHash={previewHash}
           projectFileTree={projectFileTree}
-          project={project}
+          project={projects.find((p) => +p.id === +projectId)}
           chatId={chatId}
         />
       </div>

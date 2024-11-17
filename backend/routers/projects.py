@@ -9,6 +9,7 @@ from db.queries import get_project_for_user
 from schemas.models import (
     ProjectResponse,
     ProjectFileContentResponse,
+    ProjectGitLogResponse,
     ProjectUpdate,
 )
 from sandbox.sandbox import DevSandbox
@@ -65,6 +66,7 @@ async def update_project(
         raise HTTPException(status_code=404, detail="Project not found")
     project.name = project_data.name
     project.description = project_data.description
+    project.custom_instructions = project_data.custom_instructions
     db.commit()
     return project
 
@@ -82,3 +84,16 @@ async def get_project_file(
     return ProjectFileContentResponse(
         path=path, content=await sandbox.read_file_contents(path)
     )
+
+
+@router.get("/{project_id}/git-log", response_model=ProjectGitLogResponse)
+async def get_project_git_log(
+    team_id: int,
+    project_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = await get_project(team_id, project_id, current_user, db)
+    sandbox = await DevSandbox.get_or_create(project.id)
+    content = await sandbox.run_command('git log --pretty="%h|%s|%aN|%aE|%aD" -n 10')
+    return ProjectGitLogResponse.from_content(content)

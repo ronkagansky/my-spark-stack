@@ -120,6 +120,10 @@ class ApiClient {
     );
   }
 
+  async getProjectGitLog(teamId, projectId) {
+    return this._get(`/api/teams/${teamId}/projects/${projectId}/git-log`);
+  }
+
   async getStackPacks() {
     return this._get('/api/stacks');
   }

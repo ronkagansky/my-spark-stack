@@ -16,6 +16,7 @@ export function RightPanel({
   project,
   projectPreviewPath,
   setProjectPreviewPath,
+  onSendMessage,
 }) {
   const [selectedTab, setSelectedTab] = useState('preview');
 
@@ -81,7 +82,7 @@ export function RightPanel({
             ) : selectedTab === 'editor' ? (
               <FilesTab projectFileTree={projectFileTree} project={project} />
             ) : (
-              <ProjectTab project={project} />
+              <ProjectTab project={project} onSendMessage={onSendMessage} />
             )}
           </div>
         </div>

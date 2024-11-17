@@ -10,12 +10,15 @@ class StackPack(BaseModel):
     prompt: str
 
 
+_COPY_FRONTEND_CMD = "if [ ! -d 'frontend' ]; then cp -r /frontend .; fi"
+_SETUP_GIT_CMD = "git init && git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot'"
+
 PACKS = [
     StackPack(
         title="Vanilla React",
         description="A simple JS React App. Best for starting from scratch with minimal dependencies.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-vanilla-react@sha256:8e4377feb2f989f7bea506aacb477936ae08aa95c68d5fb5fe8cec2395fa4342",
-        sandbox_init_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi",
+        sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd="cd /app/frontend && npm run start",
         prompt="""
 You are building a vanilla React app.
@@ -29,6 +32,7 @@ Already included:
 Tips:
 - Put initial app changes in App.js and move to other files only as things get more complex
 - Use react-leaflet for maps
+- Use inline styles over custom css
 - Use https://random.imagecdn.app/<width>/<height> for random images
 - Always link new pages in App.js (or else the user will not see them)
 """.strip(),
@@ -37,7 +41,7 @@ Tips:
         title="Nextjs Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a nice UI.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:1e4d19582567f98b4672d346472867dcb475e32bdb8e2c43a9ee6b0bdf4a57c5",
-        sandbox_init_cmd="cd /app && if [ ! -d 'frontend' ]; then cp -r /frontend .; fi",
+        sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd="cd /app/frontend && npm run dev",
         prompt="""
 You are building a Nextjs app with Shadcn UI.

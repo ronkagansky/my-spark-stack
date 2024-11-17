@@ -74,6 +74,33 @@ class ProjectFileContentResponse(BaseModel):
     content: str
 
 
+class GitLogEntry(BaseModel):
+    hash: str
+    message: str
+    author: str
+    email: str
+    date: str
+
+    @classmethod
+    def from_line(cls, line: str):
+        hash, message, author, email, date = line.split("|")
+        return cls(hash=hash, message=message, author=author, email=email, date=date)
+
+
+class ProjectGitLogResponse(BaseModel):
+    lines: List[GitLogEntry]
+
+    @classmethod
+    def from_content(cls, content: str):
+        return cls(
+            lines=[
+                GitLogEntry.from_line(line)
+                for line in content.split("\n")
+                if line.count("|") == 4
+            ]
+        )
+
+
 class AuthResponse(BaseModel):
     user: UserResponse
     token: str
@@ -90,6 +117,7 @@ class ChatUpdate(BaseModel):
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    custom_instructions: Optional[str] = None
 
 
 class StackResponse(BaseModel):
