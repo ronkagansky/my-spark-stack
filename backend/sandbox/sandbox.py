@@ -193,7 +193,7 @@ os.system("git commit -m '{commit_message}'")
                 project.modal_sandbox_id,
             )
 
-            expires_in = 3 * 60 * 60
+            expires_in = 60 * 60
             image = modal.Image.from_registry(stack.from_registry, add_python=None)
             sb = await modal.Sandbox.create.aio(
                 "sh",

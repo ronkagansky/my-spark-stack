@@ -76,8 +76,8 @@ async def write_commit_message(content: str) -> str:
     )
 
 
-async def apply_smart_diff(original_content: str, diff: str) -> str:
+async def apply_smart_diff(original_content: str, diff: str, tips: str) -> str:
     return await chat_complete(
-        "You are a senior software engineer that applies code changes to a file. Given the original content and the diff, apply the changes to the content. Respond only with the updated content (no code blocks or other formatting).",
-        f"<original-content>\n{original_content}\n</original-content>\n\n<diff>\n{diff}\n</diff>",
+        "You are a senior software engineer that applies code changes to a file. Given the original content, the diff, and the tips/adjustments, apply the changes to the content. Some code might need to be fixed based on the adjustments. Respond only with the updated content (no code blocks or other formatting).",
+        f"<original-content>\n{original_content}\n</original-content>\n\n<diff>\n{diff}\n</diff>\n\n<adjustments>\n{tips}\n</adjustments>",
     )

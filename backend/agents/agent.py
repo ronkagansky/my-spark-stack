@@ -465,6 +465,11 @@ class FileChange(BaseModel):
     content: str
 
 
+_DIFF_TIPS = {
+    r"<Link[^>]*>[\S\s]*?<a[^>]*>": "NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)",
+}
+
+
 async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChange]:
     changes = []
 
@@ -476,10 +481,16 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
             changes.append(FileChange(path=file_path, diff=diff, content=diff))
 
     async def _render_diff(change: FileChange) -> FileChange:
-        if "existing code" not in change.diff:
+        tips = []
+        for pattern, tip in _DIFF_TIPS.items():
+            if pattern in change.diff:
+                tips.append(tip)
+        if "existing code" not in change.diff and len(tips) == 0:
             return change
         original_content = await sandbox.read_file_contents(change.path)
-        new_content = await apply_smart_diff(original_content, change.diff)
+        new_content = await apply_smart_diff(
+            original_content, change.diff, "\n".join([f" - {t}" for t in tips])
+        )
         print(f"Applying smart diff to {change.path}")
         return FileChange(
             path=change.path,

@@ -21,8 +21,16 @@ def _try_init_stacks():
         from db.models import Stack
 
         for pack in PACKS:
-            existing_stack = db.query(Stack).filter(Stack.title == pack.title).first()
-            if not existing_stack:
+            stack = db.query(Stack).filter(Stack.title == pack.title).first()
+            if stack:
+                # Update existing stack
+                stack.description = pack.description
+                stack.from_registry = pack.from_registry
+                stack.sandbox_init_cmd = pack.sandbox_init_cmd
+                stack.sandbox_start_cmd = pack.sandbox_start_cmd
+                stack.prompt = pack.prompt
+            else:
+                # Insert new stack
                 stack = Stack(
                     title=pack.title,
                     description=pack.description,
