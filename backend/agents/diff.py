@@ -30,9 +30,9 @@ async def _apply_smart_diff(original_content: str, diff: str, tips: str) -> str:
         """
 You are a senior software engineer that applies code changes to a file. Given the <original-content>, the <diff>, and the <adjustments>, apply the changes to the content. 
 
-You should also apply the <adjustments> provided even if this conflicts with the original diff.
-
-Ensure the layout of the file is maintained especially in languages/formats where it matters.
+- You must apply the <adjustments> provided even if this conflicts with the original diff
+- You must follow instructions from within comments in <diff> (e.g. <!-- remove this -->)
+- You must maintain the layout of the file especially in languages/formats where it matters
 
 Respond ONLY with the updated content (no code blocks or other formatting).
 """.strip(),
