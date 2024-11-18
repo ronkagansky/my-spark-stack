@@ -21,6 +21,7 @@ _CODE_BLOCK_PATTERNS = [
 
 _DIFF_TIPS = {
     r"<Link[^>]*>[\S\s]*?<a[^>]*>": "All <Link> tags should be free of <a> tags. Remove all <a> tags from <Link> tags.",
+    "<CardBody": "Use <CardContent> instead of <CardBody>.",
 }
 
 
@@ -30,6 +31,8 @@ async def _apply_smart_diff(original_content: str, diff: str, tips: str) -> str:
 You are a senior software engineer that applies code changes to a file. Given the original content, the diff, and the tips/adjustments, apply the changes to the content. 
 
 You should also apply the <adjustments> provided even if this conflicts with the original diff.
+
+Ensure the layout of the file is maintained especially in languages/formats where it matters.
 
 Respond ONLY with the updated content (no code blocks or other formatting).
 """.strip(),

@@ -29,7 +29,7 @@ The user choose to use a "vanilla" app so avoid adding any additional dependenci
 Already included:
 - Next.js v15 (app already created)
 - tailwindcss
-- `npm install` already run
+- `npm install` already run for these
 
 Style Tips:
 - Use inline tailwind classes over custom css
@@ -47,8 +47,10 @@ Code Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
 
 3rd Party Tips:
-- Use react-leaflet for maps (you need to install it)
-- Use https://random.imagecdn.app/<width>/<height> for placeholder images
+- If you need to build a map, use react-leaflet
+    1. $ npm install react-leaflet leaflet
+    2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
+- If you need placeholder images, use https://random.imagecdn.app/<width>/<height>
 """.strip(),
     ),
     StackPack(
@@ -67,7 +69,7 @@ Already included:
 - lucide-react
 - axios
 - All shadcn components are already installed (import them like `@/components/ui/button`)
-- `npm install` already run
+- `npm install` already run for these
 
 Style Tips:
 - Use inline tailwind classes over custom css
@@ -86,8 +88,10 @@ Code Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
 
 3rd Party Tips:
-- Use react-leaflet for maps (you need to install it)
-- Use https://random.imagecdn.app/<width>/<height> for placeholder images
+- If you need to build a map, use react-leaflet
+    1. $ npm install react-leaflet leaflet
+    2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
+- If you need placeholder images, use https://random.imagecdn.app/<width>/<height>
 """.strip(),
     ),
 ]
