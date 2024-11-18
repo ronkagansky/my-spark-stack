@@ -47,6 +47,12 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
             diff = match.group(2).strip()
             changes.append(FileChange(path=file_path, diff=diff, content=diff))
 
+    # Deduplicate changes by file path, keeping the last occurrence
+    seen_paths = {}
+    for change in changes:
+        seen_paths[change.path] = change
+    changes = list(seen_paths.values())
+
     async def _render_diff(change: FileChange) -> FileChange:
         tips = []
         for pattern, tip in _DIFF_TIPS.items():

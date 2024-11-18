@@ -284,3 +284,14 @@ async def clean_up_project_resources(db: Session):
         .all()
     )
     print(f"Cleaning up {len(projects)} projects")
+
+    async def _cleanup_project(project: Project):
+        if not project.modal_sandbox_id:
+            return
+        project.modal_sandbox_id = None
+        project.modal_sandbox_expires_at = None
+        db.commit()
+        sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
+        await sb.terminate.aio()
+
+    await asyncio.gather(*[_cleanup_project(project) for project in projects])
