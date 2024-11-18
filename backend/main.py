@@ -15,14 +15,14 @@ async def periodic_task():
         return
     db = next(get_db())
     while True:
-        try:
-            await asyncio.gather(
-                maintain_prepared_sandboxes(db),
-                clean_up_project_resources(db),
-                return_exceptions=True,
-            )
-        except Exception as e:
-            print("Error maintaining sandboxes", e)
+        exceptions = await asyncio.gather(
+            maintain_prepared_sandboxes(db),
+            clean_up_project_resources(db),
+            return_exceptions=True,
+        )
+        for e in exceptions:
+            if isinstance(e, Exception):
+                print("Error maintaining sandboxes", e)
         await asyncio.sleep(60)
 
 
