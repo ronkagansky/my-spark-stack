@@ -23,7 +23,7 @@ async def periodic_task():
         for e in exceptions:
             if isinstance(e, Exception):
                 print("Error maintaining sandboxes", e)
-        await asyncio.sleep(60)
+        await asyncio.sleep(10)
 
 
 @asynccontextmanager
