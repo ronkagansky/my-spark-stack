@@ -10,8 +10,7 @@ from modal.volume import FileEntryType
 
 from db.database import get_db
 from db.models import Project, PreparedSandbox, Stack
-
-TARGET_SANDBOXES_PER_STACK = 1
+from config import TARGET_PREPARED_SANDBOXES_PER_STACK
 
 app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
@@ -235,7 +234,7 @@ async def maintain_prepared_sandboxes(db: Session):
         psboxes = (
             db.query(PreparedSandbox).filter(PreparedSandbox.stack_id == stack.id).all()
         )
-        psboxes_to_add = max(0, TARGET_SANDBOXES_PER_STACK - len(psboxes))
+        psboxes_to_add = max(0, TARGET_PREPARED_SANDBOXES_PER_STACK - len(psboxes))
         if psboxes_to_add == 0:
             return
 
