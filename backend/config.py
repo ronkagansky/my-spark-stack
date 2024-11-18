@@ -1,6 +1,12 @@
 import os
 import secrets
 
+
+def _bool_env(key, default: bool = False):
+    val = os.getenv(key, str(default)).lower()
+    return val == "true" or val == "1"
+
+
 # Database configuration
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
@@ -17,3 +23,5 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_FAST_MODEL = os.getenv("OPENAI_FAST_MODEL", "gpt-4o-mini")
 OPENAI_MAIN_MODEL = os.getenv("OPENAI_MAIN_MODEL", "gpt-4o")
+
+RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)

@@ -2,17 +2,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db.database import init_db, get_db
-from db.models import Project
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
 import asyncio
-import modal
 
 from sandbox.sandbox import maintain_prepared_sandboxes, clean_up_project_resources
 from routers import project_socket, auth, projects, stacks, teams, chats, uploads
+from config import RUN_PERIODIC_CLEANUP
 
 
 async def periodic_task():
+    if not RUN_PERIODIC_CLEANUP:
+        return
     db = next(get_db())
     while True:
         try:
