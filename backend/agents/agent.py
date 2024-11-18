@@ -177,7 +177,6 @@ YOU must use well formatted simplified code blocks to update files.
 - ONLY put code and comments within code blocks. Do not add additional indentation to the code blocks (``` should be at the start of the line).
 - Please output a version of the code block that highlights the changes necessary and adds comments to indicate where unchanged code has been skipped.
 - Keep in mind the project, stack, and plan instructions as you write the code.
-- When you use these code blocks the system will automatically apply the file changes (do not also use tools to do the same thing). This apply will happen after you've finished your response and include a git commit of all changes.
 
 <simple-code-block-template>
 ```language
@@ -206,6 +205,12 @@ def main():
 The file has been updated to include the main function.
 </example>
 </formatting-instructions>
+
+<additional-info>
+- When you use these code blocks the system will automatically apply the file changes (do not also use tools to do the same thing).
+- This apply will happen after you've finished your response and automatically include a git commit of all changes.
+- No need to run `npm run dev`, etc since the sandbox will handle that.
+</additional-info>
 """
 
 SYSTEM_FOLLOW_UP_PROMPT = """
