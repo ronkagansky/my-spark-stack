@@ -64,7 +64,10 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
                 tips.append(tip)
         if "existing code" not in change.diff and len(tips) == 0:
             return change
-        original_content = await sandbox.read_file_contents(change.path)
+        try:
+            original_content = await sandbox.read_file_contents(change.path)
+        except Exception:
+            original_content = "(file does not yet exist)"
         new_content = await _apply_smart_diff(
             original_content, change.diff, "\n".join([f" - {t}" for t in tips])
         )
