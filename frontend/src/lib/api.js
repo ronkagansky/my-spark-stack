@@ -80,7 +80,8 @@ class ApiClient {
         error.message.includes('Unauthorized')
       ) {
         localStorage.removeItem('token');
-        window.location.reload();
+        localStorage.removeItem('team');
+        window.location.href = '/';
       }
       throw error;
     }

@@ -3,8 +3,6 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
-import secrets
-import os
 
 from db.database import get_db
 from db.models import User, Team, TeamMember, Project, TeamRole, Stack
