@@ -35,8 +35,8 @@ import {
 } from '@/components/ui/tooltip';
 
 const STARTER_PROMPTS = [
-  'Build a cat facts app with catfact.ninja API',
-  'Build a maps app for coffee shops in SF',
+  'Build a 90s themed cat facts app with catfact.ninja API',
+  'Build a modern control panel for a spaceship',
 ];
 
 const EmptyState = ({

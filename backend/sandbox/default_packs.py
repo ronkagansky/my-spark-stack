@@ -35,6 +35,7 @@ Style Tips:
 - Use inline tailwind classes over custom css
 - Use tailwind colors over custom colors
 - Assume the user want's a nice look UI out of the box (so add styles as you create components and assume layouts based on what the user is building)
+- Remove Next.js boilerplate text from the index page
 
 Structure Tips:
 - Always use Next.js app router for new pages, creating /src/app/<page>/page.js
@@ -73,6 +74,7 @@ Style Tips:
 - Use tailwind colors over custom colors
 - Prefer shadcn components as much as possible over custom components
 - Assume the user want's a nice look UI out of the box (so add styles as you create components and assume layouts based on what the user is building)
+- Remove Next.js boilerplate text from the index page
 
 Structure Tips:
 - Always use Next.js app router for new pages, creating /src/app/<page>/page.js

@@ -50,7 +50,7 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
     async def _render_diff(change: FileChange) -> FileChange:
         tips = []
         for pattern, tip in _DIFF_TIPS.items():
-            if pattern in change.diff:
+            if re.search(pattern, change.diff):
                 tips.append(tip)
         if "existing code" not in change.diff and len(tips) == 0:
             return change

@@ -430,7 +430,6 @@ class Agent:
                     )
                     for tool_call in tool_calls_buffer:
                         tool_result = await self._handle_tool_call(tools, tool_call)
-
                         oai_chat.append(
                             {
                                 "role": "tool",
@@ -439,7 +438,7 @@ class Agent:
                                 "tool_call_id": tool_call.id,
                             }
                         )
-                    yield PartialChatMessage(role="assistant", delta_content="\n")
+                    yield PartialChatMessage(role="assistant", delta_content="\n\n")
                 elif chunk.choices[0].finish_reason == "stop":
                     running = False
                     break

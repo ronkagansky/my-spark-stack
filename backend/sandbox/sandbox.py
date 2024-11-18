@@ -151,7 +151,9 @@ os.system("git commit -m '{commit_message}'")
                 print("Error deleting volume", e)
 
     @classmethod
-    async def get_or_create(cls, project_id: int) -> "DevSandbox":
+    async def get_or_create(
+        cls, project_id: int, create_if_missing: bool = True
+    ) -> "DevSandbox":
         db = next(get_db())
         project = db.query(Project).filter(Project.id == project_id).first()
         stack = db.query(Stack).filter(Stack.id == project.stack_id).first()
@@ -186,6 +188,10 @@ os.system("git commit -m '{commit_message}'")
         else:
             sb_is_up = False
         if not sb_is_up:
+            if not create_if_missing:
+                raise SandboxNotReadyException(
+                    f"Sandbox is not ready for project (project={project_id})"
+                )
             print(
                 "Creating sandbox for project",
                 project.id,

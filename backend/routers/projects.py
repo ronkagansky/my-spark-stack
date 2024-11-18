@@ -95,7 +95,7 @@ async def get_project_git_log(
     db: Session = Depends(get_db),
 ):
     project = await get_project(team_id, project_id, current_user, db)
-    sandbox = await DevSandbox.get_or_create(project.id)
+    sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
     content = await sandbox.run_command('git log --pretty="%h|%s|%aN|%aE|%aD" -n 10')
     return ProjectGitLogResponse.from_content(content)
 
