@@ -17,7 +17,9 @@ async def periodic_task():
     while True:
         try:
             await asyncio.gather(
-                maintain_prepared_sandboxes(db), clean_up_project_resources(db)
+                maintain_prepared_sandboxes(db),
+                clean_up_project_resources(db),
+                return_exceptions=True,
             )
         except Exception as e:
             print("Error maintaining sandboxes", e)
