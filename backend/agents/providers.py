@@ -52,15 +52,6 @@ class LLMProvider(ABC):
     ) -> AsyncGenerator[Dict[str, Any], None]:
         pass
 
-    async def _handle_tool_call(self, tools: List[AgentTool], tool_call) -> str:
-        tool_name = tool_call.function.name
-        arguments = json.loads(tool_call.function.arguments)
-
-        tool = next((tool for tool in tools if tool.name == tool_name), None)
-        if not tool:
-            raise ValueError(f"Unknown tool: {tool_name}")
-        return await tool.func(**arguments)
-
 
 class OpenAILLMProvider(LLMProvider):
     def __init__(self):
@@ -78,6 +69,16 @@ class OpenAILLMProvider(LLMProvider):
             temperature=temperature,
         )
         return resp.choices[0].message.content
+
+    async def _handle_tool_call(self, tools: List[AgentTool], tool_call) -> str:
+        # Default implementation for OpenAI format
+        tool_name = tool_call.function.name
+        arguments = json.loads(tool_call.function.arguments)
+
+        tool = next((tool for tool in tools if tool.name == tool_name), None)
+        if not tool:
+            raise ValueError(f"Unknown tool: {tool_name}")
+        return await tool.func(**arguments)
 
     async def chat_complete_with_tools(
         self,
@@ -181,21 +182,35 @@ class AnthropicLLMProvider(LLMProvider):
         model: str,
         temperature: float = 0.0,
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        # Convert tools to Anthropic format using the new method
+        # Convert tools to Anthropic format
         anthropic_tools = [tool.to_anthropic_tool() for tool in tools]
 
-        # Extract system message if present
-        system_message = None
-        current_messages = []
-        for msg in messages:
-            if msg["role"] == "system":
-                system_message = msg["content"]
-            else:
-                current_messages.append(msg)
+        # Extract system message and prepare current messages
+        system_message = next(
+            (msg["content"] for msg in messages if msg["role"] == "system"), None
+        )
+        current_messages = [
+            {
+                "role": msg["role"],
+                "content": (
+                    next(
+                        (
+                            item["text"]
+                            for item in msg["content"]
+                            if item["type"] == "text"
+                        ),
+                        "(empty)",
+                    )
+                    if isinstance(msg.get("content"), list)
+                    else msg.get("content") or "(empty)"
+                ),
+            }
+            for msg in messages
+            if msg["role"] != "system"
+        ]
 
         running = True
         while running:
-            # Create base parameters
             create_params = {
                 "model": model,
                 "messages": current_messages,
@@ -205,66 +220,105 @@ class AnthropicLLMProvider(LLMProvider):
                 "max_tokens": 8192,
             }
 
-            # Only add tools and tool_choice if tools are provided
             if tools:
                 create_params.update(
-                    {"tools": anthropic_tools, "tool_choice": {"type": "any"}}
+                    {"tools": anthropic_tools, "tool_choice": {"type": "auto"}}
                 )
 
             stream = await self.client.messages.create(**create_params)
 
-            current_tool_call = None
+            tool_calls_buffer = []
             content_buffer = ""
 
             async for chunk in stream:
+
+                if chunk.type == "message_start":
+                    continue
+
                 if chunk.type == "content_block_start":
-                    if chunk.content_block.type == "tool_calls":
-                        current_tool_call = {
-                            "function": {
-                                "name": chunk.content_block.tool_calls[0].name,
-                                "arguments": "",
+                    if (
+                        hasattr(chunk.content_block, "type")
+                        and chunk.content_block.type == "tool_use"
+                    ):
+                        # Add new tool call to buffer
+                        tool_calls_buffer.append(
+                            {
+                                "id": chunk.content_block.id,
+                                "function": {
+                                    "name": chunk.content_block.name,
+                                    "arguments": "",
+                                },
                             }
-                        }
+                        )
 
                 elif chunk.type == "content_block_delta":
-                    if chunk.delta.type == "text_delta":
-                        content_buffer += chunk.delta.text
-                        yield {"type": "content", "content": chunk.delta.text}
-                    elif chunk.delta.type == "tool_call_delta":
-                        if current_tool_call:
-                            current_tool_call["function"][
-                                "arguments"
-                            ] += chunk.delta.text
+                    if hasattr(chunk.delta, "type"):
+                        if chunk.delta.type == "text_delta":
+                            content_buffer += chunk.delta.text
+                            yield {"type": "content", "content": chunk.delta.text}
+                        elif chunk.delta.type == "input_json_delta":
+                            # Update arguments for the last tool call in buffer
+                            if tool_calls_buffer:
+                                tool_calls_buffer[-1]["function"][
+                                    "arguments"
+                                ] += chunk.delta.partial_json
 
                 elif chunk.type == "content_block_stop":
-                    if current_tool_call:
-                        # Handle tool call completion
-                        tool_result = await self._handle_tool_call(
-                            tools, current_tool_call
-                        )
-                        yield {"type": "tool_calls", "tool_calls": [current_tool_call]}
+                    if tool_calls_buffer:
+                        # Process all tool calls in buffer
+                        for tool_call in tool_calls_buffer:
 
-                        # Add the assistant's message and tool result to the conversation
-                        current_messages.append(
-                            {
-                                "role": "assistant",
-                                "content": content_buffer,
-                                "tool_calls": [current_tool_call],
-                            }
-                        )
-                        current_messages.append(
-                            {
-                                "role": "tool",
-                                "content": tool_result,
-                                "name": current_tool_call["function"]["name"],
-                            }
-                        )
+                            arguments_dict = json.loads(
+                                tool_call["function"]["arguments"]
+                            )
+                            tool_result = await self._handle_tool_call(tools, tool_call)
+
+                            # Add tool use message
+                            current_messages.append(
+                                {
+                                    "role": "assistant",
+                                    "content": [
+                                        {
+                                            "type": "tool_use",
+                                            "id": tool_call["id"],
+                                            "name": tool_call["function"]["name"],
+                                            "input": arguments_dict,
+                                        }
+                                    ],
+                                }
+                            )
+
+                            # Add tool result message
+                            current_messages.append(
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {
+                                            "type": "tool_result",
+                                            "tool_use_id": tool_call["id"],
+                                            "content": tool_result,
+                                        }
+                                    ],
+                                }
+                            )
+
+                        # Yield all tool calls at once
+                        yield {"type": "tool_calls", "tool_calls": tool_calls_buffer}
+                        tool_calls_buffer = []
                         content_buffer = ""
-                        current_tool_call = None
                     else:
-                        # No more tool calls, conversation is complete
                         running = False
                         break
+
+    async def _handle_tool_call(self, tools: List[AgentTool], tool_call) -> str:
+        # Anthropic specific implementation
+        tool_name = tool_call["function"]["name"]
+        arguments = json.loads(tool_call["function"]["arguments"])
+
+        tool = next((tool for tool in tools if tool.name == tool_name), None)
+        if not tool:
+            raise ValueError(f"Unknown tool: {tool_name}")
+        return await tool.func(**arguments)
 
 
 LLM_PROVIDERS: Dict[str, Type[LLMProvider]] = {

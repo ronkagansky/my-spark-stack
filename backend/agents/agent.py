@@ -130,6 +130,7 @@ You are able run shell commands in the sandbox.
 
 - This includes common tools like `npm`, `cat`, `ls`, `git`, etc. avoid any commands that require a GUI or interactivity.
 - DO NOT USE TOOLS to modify the content of files. You also do not need to display the commands you use.
+- DO NOT use `touch`, `vim`, `nano`, etc.
 </command>
 <command name="navigate_to">
 You are able to navigate the user's browser to a given path.

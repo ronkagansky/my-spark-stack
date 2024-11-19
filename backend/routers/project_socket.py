@@ -5,6 +5,7 @@ from asyncio import create_task, Lock
 from pydantic import BaseModel
 import datetime
 import asyncio
+import traceback
 
 from sandbox.sandbox import DevSandbox, SandboxNotReadyException
 from agents.agent import Agent, ChatMessage
@@ -216,7 +217,9 @@ class ProjectManager:
         try:
             await self._handle_chat_message(chat_id, message)
         except Exception as e:
-            print("Error in chat message", e)
+            print(
+                f"Error in chat message: {str(e)}\nTraceback:\n{traceback.format_exc()}"
+            )
             self.sandbox_status = SandboxStatus.READY
             await self.emit_project(await self._get_project_status())
 
@@ -280,7 +283,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
             data = ChatMessage.model_validate_json(raw_data)
             create_task(pm.on_chat_message(chat_id, data))
     except Exception as e:
-        print("websocket loop error", e)
+        print(f"websocket loop error: {e}\n{traceback.format_exc()}")
     finally:
         pm.remove_chat_socket(chat_id, websocket)
         try:
