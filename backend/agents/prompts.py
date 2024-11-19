@@ -3,7 +3,7 @@ import re
 from typing import Tuple
 
 from config import OPENAI_API_KEY, FAST_MODEL, MAIN_MODEL, FAST_PROVIDER
-from agents.providers import CHAT_COMPLETION_PROVIDERS
+from agents.providers import LLM_PROVIDERS
 
 
 async def chat_complete(
@@ -13,7 +13,7 @@ async def chat_complete(
     temperature: float = 0.0,
 ) -> str:
     model = FAST_MODEL if fast else MAIN_MODEL
-    return await CHAT_COMPLETION_PROVIDERS[FAST_PROVIDER]().chat_complete(
+    return await LLM_PROVIDERS[FAST_PROVIDER]().chat_complete(
         system_prompt, user_prompt, model, temperature
     )
 

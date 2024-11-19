@@ -6,11 +6,11 @@ import json
 from db.models import Project, Stack
 from sandbox.sandbox import DevSandbox
 from agents.prompts import (
-    oai_client,
     chat_complete,
 )
-from config import FAST_MODEL, MAIN_MODEL
+from config import FAST_MODEL, MAIN_MODEL, MAIN_PROVIDER
 from agents.diff import remove_file_changes
+from agents.providers import AgentTool, LLM_PROVIDERS
 
 
 class ChatMessage(BaseModel):
@@ -24,23 +24,6 @@ class PartialChatMessage(BaseModel):
     role: str
     delta_content: str = ""
     delta_thinking_content: str = ""
-
-
-class AgentTool(BaseModel):
-    name: str
-    description: str
-    parameters: Dict[str, Any]
-    func: Callable
-
-    def to_oai_tool(self):
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters,
-            },
-        }
 
 
 def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
@@ -307,36 +290,41 @@ class Agent:
             stack_text=stack_text,
             files_text=files_text,
         )
-        stream = await oai_client.chat.completions.create(
-            model=FAST_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": conversation_text
-                            + "\n\nProvide the plan in the correct format only.",
-                        }
+
+        # Convert messages to provider format
+        planning_messages = [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": conversation_text
+                        + "\n\nProvide the plan in the correct format only.",
+                    }
+                ]
+                + (
+                    []
+                    if not images
+                    else [
+                        {"type": "image_url", "image_url": {"url": img}}
+                        for img in images
                     ]
-                    + (
-                        []
-                        if not images
-                        else [
-                            {"type": "image_url", "image_url": {"url": img}}
-                            for img in images
-                        ]
-                    ),
-                },
-            ],
-            stream=True,
-        )
-        async for chunk in stream:
-            delta = chunk.choices[0].delta
-            if delta.content is not None:
+                ),
+            },
+        ]
+
+        model = LLM_PROVIDERS[MAIN_PROVIDER]()
+
+        async for chunk in model.chat_complete_with_tools(
+            messages=planning_messages,
+            tools=[],  # No tools needed for planning
+            model=MAIN_MODEL,
+            temperature=0.0,
+        ):
+            if chunk["type"] == "content":
                 yield PartialChatMessage(
-                    role="assistant", delta_thinking_content=delta.content
+                    role="assistant", delta_thinking_content=chunk["content"]
                 )
 
     async def step(
@@ -365,7 +353,8 @@ class Agent:
             plan_text=plan_content,
         )
 
-        oai_chat = [
+        # Convert messages to provider format
+        exec_messages = [
             {"role": "system", "content": system_prompt},
             *[
                 {
@@ -384,71 +373,17 @@ class Agent:
             ],
         ]
         tools = [build_run_command_tool(self.sandbox), build_navigate_to_tool(self)]
-        running = True
 
-        while running:
-            stream = await oai_client.chat.completions.create(
-                model=MAIN_MODEL,
-                messages=oai_chat,
-                tools=[tool.to_oai_tool() for tool in tools],
-                stream=True,
-            )
-
-            tool_calls_buffer = []
-            current_tool_call = None
-
-            async for chunk in stream:
-                delta = chunk.choices[0].delta
-
-                if delta.tool_calls:
-                    for tool_call_delta in delta.tool_calls:
-                        if tool_call_delta.index is not None:
-                            if len(tool_calls_buffer) <= tool_call_delta.index:
-                                tool_calls_buffer.append(tool_call_delta)
-                                current_tool_call = tool_calls_buffer[
-                                    tool_call_delta.index
-                                ]
-                            else:
-                                current_tool_call = tool_calls_buffer[
-                                    tool_call_delta.index
-                                ]
-                                if tool_call_delta.function.name:
-                                    current_tool_call.function.name = (
-                                        tool_call_delta.function.name
-                                    )
-                                if tool_call_delta.function.arguments:
-                                    if not hasattr(
-                                        current_tool_call.function, "arguments"
-                                    ):
-                                        current_tool_call.function.arguments = ""
-                                    current_tool_call.function.arguments += (
-                                        tool_call_delta.function.arguments
-                                    )
-
-                if chunk.choices[0].finish_reason == "tool_calls":
-                    oai_chat.append(
-                        {
-                            "role": "assistant",
-                            "content": None,
-                            "tool_calls": tool_calls_buffer,
-                        }
-                    )
-                    for tool_call in tool_calls_buffer:
-                        tool_result = await self._handle_tool_call(tools, tool_call)
-                        oai_chat.append(
-                            {
-                                "role": "tool",
-                                "content": tool_result,
-                                "name": tool_call.function.name,
-                                "tool_call_id": tool_call.id,
-                            }
-                        )
-                    yield PartialChatMessage(role="assistant", delta_content="\n\n")
-                elif chunk.choices[0].finish_reason == "stop":
-                    running = False
-                    break
-
-                if delta.content is not None:
-                    yield PartialChatMessage(
-                        role="assistant", delta_content=delta.content
-                    )
+        model = LLM_PROVIDERS[MAIN_PROVIDER]()
+        async for chunk in model.chat_complete_with_tools(
+            messages=exec_messages,
+            tools=tools,
+            model=MAIN_MODEL,
+            temperature=0.0,
+        ):
+            if chunk["type"] == "content":
+                yield PartialChatMessage(
+                    role="assistant", delta_content=chunk["content"]
+                )
+            elif chunk["type"] == "tool_calls":
+                yield PartialChatMessage(role="assistant", delta_content="\n\n")

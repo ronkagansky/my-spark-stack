@@ -34,10 +34,10 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
 # AI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-FAST_PROVIDER = _enum_env("FAST_PROVIDER", ["openai", "anthropic"], default="openai")
-MAIN_PROVIDER = _enum_env("MAIN_PROVIDER", ["openai", "anthropic"], default="openai")
-FAST_MODEL = os.getenv("FAST_MODEL", "gpt-4o-mini")
-MAIN_MODEL = os.getenv("MAIN_MODEL", "gpt-4o")
+FAST_PROVIDER = _enum_env("FAST_PROVIDER", ["openai", "anthropic"], default="anthropic")
+MAIN_PROVIDER = _enum_env("MAIN_PROVIDER", ["openai", "anthropic"], default="anthropic")
+FAST_MODEL = os.getenv("FAST_MODEL", "claude-3-5-sonnet-20241022")
+MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-3-5-sonnet-20241022")
 
 # Misc configuration
 RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)

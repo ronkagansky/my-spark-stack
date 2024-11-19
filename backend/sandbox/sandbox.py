@@ -192,9 +192,7 @@ os.system("git commit -m '{commit_message}'")
                     f"Sandbox is not ready for project (project={project_id})"
                 )
             print(
-                "Creating sandbox for project",
-                project.id,
-                project.modal_sandbox_id,
+                f"Booting new sandbox for project (project={project_id}, prev_sandbox={project.modal_sandbox_id})",
             )
 
             expires_in = 60 * 60
