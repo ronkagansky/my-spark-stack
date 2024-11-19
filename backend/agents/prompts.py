@@ -1,28 +1,21 @@
-from openai import AsyncOpenAI
 import datetime
 import re
 from typing import Tuple
 
-from config import OPENAI_API_KEY, OPENAI_FAST_MODEL
-
-oai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+from config import OPENAI_API_KEY, FAST_MODEL, MAIN_MODEL, FAST_PROVIDER
+from agents.providers import CHAT_COMPLETION_PROVIDERS
 
 
 async def chat_complete(
     system_prompt: str,
     user_prompt: str,
-    model: str = OPENAI_FAST_MODEL,
+    fast: bool = True,
     temperature: float = 0.0,
 ) -> str:
-    resp = await oai_client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=temperature,
+    model = FAST_MODEL if fast else MAIN_MODEL
+    return await CHAT_COMPLETION_PROVIDERS[FAST_PROVIDER]().chat_complete(
+        system_prompt, user_prompt, model, temperature
     )
-    return resp.choices[0].message.content
 
 
 async def name_chat(seed_prompt: str) -> Tuple[str, str, str]:

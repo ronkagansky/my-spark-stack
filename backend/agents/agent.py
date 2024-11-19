@@ -9,7 +9,7 @@ from agents.prompts import (
     oai_client,
     chat_complete,
 )
-from config import OPENAI_FAST_MODEL, OPENAI_MAIN_MODEL
+from config import FAST_MODEL, MAIN_MODEL
 from agents.diff import remove_file_changes
 
 
@@ -308,7 +308,7 @@ class Agent:
             files_text=files_text,
         )
         stream = await oai_client.chat.completions.create(
-            model=OPENAI_FAST_MODEL,
+            model=FAST_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -388,7 +388,7 @@ class Agent:
 
         while running:
             stream = await oai_client.chat.completions.create(
-                model=OPENAI_MAIN_MODEL,
+                model=MAIN_MODEL,
                 messages=oai_chat,
                 tools=[tool.to_oai_tool() for tool in tools],
                 stream=True,

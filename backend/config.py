@@ -1,5 +1,6 @@
 import os
 import secrets
+from typing import List
 
 
 def _bool_env(key, default: bool = False):
@@ -9,6 +10,13 @@ def _bool_env(key, default: bool = False):
 
 def _int_env(key, default: int = 0):
     return int(os.getenv(key, str(default)))
+
+
+def _enum_env(key, options: List[str], default: str) -> str:
+    val = os.getenv(key, default)
+    if val not in options:
+        raise ValueError(f"{key} must be one of {options}")
+    return val
 
 
 # Database configuration
@@ -23,10 +31,14 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME", "prompt-stack")
 # JWT configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
 
-# OpenAI configuration
+# AI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_FAST_MODEL = os.getenv("OPENAI_FAST_MODEL", "gpt-4o-mini")
-OPENAI_MAIN_MODEL = os.getenv("OPENAI_MAIN_MODEL", "gpt-4o")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+FAST_PROVIDER = _enum_env("FAST_PROVIDER", ["openai", "anthropic"], default="openai")
+MAIN_PROVIDER = _enum_env("MAIN_PROVIDER", ["openai", "anthropic"], default="openai")
+FAST_MODEL = os.getenv("FAST_MODEL", "gpt-4o-mini")
+MAIN_MODEL = os.getenv("MAIN_MODEL", "gpt-4o")
 
+# Misc configuration
 RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)
 TARGET_PREPARED_SANDBOXES_PER_STACK = _int_env("TARGET_PREPARED_SANDBOXES_PER_STACK", 3)
