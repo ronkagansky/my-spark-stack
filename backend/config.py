@@ -13,8 +13,9 @@ def _int_env(key, default: int = 0):
 
 
 def _enum_env(key, options: List[str], default: str) -> str:
-    val = os.getenv(key, default)
-    if val not in options:
+    val = os.getenv(key, default).strip().lower()
+    normalized_options = [opt.strip().lower() for opt in options]
+    if val not in normalized_options:
         raise ValueError(f"{key} must be one of {options}")
     return val
 

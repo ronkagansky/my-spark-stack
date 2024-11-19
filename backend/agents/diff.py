@@ -23,7 +23,7 @@ _DIFF_TIPS = {
     r"<Link[^>]*>[\S\s]*?<a[^>]*>": "All <Link> tags should be free of <a> tags. Remove all <a> tags from <Link> tags.",
     "<CardBody": "Ensure in Shadcn UI, <Card>s use <CardContent> instead of <CardBody>.",
     "<Slider": "Ensure <Slider />s in Shadcn have at least values= or a min= and a max= attribute.",
-    "Layout(": "Ensure Layouts in Next.js retain <html> and <body> tags.",
+    r"Layout\(": "Ensure Layouts in Next.js retain <html> and <body> tags.",
 }
 
 
