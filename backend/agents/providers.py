@@ -217,9 +217,11 @@ class AnthropicLLMProvider(LLMProvider):
                 if isinstance(msg["content"], list):
                     for content_block in msg["content"]:
                         if content_block["type"] == "text":
-                            content.append(
-                                {"type": "text", "text": content_block["text"]}
-                            )
+                            # Only add text block if it's not empty
+                            if content_block["text"].strip():
+                                content.append(
+                                    {"type": "text", "text": content_block["text"]}
+                                )
                         elif content_block["type"] == "image_url":
                             # Fetch and encode the image
                             media_type, b64_data = await self._fetch_and_encode_image(
@@ -236,9 +238,13 @@ class AnthropicLLMProvider(LLMProvider):
                                 }
                             )
                 else:
-                    content.append({"type": "text", "text": msg["content"]})
+                    # Only add text content if it's not empty
+                    if msg["content"] and msg["content"].strip():
+                        content.append({"type": "text", "text": msg["content"]})
 
-                current_messages.append({"role": msg["role"], "content": content})
+                # Only add message if it has content
+                if content:
+                    current_messages.append({"role": msg["role"], "content": content})
 
             running = True
             while running:

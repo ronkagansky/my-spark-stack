@@ -306,6 +306,7 @@ export default function WorkspacePage({ chatId }) {
           projectFileTree={projectFileTree}
           project={projects.find((p) => +p.id === +projectId)}
           chatId={chatId}
+          status={status}
         />
       </div>
     </div>

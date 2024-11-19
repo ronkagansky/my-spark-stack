@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Pencil,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import rehypeRaw from 'rehype-raw';
 import {
   Select,
@@ -263,12 +263,13 @@ const ChatInput = ({
             />
           )}
           <div className="flex gap-4">
-            <Input
+            <Textarea
               placeholder={chatPlaceholder}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1"
+              className="flex-1 min-h-[40px] max-h-[200px] resize-none"
+              rows={Math.min(message.split('\n').length, 5)}
             />
           </div>
         </div>
@@ -475,7 +476,13 @@ export function Chat({
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.ctrlKey) {
+    // Check for Ctrl/Cmd + Enter for new line
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      return; // Allow default behavior (new line)
+    }
+
+    // Submit on plain Enter
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }

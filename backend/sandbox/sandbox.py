@@ -7,6 +7,8 @@ import uuid
 from sqlalchemy.orm import Session
 from typing import List, Optional, Tuple
 from modal.volume import FileEntryType
+from asyncio import Lock
+from functools import lru_cache
 
 from db.database import get_db
 from db.models import Project, PreparedSandbox, Stack
@@ -16,6 +18,11 @@ app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
 
 IGNORE_PATHS = ["node_modules", ".git", ".next", "build"]
+
+
+@lru_cache()
+def _get_project_lock(project_id: int) -> Lock:
+    return Lock()
 
 
 class SandboxNotReadyException(Exception):
@@ -153,76 +160,78 @@ os.system("git commit -m '{commit_message}'")
     async def get_or_create(
         cls, project_id: int, create_if_missing: bool = True
     ) -> "DevSandbox":
-        db = next(get_db())
-        project = db.query(Project).filter(Project.id == project_id).first()
-        stack = db.query(Stack).filter(Stack.id == project.stack_id).first()
+        lock = _get_project_lock(project_id)
+        async with lock:
+            db = next(get_db())
+            project = db.query(Project).filter(Project.id == project_id).first()
+            stack = db.query(Stack).filter(Stack.id == project.stack_id).first()
 
-        if not project.modal_volume_label:
-            existing_psb = (
-                db.query(PreparedSandbox)
-                .filter(PreparedSandbox.stack_id == stack.id)
-                .first()
-            )
-            if not existing_psb:
-                raise SandboxNotReadyException(
-                    f"No prepared sandbox found for stack (stack={stack.id}, project={project_id})"
+            if not project.modal_volume_label:
+                existing_psb = (
+                    db.query(PreparedSandbox)
+                    .filter(PreparedSandbox.stack_id == stack.id)
+                    .first()
+                )
+                if not existing_psb:
+                    raise SandboxNotReadyException(
+                        f"No prepared sandbox found for stack (stack={stack.id}, project={project_id})"
+                    )
+
+                project.modal_volume_label = existing_psb.modal_volume_label
+                db.delete(existing_psb)
+                db.commit()
+                print(
+                    f"Using existing prepared sandbox for project (psb={existing_psb.id}, vol={project.modal_volume_label}) -> (project={project_id})"
                 )
 
-            project.modal_volume_label = existing_psb.modal_volume_label
-            db.delete(existing_psb)
-            db.commit()
-            print(
-                f"Using existing prepared sandbox for project (psb={existing_psb.id}, vol={project.modal_volume_label}) -> (project={project_id})"
-            )
+            vol = await modal.Volume.lookup.aio(label=project.modal_volume_label)
 
-        vol = await modal.Volume.lookup.aio(label=project.modal_volume_label)
-
-        if project.modal_sandbox_id:
-            sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
-            poll_code = await sb.poll.aio()
-            return_code = sb.returncode
-            sb_is_up = ((poll_code is None) or (return_code is None)) or (
-                poll_code == 0 and return_code == 0
-            )
-        else:
-            sb_is_up = False
-        if not sb_is_up:
-            if not create_if_missing:
-                raise SandboxNotReadyException(
-                    f"Sandbox is not ready for project (project={project_id})"
+            if project.modal_sandbox_id:
+                sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
+                poll_code = await sb.poll.aio()
+                return_code = sb.returncode
+                sb_is_up = ((poll_code is None) or (return_code is None)) or (
+                    poll_code == 0 and return_code == 0
                 )
-            print(
-                f"Booting new sandbox for project (project={project_id}, prev_sandbox={project.modal_sandbox_id})",
-            )
+            else:
+                sb_is_up = False
+            if not sb_is_up:
+                if not create_if_missing:
+                    raise SandboxNotReadyException(
+                        f"Sandbox is not ready for project (project={project_id})"
+                    )
+                print(
+                    f"Booting new sandbox for project (project={project_id}, prev_sandbox={project.modal_sandbox_id})",
+                )
 
-            expires_in = 60 * 60
-            image = modal.Image.from_registry(stack.from_registry, add_python=None)
-            sb = await modal.Sandbox.create.aio(
-                "sh",
-                "-c",
-                stack.sandbox_start_cmd,
-                app=app,
-                volumes={"/app": vol},
-                image=image,
-                encrypted_ports=[3000],
-                timeout=expires_in,
-                cpu=0.125,
-                memory=1024,
-            )
-            project.modal_sandbox_id = sb.object_id
-            project.modal_sandbox_last_used_at = datetime.datetime.now()
-            project.modal_sandbox_expires_at = (
-                datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
-            )
-            db.commit()
-            await sb.set_tags.aio(
-                {"project_id": str(project_id), "app": "prompt-stack"}
-            )
-        else:
-            print("Using existing sandbox for project", project.id)
-            sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
+                expires_in = 60 * 60
+                image = modal.Image.from_registry(stack.from_registry, add_python=None)
+                sb = await modal.Sandbox.create.aio(
+                    "sh",
+                    "-c",
+                    stack.sandbox_start_cmd,
+                    app=app,
+                    volumes={"/app": vol},
+                    image=image,
+                    encrypted_ports=[3000],
+                    timeout=expires_in,
+                    cpu=0.125,
+                    memory=1024,
+                )
+                project.modal_sandbox_id = sb.object_id
+                project.modal_sandbox_last_used_at = datetime.datetime.now()
+                project.modal_sandbox_expires_at = (
+                    datetime.datetime.now() + datetime.timedelta(seconds=expires_in)
+                )
+                db.commit()
+                await sb.set_tags.aio(
+                    {"project_id": str(project_id), "app": "prompt-stack"}
+                )
+            else:
+                print("Using existing sandbox for project", project.id)
+                sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
 
-        return cls(project_id, sb, vol)
+            return cls(project_id, sb, vol)
 
 
 async def maintain_prepared_sandboxes(db: Session):
