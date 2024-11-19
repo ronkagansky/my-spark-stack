@@ -219,22 +219,42 @@ const ChatInput = ({
 }) => {
   const [sketchOpen, setSketchOpen] = useState(false);
 
+  const getDisabledReason = () => {
+    if (uploadingImages) {
+      return 'Uploading images...';
+    }
+    if (status === 'WORKING') {
+      return 'Please wait for the changes to be applied...';
+    }
+    if (disabled) {
+      if (status === 'BUILDING' || status === 'BUILDING_WAITING') {
+        return 'Please wait while the development environment is being set up...';
+      }
+      return 'Chat is temporarily unavailable';
+    }
+    return null;
+  };
+
   return (
     <>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <div className="flex flex-wrap gap-2">
-          {suggestedFollowUps.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              disabled={disabled}
-              onClick={() => handleChipClick(prompt)}
-              className="px-3 py-1.5 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors max-w-full"
-            >
-              <span className="block truncate max-w-[280px]">{prompt}</span>
-            </button>
-          ))}
-        </div>
+        {disabled || uploadingImages || status === 'WORKING' ? (
+          <p className="text-sm text-muted-foreground">{getDisabledReason()}</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {suggestedFollowUps.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                disabled={disabled}
+                onClick={() => handleChipClick(prompt)}
+                className="px-3 py-1.5 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors max-w-full"
+              >
+                <span className="block truncate max-w-[280px]">{prompt}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex flex-col gap-4">
           {imageAttachments.length > 0 && (
             <ImageAttachments
