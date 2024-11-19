@@ -161,7 +161,8 @@ os.system("git commit -m '{commit_message}'")
         cls, project_id: int, create_if_missing: bool = True
     ) -> "DevSandbox":
         lock = _get_project_lock(project_id)
-        async with lock:
+        try:
+            await lock.acquire()
             db = next(get_db())
             project = db.query(Project).filter(Project.id == project_id).first()
             stack = db.query(Stack).filter(Stack.id == project.stack_id).first()
@@ -232,6 +233,8 @@ os.system("git commit -m '{commit_message}'")
                 sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
 
             return cls(project_id, sb, vol)
+        finally:
+            lock.release()
 
 
 async def maintain_prepared_sandboxes(db: Session):
