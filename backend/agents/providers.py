@@ -89,18 +89,22 @@ class OpenAILLMProvider(LLMProvider):
         model: str,
         temperature: float = 0.0,
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        oai_tools = [tool.to_oai_tool() for tool in tools]
         running = True
         oai_messages = messages.copy()
 
         while running:
-            stream = await self.client.chat.completions.create(
-                model=model,
-                messages=oai_messages,
-                tools=oai_tools,
-                temperature=temperature,
-                stream=True,
-            )
+            # Only include tools parameter if tools are provided
+            create_params = {
+                "model": model,
+                "messages": oai_messages,
+                "temperature": temperature,
+                "stream": True,
+            }
+
+            if tools:
+                create_params["tools"] = [tool.to_oai_tool() for tool in tools]
+
+            stream = await self.client.chat.completions.create(**create_params)
 
             tool_calls_buffer = []
             current_tool_call = None

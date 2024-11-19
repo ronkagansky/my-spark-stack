@@ -21,8 +21,9 @@ _CODE_BLOCK_PATTERNS = [
 
 _DIFF_TIPS = {
     r"<Link[^>]*>[\S\s]*?<a[^>]*>": "All <Link> tags should be free of <a> tags. Remove all <a> tags from <Link> tags.",
-    "<CardBody": "Use <CardContent> instead of <CardBody>.",
-    "<Slider": "Provide <Slider />s with at least values= or a min= and a max= attribute.",
+    "<CardBody": "Ensure in Shadcn UI, <Card>s use <CardContent> instead of <CardBody>.",
+    "<Slider": "Ensure <Slider />s in Shadcn have at least values= or a min= and a max= attribute.",
+    "Layout(": "Ensure Layouts in Next.js retain <html> and <body> tags.",
 }
 
 
