@@ -20,6 +20,7 @@ class StackPack(BaseModel):
 
 _COPY_FRONTEND_CMD = "if [ ! -d 'frontend' ]; then cp -r /frontend .; fi"
 _SETUP_GIT_CMD = "git init && git config --global init.defaultBranch main && git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot' && git add -A && git commit -m 'Initial commit'"
+_COPY_CONFIG_CMD = "curl -o /app/frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/next.config.mjs.example"
 _START_NEXT_JS_CMD = "git config --global user.email 'bot@prompt-stack.sshh.io' && git config --global user.name 'Prompt Stack Bot' && cd /app/frontend && npm run dev"
 
 PACKS = [
@@ -27,7 +28,7 @@ PACKS = [
         title="Next.js",
         description="A simple Nextjs App. Best for starting from scratch with minimal components.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:7ef15857dc430f0af0ece838a0fd674dacf1e3bb3975aa2f240e9cdb9ce0297b",
-        sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
+        sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_COPY_CONFIG_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a Next.js app.
@@ -66,7 +67,7 @@ Code Tips:
         title="Next.js Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:8e6a2e6752f8f4884ed03925db0514aea4678825890cb106bbcd598d91fe0e8b",
-        sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
+        sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_COPY_CONFIG_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a Next.js app with Shadcn UI.
