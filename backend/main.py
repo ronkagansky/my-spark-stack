@@ -20,9 +20,9 @@ async def periodic_task():
             clean_up_project_resources(db),
             return_exceptions=True,
         )
-        for e in exceptions:
+        for i, e in enumerate(exceptions):
             if isinstance(e, Exception):
-                print("Error maintaining sandboxes", e)
+                print(f"Error {i} maintaining sandboxes", e)
         await asyncio.sleep(10)
 
 
