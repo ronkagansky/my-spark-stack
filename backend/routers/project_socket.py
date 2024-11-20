@@ -92,6 +92,12 @@ class ProjectManager:
         self.sandbox = None
         self.sandbox_file_paths: Optional[List[str]] = None
         self.tunnels = {}
+        self.last_activity = datetime.datetime.now()
+
+    def is_inactive(self, timeout_minutes: int = 30) -> bool:
+        return len(self.chat_sockets) == 0 and (
+            datetime.datetime.now() - self.last_activity
+        ) > datetime.timedelta(minutes=timeout_minutes)
 
     async def _manage_sandbox_task(self):
         print(f"Managing sandbox for project {self.project_id}...")
@@ -134,6 +140,7 @@ class ProjectManager:
         )
 
     async def add_chat_socket(self, chat_id: int, websocket: WebSocket):
+        self.last_activity = datetime.datetime.now()
         if chat_id not in self.chat_sockets:
             project = (
                 self.db.query(Project).filter(Project.id == self.project_id).first()
@@ -224,6 +231,7 @@ class ProjectManager:
             await self.emit_project(await self._get_project_status())
 
     async def on_chat_message(self, chat_id: int, message: ChatMessage):
+        self.last_activity = datetime.datetime.now()
         if not await self.lock.acquire():
             return
         await self._try_handle_chat_message(chat_id, message)
@@ -254,6 +262,26 @@ class ProjectManager:
 project_managers: Dict[int, ProjectManager] = {}
 
 
+async def _cleanup_inactive_managers():
+    while True:
+        try:
+            to_remove = []
+            for project_id, manager in project_managers.items():
+                if manager.is_inactive():
+                    to_remove.append(project_id)
+                    if manager.sandbox:
+                        await manager.sandbox.close()
+
+            for project_id in to_remove:
+                del project_managers[project_id]
+                print(f"Cleaned up inactive project manager for project {project_id}")
+
+        except Exception as e:
+            print(f"Error in cleanup task: {e}\n{traceback.format_exc()}")
+
+        await asyncio.sleep(300)  # Check every 5 minutes
+
+
 @router.websocket("/api/ws/chat/{chat_id}")
 async def websocket_endpoint(websocket: WebSocket, chat_id: int):
     db = next(get_db())
@@ -270,6 +298,8 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
     if project.id not in project_managers:
         pm = ProjectManager(db, project.id)
         pm.start()
+        if len(project_managers) == 0:
+            create_task(_cleanup_inactive_managers())
         project_managers[project.id] = pm
     else:
         pm = project_managers[project.id]
