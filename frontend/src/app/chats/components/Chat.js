@@ -222,11 +222,11 @@ const ChatInput = ({
   const getDisabledReason = () => {
     if (uploadingImages) {
       return 'Uploading images...';
-    }
-    if (status === 'WORKING') {
+    } else if (status === 'WORKING') {
+      return 'Please wait for the AI to finish...';
+    } else if (status === 'WORKING_APPLYING') {
       return 'Please wait for the changes to be applied...';
-    }
-    if (disabled) {
+    } else if (disabled) {
       if (status === 'BUILDING' || status === 'BUILDING_WAITING') {
         return 'Please wait while the development environment is being set up...';
       }
@@ -238,7 +238,9 @@ const ChatInput = ({
   return (
     <>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        {disabled || uploadingImages || status === 'WORKING' ? (
+        {disabled ||
+        uploadingImages ||
+        ['WORKING', 'WORKING_APPLYING'].includes(status) ? (
           <p className="text-sm text-muted-foreground">{getDisabledReason()}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -422,7 +424,12 @@ const statusMap = {
     animate: true,
   },
   READY: { status: 'Ready', color: 'bg-green-500', animate: false },
-  WORKING: { status: 'Updating...', color: 'bg-green-500', animate: true },
+  WORKING: { status: 'Coding...', color: 'bg-green-500', animate: true },
+  WORKING_APPLYING: {
+    status: 'Applying...',
+    color: 'bg-green-500',
+    animate: true,
+  },
   CONNECTING: {
     status: 'Connecting...',
     color: 'bg-yellow-500',

@@ -24,6 +24,7 @@ class SandboxStatus(str, Enum):
     BUILDING_WAITING = "BUILDING_WAITING"
     READY = "READY"
     WORKING = "WORKING"
+    WORKING_APPLYING = "WORKING_APPLYING"
 
 
 class ProjectStatusResponse(BaseModel):
@@ -201,7 +202,9 @@ class ProjectManager:
         self.db.add(db_resp_message)
         self.db.commit()
 
-        _, follow_ups = await asyncio.gather(
+        self.sandbox_status = SandboxStatus.WORKING_APPLYING
+        _, _, follow_ups = await asyncio.gather(
+            self.emit_project(await self._get_project_status()),
             _apply_file_changes(agent, total_content),
             agent.suggest_follow_ups(messages + [resp_message]),
         )
