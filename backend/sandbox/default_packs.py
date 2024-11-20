@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
+import hashlib
 
 
 class StackPack(BaseModel):
@@ -8,6 +9,13 @@ class StackPack(BaseModel):
     sandbox_init_cmd: str
     sandbox_start_cmd: str
     prompt: str
+    setup_time_seconds: int
+
+    @computed_field
+    def pack_hash(self) -> str:
+        """Generate a unique hash for this pack based on init command and registry."""
+        content = f"{self.sandbox_init_cmd}{self.from_registry}".encode()
+        return hashlib.sha256(content).hexdigest()[:12]
 
 
 _COPY_FRONTEND_CMD = "if [ ! -d 'frontend' ]; then cp -r /frontend .; fi"
@@ -50,13 +58,14 @@ Code Tips:
 - If you need to build a map, use react-leaflet
     1. $ npm install react-leaflet leaflet
     2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
-- If you need placeholder images, use https://random.imagecdn.app/<width>/<height>
+- If you need placeholder images, use https://prompt-stack.sshh.io/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a rand image)
 """.strip(),
+        setup_time_seconds=60,
     ),
     StackPack(
         title="Next.js Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:77487f76650266c353d485cc11b41e3d5c222c6abddd69942fddcb1d2e108a34",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:8e6a2e6752f8f4884ed03925db0514aea4678825890cb106bbcd598d91fe0e8b",
         sandbox_init_cmd=f"cd /app && {_COPY_FRONTEND_CMD} && {_SETUP_GIT_CMD}",
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -66,8 +75,9 @@ The user choose to use a Next.js app with Shadcn UI so avoid adding any addition
 
 Already included:
 - Next.js v15 (app already created)
-- lucide-react
-- axios
+- lucide-react v0.460
+- axios v1.7
+- recharts v2.13
 - All shadcn components are already installed (import them like `@/components/ui/button`)
 - `npm install` already run for these
 
@@ -91,7 +101,8 @@ Code Tips:
 - If you need to build a map, use react-leaflet
     1. $ npm install react-leaflet leaflet
     2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
-- If you need placeholder images, use https://random.imagecdn.app/<width>/<height>
+- If you need placeholder images, use https://prompt-stack.sshh.io/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a rand image)
 """.strip(),
+        setup_time_seconds=60,
     ),
 ]

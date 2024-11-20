@@ -10,3 +10,5 @@ Backend:
 
 - Use pydantic for all data models
 - Use backend\db\models.py for all database models
+- Use backend\schemas\models.py for all routes input/output pydantic models
+- Use backend\routes\{table}.py for all routes for that table/model

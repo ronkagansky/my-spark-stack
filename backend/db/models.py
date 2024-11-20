@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
+
 from .database import Base
 
 
@@ -75,6 +76,12 @@ class Team(TimestampMixin, Base):
     projects = relationship(
         "Project", back_populates="team", cascade="all, delete-orphan"
     )
+    invites = relationship(
+        "TeamInvite", back_populates="team", cascade="all, delete-orphan"
+    )
+    credit_purchases = relationship(
+        "TeamCreditPurchase", back_populates="team", cascade="all, delete-orphan"
+    )
 
 
 class TeamRole(PyEnum):
@@ -109,7 +116,8 @@ class Stack(TimestampMixin, Base):
     from_registry = Column(String, nullable=False)
     sandbox_init_cmd = Column(Text, nullable=False)
     sandbox_start_cmd = Column(Text, nullable=False)
-
+    pack_hash = Column(String, nullable=False)
+    setup_time_seconds = Column(Integer, nullable=False)
     # Relationships
     projects = relationship("Project", back_populates="stack")
     prepared_sandboxes = relationship(
@@ -160,3 +168,36 @@ class PreparedSandbox(TimestampMixin, Base):
 
     stack_id = Column(Integer, ForeignKey("stacks.id"), nullable=False)
     stack = relationship("Stack", back_populates="prepared_sandboxes")
+
+
+class TeamInvite(TimestampMixin, Base):
+    __tablename__ = "team_invites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(
+        Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False
+    )
+    invite_code = Column(String, unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_by_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Relationships
+    team = relationship("Team", back_populates="invites")
+    created_by = relationship("User", backref="created_invites")
+
+
+class TeamCreditPurchase(TimestampMixin, Base):
+    __tablename__ = "team_credit_purchases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(
+        Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False
+    )
+    amount = Column(Integer, nullable=False)  # Number of credits purchased
+    price_cents = Column(Integer, nullable=False)  # Price paid in cents
+    external_payment_id = Column(String, nullable=False)  # External payment reference
+
+    # Relationship
+    team = relationship("Team", back_populates="credit_purchases")

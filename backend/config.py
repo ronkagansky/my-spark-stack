@@ -29,8 +29,9 @@ AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "prompt-stack")
 
-# JWT configuration
+# Secrets configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 
 # AI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

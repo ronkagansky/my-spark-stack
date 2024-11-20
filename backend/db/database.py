@@ -32,6 +32,8 @@ def _try_init_stacks():
                 stack.sandbox_init_cmd = pack.sandbox_init_cmd
                 stack.sandbox_start_cmd = pack.sandbox_start_cmd
                 stack.prompt = pack.prompt
+                stack.pack_hash = pack.pack_hash
+                stack.setup_time_seconds = pack.setup_time_seconds
             else:
                 # Insert new stack
                 stack = Stack(
@@ -41,6 +43,8 @@ def _try_init_stacks():
                     sandbox_init_cmd=pack.sandbox_init_cmd,
                     sandbox_start_cmd=pack.sandbox_start_cmd,
                     prompt=pack.prompt,
+                    pack_hash=pack.pack_hash,
+                    setup_time_seconds=pack.setup_time_seconds,
                 )
                 db.add(stack)
         db.commit()
