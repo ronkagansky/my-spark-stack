@@ -178,6 +178,10 @@ os.system("git commit -m '{commit_message}'")
             db = next(get_db())
             project = db.query(Project).filter(Project.id == project_id).first()
             stack = db.query(Stack).filter(Stack.id == project.stack_id).first()
+            if not project or not stack:
+                raise SandboxNotReadyException(
+                    f"Project or stack not found (project={project_id})"
+                )
 
             if not project.modal_volume_label:
                 existing_psb = (
@@ -239,6 +243,9 @@ os.system("git commit -m '{commit_message}'")
                 db.commit()
                 await sb.set_tags.aio(
                     {"project_id": str(project_id), "app": "prompt-stack"}
+                )
+                print(
+                    f"Booted new sandbox for project (sb={sb.object_id}, vol={project.modal_volume_label}, project={project_id})"
                 )
             else:
                 print("Using existing sandbox for project", project.id)

@@ -66,6 +66,7 @@ async def clean_up_project_resources(db: Session = None):
         db.query(Project)
         .filter(
             Project.modal_sandbox_id.isnot(None),
+            Project.modal_sandbox_last_used_at.isnot(None),
             Project.modal_sandbox_last_used_at < datetime.now() - timedelta(minutes=15),
         )
         .all()
