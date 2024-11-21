@@ -2,7 +2,7 @@ import datetime
 import re
 from typing import Tuple
 
-from config import OPENAI_API_KEY, FAST_MODEL, MAIN_MODEL, FAST_PROVIDER
+from config import FAST_MODEL, MAIN_MODEL, FAST_PROVIDER
 from agents.providers import LLM_PROVIDERS
 
 
