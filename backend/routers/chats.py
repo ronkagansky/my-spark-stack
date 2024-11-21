@@ -8,6 +8,7 @@ from db.models import User, Chat, Team, Project, Stack
 from db.queries import get_chat_for_user
 from agents.prompts import name_chat
 from sandbox.sandbox import DevSandbox
+from config import CREDITS_CHAT_COST
 from schemas.models import ChatCreate, ChatUpdate, ChatResponse
 from routers.auth import get_current_user_from_token
 
@@ -107,9 +108,21 @@ async def create_chat(
         user_id=current_user.id,
     )
 
-    db.add(new_chat)
-    db.commit()
-    db.refresh(new_chat)
+    if team.credits < CREDITS_CHAT_COST:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Team does not have enough credits. Required: {CREDITS_CHAT_COST}, Available: {team.credits}",
+        )
+
+    team.credits -= CREDITS_CHAT_COST
+
+    try:
+        db.add(new_chat)
+        db.commit()
+        db.refresh(new_chat)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
     return new_chat
 

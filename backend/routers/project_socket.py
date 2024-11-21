@@ -265,26 +265,6 @@ class ProjectManager:
 project_managers: Dict[int, ProjectManager] = {}
 
 
-async def _cleanup_inactive_managers():
-    while True:
-        try:
-            to_remove = []
-            for project_id, manager in project_managers.items():
-                if manager.is_inactive():
-                    to_remove.append(project_id)
-                    if manager.sandbox:
-                        await manager.sandbox.close()
-
-            for project_id in to_remove:
-                del project_managers[project_id]
-                print(f"Cleaned up inactive project manager for project {project_id}")
-
-        except Exception as e:
-            print(f"Error in cleanup task: {e}\n{traceback.format_exc()}")
-
-        await asyncio.sleep(300)  # Check every 5 minutes
-
-
 @router.websocket("/api/ws/chat/{chat_id}")
 async def websocket_endpoint(websocket: WebSocket, chat_id: int):
     db = next(get_db())
@@ -301,8 +281,6 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
     if project.id not in project_managers:
         pm = ProjectManager(db, project.id)
         pm.start()
-        if len(project_managers) == 0:
-            create_task(_cleanup_inactive_managers())
         project_managers[project.id] = pm
     else:
         pm = project_managers[project.id]

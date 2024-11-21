@@ -5,9 +5,14 @@ from db.database import init_db, get_db
 from contextlib import asynccontextmanager
 import asyncio
 
-from sandbox.sandbox import maintain_prepared_sandboxes, clean_up_project_resources
 from routers import project_socket, auth, projects, stacks, teams, chats, uploads, mocks
 from config import RUN_PERIODIC_CLEANUP
+
+from tasks.tasks import (
+    cleanup_inactive_project_managers,
+    maintain_prepared_sandboxes,
+    clean_up_project_resources,
+)
 
 
 async def periodic_task():
@@ -15,14 +20,11 @@ async def periodic_task():
         return
     db = next(get_db())
     while True:
-        exceptions = await asyncio.gather(
+        await asyncio.gather(
             maintain_prepared_sandboxes(db),
             clean_up_project_resources(db),
-            return_exceptions=True,
+            cleanup_inactive_project_managers(),
         )
-        for i, e in enumerate(exceptions):
-            if isinstance(e, Exception):
-                print(f"Error {i} maintaining sandboxes", e)
         await asyncio.sleep(10)
 
 

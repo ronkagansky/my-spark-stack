@@ -185,24 +185,37 @@ export default function WorkspacePage({ chatId }) {
       images: message.images || [],
     };
     if (chatId === 'new') {
-      const chat = await api.createChat({
-        name: message.content,
-        stack_id: projectStackPackId,
-        project_id: projectId,
-        team_id: team.id,
-        seed_prompt: message.content,
-      });
-      toast({
-        title: 'Chat created',
-        description: 'Setting things up...',
-      });
-      await refreshProjects();
-      addChat(chat);
-      router.push(
-        `/chats/${chat.id}?message=${encodeURIComponent(
-          JSON.stringify(userMessage)
-        )}`
-      );
+      try {
+        const chat = await api.createChat({
+          name: message.content,
+          stack_id: projectStackPackId,
+          project_id: projectId,
+          team_id: team.id,
+          seed_prompt: message.content,
+        });
+        toast({
+          title: 'Chat created',
+          description: 'Setting things up...',
+        });
+        await refreshProjects();
+        addChat(chat);
+        router.push(
+          `/chats/${chat.id}?message=${encodeURIComponent(
+            JSON.stringify(userMessage)
+          )}`
+        );
+      } catch (error) {
+        if (error.message.includes('Payment Required')) {
+          toast({
+            title: 'Error',
+            description:
+              'Not enough credits. Please purchase more credits to continue.',
+            variant: 'destructive',
+          });
+        } else {
+          throw error;
+        }
+      }
     } else {
       setStatus('WORKING');
       webSocketRef.current.sendMessage(userMessage);

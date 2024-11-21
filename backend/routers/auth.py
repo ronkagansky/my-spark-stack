@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 
 from db.database import get_db
-from db.models import User, Team, TeamMember, Project, TeamRole, Stack
+from db.models import User, Team, TeamMember, TeamRole
 from schemas.models import UserCreate, UserResponse, AuthResponse
-from config import JWT_SECRET_KEY
+from config import JWT_SECRET_KEY, CREDITS_DEFAULT
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -46,7 +46,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.flush()  # Flush to get the user ID
 
         # Create personal team
-        personal_team = Team(name=f"{user.username}'s Team")
+        personal_team = Team(name=f"{user.username}'s Team", credits=CREDITS_DEFAULT)
         db.add(personal_team)
         db.flush()
 
@@ -61,7 +61,10 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
         # Generate token
         token = jwt.encode(
-            {"sub": new_user.username, "exp": datetime.utcnow() + timedelta(days=30)},
+            {
+                "sub": new_user.username,
+                "exp": datetime.now() + timedelta(days=30),
+            },
             JWT_SECRET_KEY,
             algorithm="HS256",
         )

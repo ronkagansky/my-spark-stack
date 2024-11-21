@@ -236,71 +236,22 @@ os.system("git commit -m '{commit_message}'")
         finally:
             lock.release()
 
-
-async def maintain_prepared_sandboxes(db: Session):
-    stacks = db.query(Stack).all()
-
-    async def create_sandbox_for_stack(stack):
-        psboxes = (
-            db.query(PreparedSandbox).filter(PreparedSandbox.stack_id == stack.id).all()
+    @classmethod
+    async def prepare_sandbox(cls, stack: Stack) -> Tuple["DevSandbox", modal.Volume]:
+        vol_id = f"prompt-stack-vol-{_unique_id()}"
+        vol = modal.Volume.from_name(vol_id, create_if_missing=True)
+        image = modal.Image.from_registry(stack.from_registry, add_python=None)
+        sb = await modal.Sandbox.create.aio(
+            "sh",
+            "-c",
+            stack.sandbox_init_cmd,
+            app=app,
+            volumes={"/app": vol},
+            image=image,
+            timeout=5 * 60,
+            cpu=0.125,
+            memory=256,
         )
-        psboxes_to_add = max(0, TARGET_PREPARED_SANDBOXES_PER_STACK - len(psboxes))
-        if psboxes_to_add == 0:
-            return
-
-        print(
-            f"Creating {psboxes_to_add} prepared sandboxes for stack {stack.title} ({stack.id})"
-        )
-
-        async def create_single_sandbox():
-            vol_id = f"prompt-stack-vol-{_unique_id()}"
-            vol = modal.Volume.from_name(vol_id, create_if_missing=True)
-            image = modal.Image.from_registry(stack.from_registry, add_python=None)
-            sb = await modal.Sandbox.create.aio(
-                "sh",
-                "-c",
-                stack.sandbox_init_cmd,
-                app=app,
-                volumes={"/app": vol},
-                image=image,
-                timeout=5 * 60,
-                cpu=0.125,
-                memory=256,
-            )
-            await sb.set_tags.aio({"app": "prompt-stack"})
-            await sb.wait.aio()
-            psb = PreparedSandbox(
-                stack_id=stack.id,
-                modal_sandbox_id=sb.object_id,
-                modal_volume_label=vol_id,
-            )
-            db.add(psb)
-            db.commit()
-
-        await asyncio.gather(*[create_single_sandbox() for _ in range(psboxes_to_add)])
-
-    await asyncio.gather(*[create_sandbox_for_stack(stack) for stack in stacks])
-
-
-async def clean_up_project_resources(db: Session):
-    projects = (
-        db.query(Project)
-        .filter(
-            Project.modal_sandbox_id.isnot(None),
-            Project.modal_sandbox_last_used_at
-            < datetime.datetime.now() - datetime.timedelta(minutes=15),
-        )
-        .all()
-    )
-    print(f"Cleaning up {len(projects)} projects")
-
-    async def _cleanup_project(project: Project):
-        if not project.modal_sandbox_id:
-            return
-        project.modal_sandbox_id = None
-        project.modal_sandbox_expires_at = None
-        db.commit()
-        sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
-        await sb.terminate.aio()
-
-    await asyncio.gather(*[_cleanup_project(project) for project in projects])
+        await sb.set_tags.aio({"app": "prompt-stack"})
+        await sb.wait.aio()
+        return sb, vol
