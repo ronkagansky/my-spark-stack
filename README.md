@@ -1,4 +1,4 @@
-# Prompt Stack 🚀
+# Prompt Stack
 
 > Prompt Stack is an tool for building web applications through an AI-powered chat interface. Create quick MVPs and prototypes using natural language prompts.
 
@@ -12,6 +12,9 @@
 - 👥 Team collaboration
 - 📝 Git version control
 - 🔄 Live preview
+- 🧠 Chain-of-Thought reasoning for complex asks
+- 🔌 Support for OpenAI and Anthropic models
+- 📱 Multi-page app generation
 
 ## Setup
 
