@@ -126,7 +126,7 @@ export default function SettingsPage() {
               <CardHeader className="space-y-2">
                 <CardTitle>Team Settings</CardTitle>
                 <CardDescription>
-                  Manage your team settings and invites
+                  Teams share projects and credits.
                 </CardDescription>
               </CardHeader>
               <CardContent>
