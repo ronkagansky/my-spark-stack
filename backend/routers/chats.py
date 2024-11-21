@@ -51,20 +51,14 @@ async def create_chat(
     current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    if chat.team_id is None:
-        team = db.query(Team).filter(Team.members.any(id=current_user.id)).first()
-        if team is None:
-            raise HTTPException(status_code=404, detail="Team not found")
-        team_id = team.id
-    else:
-        team = (
-            db.query(Team)
-            .filter(Team.id == chat.team_id, Team.members.any(id=current_user.id))
-            .first()
-        )
-        if team is None:
-            raise HTTPException(status_code=404, detail="Team not found")
-        team_id = team.id
+    team = (
+        db.query(Team)
+        .filter(Team.id == chat.team_id, Team.members.any(user_id=current_user.id))
+        .first()
+    )
+    if team is None:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team_id = team.id
 
     if chat.stack_id is None:
         # TODO: AI

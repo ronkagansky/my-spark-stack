@@ -33,7 +33,7 @@ class ChatCreate(BaseModel):
     name: str
     stack_id: Optional[int] = None
     project_id: Optional[int] = None
-    team_id: Optional[int] = None
+    team_id: int
     seed_prompt: Optional[str] = None
 
 
