@@ -123,6 +123,9 @@ class ProjectManager:
 
             while True:
                 if not await self.sandbox.is_up():
+                    self.sandbox = None
+                    for agent in self.chat_agents.values():
+                        agent.sandbox = None
                     break
                 await asyncio.sleep(10)
 

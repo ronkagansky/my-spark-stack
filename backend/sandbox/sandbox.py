@@ -33,7 +33,7 @@ def _unique_id():
     return str(uuid.uuid4())
 
 
-async def _wait_for_up(url: str) -> bool:
+async def _is_url_up(url: str) -> bool:
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -80,11 +80,14 @@ class DevSandbox:
         self.vol = vol
         self.ready = False
 
-    async def wait_for_up(self):
+    async def is_up(self):
         tunnels = await self.sb.tunnels.aio()
         tunnel_url = tunnels[3000].url
+        return await _is_url_up(tunnel_url)
+
+    async def wait_for_up(self):
         while True:
-            if await _wait_for_up(tunnel_url):
+            if await self.is_up():
                 break
             await asyncio.sleep(1)
         self.ready = True
