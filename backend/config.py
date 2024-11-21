@@ -33,6 +33,10 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME", "prompt-stack")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 
+# Modal config
+MODAL_TOKEN_ID = os.getenv("MODAL_TOKEN_ID")
+MODAL_TOKEN_SECRET = os.getenv("MODAL_TOKEN_SECRET")
+
 # AI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -46,6 +50,6 @@ RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)
 TARGET_PREPARED_SANDBOXES_PER_STACK = _int_env("TARGET_PREPARED_SANDBOXES_PER_STACK", 3)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://prompt-stack.sshh.io")
 
-# User config
+# Credits configuration
 CREDITS_DEFAULT = _int_env("CREDITS_DEFAULT", 30)
 CREDITS_CHAT_COST = _int_env("CREDITS_CHAT_COST", 10)
