@@ -50,11 +50,11 @@ async def maintain_prepared_sandboxes(db: Session):
                 f"Creating {psboxes_to_add} prepared sandboxes for stack {stack.title} ({stack.id})"
             )
             for _ in range(psboxes_to_add):
-                sb, vol = await DevSandbox.prepare_sandbox(stack)
+                sb, vol_id = await DevSandbox.prepare_sandbox(stack)
                 psbox = PreparedSandbox(
                     stack_id=stack.id,
                     modal_sandbox_id=sb.object_id,
-                    modal_volume_label=vol.object_id,
+                    modal_volume_label=vol_id,
                 )
                 db.add(psbox)
                 db.commit()

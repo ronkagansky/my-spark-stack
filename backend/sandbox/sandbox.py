@@ -249,7 +249,7 @@ os.system("git commit -m '{commit_message}'")
             lock.release()
 
     @classmethod
-    async def prepare_sandbox(cls, stack: Stack) -> Tuple["DevSandbox", modal.Volume]:
+    async def prepare_sandbox(cls, stack: Stack) -> Tuple["DevSandbox", str]:
         vol_id = f"prompt-stack-vol-{_unique_id()}"
         vol = modal.Volume.from_name(vol_id, create_if_missing=True)
         image = modal.Image.from_registry(stack.from_registry, add_python=None)
@@ -266,4 +266,4 @@ os.system("git commit -m '{commit_message}'")
         )
         await sb.set_tags.aio({"app": "prompt-stack"})
         await sb.wait.aio()
-        return sb, vol
+        return sb, vol_id
