@@ -71,9 +71,9 @@ async def clean_up_project_resources(db: Session = None):
         .all()
     )
     if len(projects) > 0:
-        print(f"Cleaning up {len(projects)} projects")
+        print(f"Cleaning up projects {[p.id for p in projects]}")
         for project in projects:
-            await DevSandbox.destroy_project_resources(project)
+            await DevSandbox.terminate_project_resources(project)
             project.modal_sandbox_id = None
             project.modal_sandbox_expires_at = None
             db.commit()

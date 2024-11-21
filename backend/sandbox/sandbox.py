@@ -146,6 +146,15 @@ os.system("git commit -m '{commit_message}'")
         return "".join(content)
 
     @classmethod
+    async def terminate_project_resources(cls, project: Project):
+        if project.modal_sandbox_id:
+            sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)
+            try:
+                await sb.terminate.aio()
+            except Exception as e:
+                print("Error terminating sandbox", e)
+
+    @classmethod
     async def destroy_project_resources(cls, project: Project):
         if project.modal_sandbox_id:
             sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)

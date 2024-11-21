@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketException
+from fastapi import APIRouter, WebSocket, WebSocketException, WebSocketDisconnect
 from typing import Dict, List, Optional
 from enum import Enum
 from asyncio import create_task, Lock
@@ -302,6 +302,8 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
             raw_data = await websocket.receive_text()
             data = ChatMessage.model_validate_json(raw_data)
             create_task(pm.on_chat_message(chat_id, data))
+    except WebSocketDisconnect:
+        pass
     except Exception as e:
         print(f"websocket loop error: {e}\n{traceback.format_exc()}")
     finally:
