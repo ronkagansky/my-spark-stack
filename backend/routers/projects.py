@@ -81,7 +81,7 @@ async def get_project_file(
     db: Session = Depends(get_db),
 ):
     project = await get_project(team_id, project_id, current_user, db)
-    sandbox = await DevSandbox.get_or_create(project.id)
+    sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
     return ProjectFileContentResponse(
         path=path, content=await sandbox.read_file_contents(path)
     )
