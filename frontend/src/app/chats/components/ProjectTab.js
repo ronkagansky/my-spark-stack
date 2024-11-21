@@ -46,7 +46,6 @@ export function ProjectTab({ project, onSendMessage }) {
         const logData = await api.getProjectGitLog(team.id, project.id);
         setGitLog(logData);
       } catch (error) {
-        console.error('Failed to fetch git log:', error);
       } finally {
         setIsLoadingGitLog(false);
       }
