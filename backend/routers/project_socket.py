@@ -102,23 +102,29 @@ class ProjectManager:
 
     async def _manage_sandbox_task(self):
         print(f"Managing sandbox for project {self.project_id}...")
-        self.sandbox_status = SandboxStatus.BUILDING
-        await self.emit_project(await self._get_project_status())
-        while self.sandbox is None:
-            try:
-                self.sandbox = await DevSandbox.get_or_create(self.project_id)
-            except SandboxNotReadyException:
-                self.sandbox_status = SandboxStatus.BUILDING_WAITING
-                await self.emit_project(await self._get_project_status())
-            await asyncio.sleep(30)
-        await self.sandbox.wait_for_up()
-        self.sandbox_status = SandboxStatus.READY
-        tunnels = await self.sandbox.sb.tunnels.aio()
-        self.tunnels = {port: tunnel.url for port, tunnel in tunnels.items()}
-        self.sandbox_file_paths = await self.sandbox.get_file_paths()
-        await self.emit_project(await self._get_project_status())
-        for agent in self.chat_agents.values():
-            agent.sandbox = self.sandbox
+        while True:
+            self.sandbox_status = SandboxStatus.BUILDING
+            await self.emit_project(await self._get_project_status())
+            while self.sandbox is None:
+                try:
+                    self.sandbox = await DevSandbox.get_or_create(self.project_id)
+                except SandboxNotReadyException:
+                    self.sandbox_status = SandboxStatus.BUILDING_WAITING
+                    await self.emit_project(await self._get_project_status())
+                await asyncio.sleep(30)
+            await self.sandbox.wait_for_up()
+            self.sandbox_status = SandboxStatus.READY
+            tunnels = await self.sandbox.sb.tunnels.aio()
+            self.tunnels = {port: tunnel.url for port, tunnel in tunnels.items()}
+            self.sandbox_file_paths = await self.sandbox.get_file_paths()
+            await self.emit_project(await self._get_project_status())
+            for agent in self.chat_agents.values():
+                agent.sandbox = self.sandbox
+
+            while True:
+                if not await self.sandbox.is_up():
+                    break
+                await asyncio.sleep(10)
 
     async def _try_manage_sandbox(self):
         while True:
