@@ -44,6 +44,7 @@ MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-3-5-sonnet-20241022")
 # Misc configuration
 RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)
 TARGET_PREPARED_SANDBOXES_PER_STACK = _int_env("TARGET_PREPARED_SANDBOXES_PER_STACK", 3)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://prompt-stack.sshh.io")
 
 # User config
 CREDITS_DEFAULT = _int_env("CREDITS_DEFAULT", 30)

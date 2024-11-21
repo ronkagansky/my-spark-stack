@@ -19,6 +19,7 @@ class TeamResponse(BaseModel):
     id: int
     name: str
     created_at: datetime
+    credits: int
 
     class Config:
         from_attributes = True
@@ -131,3 +132,7 @@ class StackResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TeamInviteResponse(BaseModel):
+    invite_link: str

@@ -153,6 +153,14 @@ class ApiClient {
   async deleteProject(teamId, projectId) {
     return this._delete(`/api/teams/${teamId}/projects/${projectId}`);
   }
+
+  async generateTeamInvite(teamId) {
+    return this._post(`/api/teams/${teamId}/invites`);
+  }
+
+  async joinTeamWithInvite(inviteCode) {
+    return this._post(`/api/teams/join/${inviteCode}`);
+  }
 }
 
 export async function uploadImage(imageData, contentType) {

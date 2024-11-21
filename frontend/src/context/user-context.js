@@ -13,6 +13,7 @@ const UserContext = createContext({
   addChat: async () => {},
   refreshChats: async () => {},
   refreshProjects: async () => {},
+  refreshTeams: async () => {},
 });
 
 export function UserProvider({ children }) {
@@ -70,6 +71,11 @@ export function UserProvider({ children }) {
     setProjects(projects);
   };
 
+  const refreshTeams = async () => {
+    const teams = await api.getTeams();
+    setTeams(teams);
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -82,6 +88,7 @@ export function UserProvider({ children }) {
         addChat,
         refreshChats,
         refreshProjects,
+        refreshTeams,
       }}
     >
       {children}

@@ -219,7 +219,10 @@ export const Sidebar = () => {
             </div>
           </div>
           <div className="p-4 border-t">
-            <div className="flex items-center justify-between">
+            <div
+              className="flex items-center justify-between hover:bg-accent rounded-md p-2 cursor-pointer"
+              onClick={() => router.push('/settings')}
+            >
               <div className="flex flex-col gap-1 min-w-0">
                 <div className="flex items-center space-x-3 min-w-0">
                   <Avatar>
