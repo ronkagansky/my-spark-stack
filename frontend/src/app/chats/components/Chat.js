@@ -243,16 +243,18 @@ const ChatInput = ({
         ['WORKING', 'WORKING_APPLYING'].includes(status) ? (
           <p className="text-sm text-muted-foreground">{getDisabledReason()}</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col md:flex-row flex-wrap gap-2">
             {suggestedFollowUps.map((prompt) => (
               <button
                 key={prompt}
                 type="button"
                 disabled={disabled}
                 onClick={() => handleChipClick(prompt)}
-                className="px-3 py-1.5 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors max-w-full"
+                className="w-10/12 md:w-auto px-3 py-1.5 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors text-left"
               >
-                <span className="block truncate max-w-[280px]">{prompt}</span>
+                <span className="block truncate md:truncate-none">
+                  {prompt}
+                </span>
               </button>
             ))}
           </div>
