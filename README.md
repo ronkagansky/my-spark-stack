@@ -15,6 +15,7 @@
 - 🧠 Chain-of-Thought reasoning for complex asks
 - 🔌 Support for OpenAI and Anthropic models
 - 📱 Multi-page app generation
+- 🎨 Sketch and screenshot uploads
 
 ## Setup
 
