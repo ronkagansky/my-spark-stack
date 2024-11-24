@@ -1,6 +1,6 @@
 # Prompt Stack
 
-> Prompt Stack is an tool for building web applications through an AI-powered chat interface. Create quick MVPs and prototypes using natural language prompts.
+> Prompt Stack is an tool for building web applications through an AI-powered chat interface. Create quick MVPs and prototypes using natural language prompts. [[Blog Post]](https://blog.sshh.io/p/building-v0-in-a-weekend)
 
 <img width="800" alt="chrome_vMZlrhHm0u" src="https://github.com/user-attachments/assets/4c1912c9-85c9-4169-9d6c-bb5f96edd23e">
 
