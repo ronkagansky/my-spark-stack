@@ -10,7 +10,11 @@ from config import (
     AWS_REGION,
 )
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=10,        # Increase pool size
+    max_overflow=20,     # Allow more concurrent connections
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
