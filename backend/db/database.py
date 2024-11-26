@@ -12,8 +12,8 @@ from config import (
 
 engine = create_engine(
     DATABASE_URL,
-    pool_size=10,        # Increase pool size
-    max_overflow=20,     # Allow more concurrent connections,
+    pool_size=50,        # Increase pool size
+    max_overflow=50,     # Allow more concurrent connections,
     pool_recycle=1800,   # Recycle connections after 30 minutes
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
