@@ -5,7 +5,17 @@ from db.database import init_db, get_db
 from contextlib import asynccontextmanager
 import asyncio
 
-from routers import project_socket, auth, projects, stacks, teams, chats, uploads, mocks
+from routers import (
+    project_socket,
+    auth,
+    projects,
+    stacks,
+    teams,
+    chats,
+    uploads,
+    mocks,
+    stripe,
+)
 from config import RUN_PERIODIC_CLEANUP
 
 from tasks.tasks import (
@@ -59,6 +69,7 @@ app.include_router(teams.router)
 app.include_router(chats.router)
 app.include_router(uploads.router)
 app.include_router(mocks.router)
+app.include_router(stripe.router)
 
 if __name__ == "__main__":
     init_db()

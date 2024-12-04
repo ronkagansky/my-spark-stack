@@ -175,7 +175,7 @@ export default function SettingsPage() {
                               variant="secondary"
                               size="default"
                               onClick={() =>
-                                alert('Purchasing credits is not yet supported')
+                                (window.location.href = `https://buy.stripe.com/28odUpcNb0Xm4ww8wz?client_reference_id=promptstack___team_${team.id}`)
                               }
                             >
                               <PlusCircleIcon className="h-4 w-4 mr-2" />
