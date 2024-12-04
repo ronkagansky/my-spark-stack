@@ -303,3 +303,4 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
             await websocket.close()
         except Exception:
             pass
+        db.close()
