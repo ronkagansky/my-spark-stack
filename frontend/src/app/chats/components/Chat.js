@@ -12,6 +12,8 @@ import {
   Scan,
   RefreshCw,
   Pencil,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import rehypeRaw from 'rehype-raw';
@@ -219,6 +221,53 @@ const ChatInput = ({
   onSketchSubmit,
 }) => {
   const [sketchOpen, setSketchOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognition = useRef(null);
+
+  useEffect(() => {
+    if (window.webkitSpeechRecognition) {
+      recognition.current = new window.webkitSpeechRecognition();
+      recognition.current.continuous = true;
+      recognition.current.interimResults = true;
+
+      recognition.current.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0].transcript)
+          .join('');
+        setMessage((prev) => prev + transcript);
+      };
+
+      recognition.current.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    return () => {
+      if (recognition.current) {
+        recognition.current.stop();
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognition.current) {
+      alert('Speech recognition is not supported in your browser');
+      return;
+    }
+
+    if (isListening) {
+      recognition.current.stop();
+      setIsListening(false);
+    } else {
+      recognition.current.start();
+      setIsListening(true);
+    }
+  };
 
   const getDisabledReason = () => {
     if (uploadingImages) {
@@ -331,6 +380,27 @@ const ChatInput = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Draw sketch</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isListening ? 'destructive' : 'outline'}
+                  disabled={disabled}
+                  onClick={toggleListening}
+                >
+                  {isListening ? (
+                    <MicOff className="h-4 w-4" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isListening ? 'Stop recording' : 'Start recording'}
+              </TooltipContent>
             </Tooltip>
 
             {status === 'DISCONNECTED' ? (
