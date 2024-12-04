@@ -128,6 +128,7 @@ for path, base64_content in files:
 
 os.system("git add -A")
 os.system("git commit -m '{commit_message}'")
+os.system("git log --pretty="%h|%s|%aN|%aE|%aD" -n 10 > /app/git.log")
 """
         proc = await self.sb.exec.aio(
             "python3",
