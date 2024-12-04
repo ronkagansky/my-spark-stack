@@ -5,19 +5,15 @@ import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 
+export const viewport = {
+  themeColor: '#000000',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+};
+
 export const metadata = {
   title: 'Prompt Stack',
   description: 'Build full stack apps in seconds with AI.',
   manifest: '/manifest.json',
-  themeColor: '#000000',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 export default function RootLayout({ children }) {

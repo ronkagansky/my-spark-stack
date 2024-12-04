@@ -1,11 +1,6 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  pwa: {
-    dest: 'public',
-    register: true,
-    skipWaiting: true,
-    disable: process.env.NODE_ENV === 'development',
-  },
+const config = {
+  // Your existing Next.js config options here
 };
 
-export default nextConfig;
+export default config;
