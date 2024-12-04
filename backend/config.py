@@ -57,5 +57,6 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "https://prompt-stack.sshh.io")
 CREDITS_DEFAULT = _int_env("CREDITS_DEFAULT", 20)
 CREDITS_CHAT_COST = _int_env("CREDITS_CHAT_COST", 10)
 
+# Stripe configuration
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")

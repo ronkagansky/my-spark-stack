@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import Optional
 import stripe
 import logging
 
@@ -34,7 +33,7 @@ async def on_session_completed(session: stripe.checkout.Session, db: Session):
             .first()
         )
         if existing_purchase:
-            logging.warning(f"Duplicate purchase attempt for session {session.id}")
+            print(f"stripe: Duplicate purchase attempt for session {session.id}")
             return
 
         # Create purchase record
@@ -50,11 +49,11 @@ async def on_session_completed(session: stripe.checkout.Session, db: Session):
         team.credits += CREDITS_PER_PURCHASE
         db.commit()
 
-        logging.info(f"Successfully processed purchase for team {team_id}")
+        print(f"stripe: Successfully processed purchase for team {team_id}")
 
     except Exception as e:
         db.rollback()
-        logging.error(f"Error processing session completion: {str(e)}")
+        print(f"stripe: Error processing session completion: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -73,23 +72,23 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             secret=STRIPE_WEBHOOK_SECRET,
         )
     except stripe.error.SignatureVerificationError as e:
-        logging.error(f"Invalid signature: {str(e)}")
+        print(f"stripe: Invalid signature: {str(e)}")
         raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:
-        logging.error(f"Error constructing webhook event: {str(e)}")
+        print(f"stripe: Error constructing webhook event: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
     try:
         if event.type == "checkout.session.completed":
             await on_session_completed(event.data.object, db)
         elif event.type == "payment_intent.succeeded":
-            logging.info(f"Payment intent succeeded: {event.data.object.id}")
+            logging.info(f"stripe: Payment intent succeeded: {event.data.object.id}")
         else:
-            logging.info(f"Unhandled event type {event.type}")
+            logging.info(f"stripe: Unhandled event type {event.type}")
 
         return {"success": True}
 
     except Exception as e:
-        error_msg = f"Error processing webhook event: {str(e)}"
-        logging.error(error_msg)
+        error_msg = f"stripe: Error processing webhook event: {str(e)}"
+        print(error_msg)
         return {"success": False, "error": error_msg}

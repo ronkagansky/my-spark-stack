@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { HomeIcon, XIcon, MenuIcon, PlusCircleIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,7 +29,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-export default function SettingsPage() {
+// Create a client component that uses useSearchParams
+function SettingsContent() {
   const { user, team, teams } = useUser();
   const [inviteLink, setInviteLink] = useState('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -210,5 +211,14 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }

@@ -1,3 +1,9 @@
+"""
+Updates:
+$ alembic revision --autogenerate -m "..."
+$ alembic upgrade head
+"""
+
 from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -165,7 +171,7 @@ class PreparedSandbox(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     modal_sandbox_id = Column(String, nullable=True)
     modal_volume_label = Column(String, nullable=True)
-    # pack_hash = Column(String, nullable=True)
+    pack_hash = Column(String, nullable=True)
 
     stack_id = Column(Integer, ForeignKey("stacks.id"), nullable=False)
     stack = relationship("Stack", back_populates="prepared_sandboxes")
