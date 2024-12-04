@@ -22,6 +22,9 @@ def _enum_env(key, options: List[str], default: str) -> str:
 
 # Database configuration
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
+DB_POOL_SIZE = _int_env("DB_POOL_SIZE", 50)
+DB_MAX_OVERFLOW = _int_env("DB_MAX_OVERFLOW", 50)
+DB_POOL_RECYCLE = _int_env("DB_POOL_RECYCLE", 1800)  # 30 minutes in seconds
 
 # AWS configuration
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")

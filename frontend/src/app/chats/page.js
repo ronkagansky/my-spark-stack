@@ -212,6 +212,7 @@ export default function WorkspacePage({ chatId }) {
               'Not enough credits. Please purchase more credits to continue.',
             variant: 'destructive',
           });
+          router.push('/settings?buy=true');
         } else {
           throw error;
         }

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { HomeIcon, XIcon, MenuIcon, PlusCircleIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -22,6 +22,12 @@ import { Input } from '@/components/ui/input';
 import { useUser } from '@/context/user-context';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export default function SettingsPage() {
   const { user, team, teams } = useUser();
@@ -29,6 +35,8 @@ export default function SettingsPage() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const shouldHighlightBuy = searchParams.get('buy') === 'true';
 
   const handleTeamChange = async (teamId) => {
     localStorage.setItem('team', teamId);
@@ -156,21 +164,29 @@ export default function SettingsPage() {
                     <label className="text-sm font-medium leading-none">
                       Credits Remaining
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                       <div className="text-2xl font-bold">
                         {team?.credits || 0}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                          alert('Purchasing credits is not yet supported')
-                        }
-                        className="h-8 w-8"
-                        title="Buy More Credits"
-                      >
-                        <PlusCircleIcon className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip open={shouldHighlightBuy}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="secondary"
+                              size="default"
+                              onClick={() =>
+                                alert('Purchasing credits is not yet supported')
+                              }
+                            >
+                              <PlusCircleIcon className="h-4 w-4 mr-2" />
+                              Buy More Credits
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Click here to purchase more credits!</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
 

@@ -5,6 +5,9 @@ import aioboto3
 
 from config import (
     DATABASE_URL,
+    DB_POOL_SIZE,
+    DB_MAX_OVERFLOW,
+    DB_POOL_RECYCLE,
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     AWS_REGION,
@@ -12,9 +15,9 @@ from config import (
 
 engine = create_engine(
     DATABASE_URL,
-    pool_size=50,        # Increase pool size
-    max_overflow=50,     # Allow more concurrent connections,
-    pool_recycle=1800,   # Recycle connections after 30 minutes
+    pool_size=DB_POOL_SIZE,  # Configurable pool size
+    max_overflow=DB_MAX_OVERFLOW,  # Configurable overflow
+    pool_recycle=DB_POOL_RECYCLE,  # Configurable connection recycling
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
