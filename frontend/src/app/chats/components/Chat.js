@@ -82,38 +82,39 @@ const EmptyState = ({
         </SelectContent>
       </Select>
 
-      <Select
-        value={selectedStack}
-        onValueChange={(value) => {
-          onStackSelect(value);
-        }}
-        disabled={selectedProject !== null}
-      >
-        <SelectTrigger className="w-full py-10">
-          <SelectValue placeholder="Select a Stack" />
-        </SelectTrigger>
-        <SelectContent className="max-h-[500px] w-full">
-          {[
-            {
-              id: null,
-              title: 'Auto Stack',
-              description:
-                'Let AI choose the best stack based on your first prompt in the current chat.',
-            },
-          ]
-            .concat(stacks ?? [])
-            .map((pack) => (
-              <SelectItem key={pack.id} value={pack.id} className="py-2">
-                <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-                  <span className="font-medium truncate">{pack.title}</span>
-                  <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
-                    {pack.description}
-                  </p>
-                </div>
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+      {selectedProject === null && (
+        <Select
+          value={selectedStack}
+          onValueChange={(value) => {
+            onStackSelect(value);
+          }}
+        >
+          <SelectTrigger className="w-full py-10">
+            <SelectValue placeholder="Select a Stack" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[500px] w-full">
+            {[
+              {
+                id: null,
+                title: 'Auto Stack',
+                description:
+                  'Let AI choose the best stack based on your first prompt in the current chat.',
+              },
+            ]
+              .concat(stacks ?? [])
+              .map((pack) => (
+                <SelectItem key={pack.id} value={pack.id} className="py-2">
+                  <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
+                    <span className="font-medium truncate">{pack.title}</span>
+                    <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
+                      {pack.description}
+                    </p>
+                  </div>
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   </div>
 );
