@@ -75,6 +75,7 @@ export function UserProvider({ children }) {
   const refreshTeams = async () => {
     const teams = await api.getTeams();
     setTeams(teams);
+    setTeam(teams.find((t) => t.id + '' === localStorage.getItem('team')));
   };
 
   const refreshUser = async () => {

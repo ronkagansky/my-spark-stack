@@ -234,7 +234,7 @@ const ChatInput = ({
         const transcript = Array.from(event.results)
           .map((result) => result[0].transcript)
           .join('');
-        setMessage((prev) => prev + transcript);
+        setMessage(transcript);
       };
 
       recognition.current.onerror = (event) => {
