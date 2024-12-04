@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 
@@ -7,9 +7,14 @@ class UserCreate(BaseModel):
     username: str
 
 
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+
+
 class UserResponse(BaseModel):
     id: int
     username: str
+    email: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -136,3 +141,7 @@ class StackResponse(BaseModel):
 
 class TeamInviteResponse(BaseModel):
     invite_link: str
+
+
+class TeamUpdate(BaseModel):
+    name: Optional[str] = None

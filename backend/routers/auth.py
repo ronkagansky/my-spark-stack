@@ -3,10 +3,11 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
+from typing import Optional
 
 from db.database import get_db
 from db.models import User, Team, TeamMember, TeamRole
-from schemas.models import UserCreate, UserResponse, AuthResponse
+from schemas.models import UserCreate, UserResponse, AuthResponse, UserUpdate
 from config import JWT_SECRET_KEY, CREDITS_DEFAULT
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -77,3 +78,28 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(current_user: User = Depends(get_current_user_from_token)):
     return current_user
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_user(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+
+    # Check if email is being updated and if it's already taken
+    if user_update.email and user_update.email != current_user.email:
+        existing_user = db.query(User).filter(User.email == user_update.email).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already taken")
+
+    if user_update.email:
+        current_user.email = user_update.email
+
+    try:
+        db.commit()
+        db.refresh(current_user)
+        return current_user
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))

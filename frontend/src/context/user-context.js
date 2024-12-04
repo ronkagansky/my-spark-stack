@@ -14,6 +14,7 @@ const UserContext = createContext({
   refreshChats: async () => {},
   refreshProjects: async () => {},
   refreshTeams: async () => {},
+  refreshUser: async () => {},
 });
 
 export function UserProvider({ children }) {
@@ -76,6 +77,11 @@ export function UserProvider({ children }) {
     setTeams(teams);
   };
 
+  const refreshUser = async () => {
+    const user = await api.getCurrentUser();
+    setUser(user);
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -86,6 +92,7 @@ export function UserProvider({ children }) {
         projects,
         createAccount,
         addChat,
+        refreshUser,
         refreshChats,
         refreshProjects,
         refreshTeams,

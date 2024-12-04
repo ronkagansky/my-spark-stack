@@ -4,8 +4,8 @@ import secrets
 import datetime
 from sqlalchemy.orm import Session
 
-from db.models import User, TeamInvite, TeamMember
-from schemas.models import TeamResponse, TeamInviteResponse
+from db.models import User, TeamInvite, TeamMember, Team
+from schemas.models import TeamResponse, TeamInviteResponse, TeamUpdate
 from routers.auth import get_current_user_from_token
 from db.database import get_db
 from config import FRONTEND_URL
@@ -89,3 +89,29 @@ async def join_team_with_invite(
 
     # Return the team
     return membership.team
+
+
+@router.patch("/{team_id}", response_model=TeamResponse)
+async def update_team(
+    team_id: int,
+    team_update: TeamUpdate,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    # Check if user is member of team
+    team_member = any(
+        membership.team_id == team_id for membership in current_user.team_memberships
+    )
+    if not team_member:
+        raise HTTPException(status_code=403, detail="Not a member of this team")
+
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team_update.name is not None:
+        team.name = team_update.name
+
+    db.commit()
+    db.refresh(team)
+    return team

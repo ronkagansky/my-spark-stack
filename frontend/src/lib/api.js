@@ -72,19 +72,7 @@ class ApiClient {
   }
 
   async getCurrentUser() {
-    try {
-      return await this._get('/api/auth/me');
-    } catch (error) {
-      if (
-        error.message.includes('401') ||
-        error.message.includes('Unauthorized')
-      ) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('team');
-        window.location.href = '/';
-      }
-      throw error;
-    }
+    return this._get('/api/auth/me');
   }
 
   async getTeams() {
@@ -160,6 +148,14 @@ class ApiClient {
 
   async joinTeamWithInvite(inviteCode) {
     return this._post(`/api/teams/join/${inviteCode}`);
+  }
+
+  async updateUser(userData) {
+    return this._patch('/api/auth/me', userData);
+  }
+
+  async updateTeam(teamId, teamData) {
+    return this._patch(`/api/teams/${teamId}`, teamData);
   }
 }
 

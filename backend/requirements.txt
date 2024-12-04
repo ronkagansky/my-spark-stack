@@ -11,3 +11,4 @@ uvicorn[standard]
 python-jose[cryptography]==3.3.0
 aioboto3==13.2.0
 stripe==11.3.0
+pydantic[email]==2.9.2
