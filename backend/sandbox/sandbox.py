@@ -163,13 +163,17 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
     @classmethod
     async def get_project_file_contents(
         cls, project: Project, path: str
-    ) -> Optional[str]:
+    ) -> Optional[bytes]:
         if vol_id := project.modal_volume_label:
             vol = await modal.Volume.lookup.aio(label=vol_id)
-            data = b""
-            async for chunk in vol.read_file.aio(_strip_app_prefix(path)):
-                data += chunk
-            return data.decode("utf-8")
+            try:
+                data = b""
+                async for chunk in vol.read_file.aio(_strip_app_prefix(path)):
+                    data += chunk
+            except FileNotFoundError:
+                return None
+            else:
+                return data
         return None
 
     @classmethod

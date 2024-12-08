@@ -268,7 +268,6 @@ class AnthropicLLMProvider(LLMProvider):
                 content_buffer = ""
 
                 async for chunk in stream:
-
                     if chunk.type == "message_start":
                         continue
 

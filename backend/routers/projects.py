@@ -98,7 +98,7 @@ async def get_project_git_log(
     content = await DevSandbox.get_project_file_contents(project, "/app/git.log")
     if not content:
         return ProjectGitLogResponse(lines=[])
-    return ProjectGitLogResponse.from_content(content)
+    return ProjectGitLogResponse.from_content(content.decode("utf-8"))
 
 
 @router.get("/{project_id}/chats", response_model=List[ChatResponse])

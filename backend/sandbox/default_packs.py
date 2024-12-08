@@ -34,6 +34,13 @@ if [ ! -d ".git" ]; then
     git commit -m 'Initial commit'
 fi
 
+if [ ! -f '.env' ]; then
+    touch .env
+fi
+set -a
+[ -f .env ] && . .env
+set +a
+
 curl -o /app/frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/next.config.mjs.example
 """.strip()
 

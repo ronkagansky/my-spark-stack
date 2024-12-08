@@ -219,6 +219,7 @@ const ChatInput = ({
   status,
   onReconnect,
   onSketchSubmit,
+  messages,
 }) => {
   const [sketchOpen, setSketchOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -284,6 +285,8 @@ const ChatInput = ({
     }
     return null;
   };
+
+  const isLongConversation = messages.length > 20;
 
   return (
     <>
@@ -425,6 +428,7 @@ const ChatInput = ({
                     type="submit"
                     size="icon"
                     disabled={disabled || uploadingImages}
+                    variant={isLongConversation ? 'destructive' : 'default'}
                   >
                     {uploadingImages ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -433,7 +437,11 @@ const ChatInput = ({
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Send message</TooltipContent>
+                <TooltipContent>
+                  {isLongConversation
+                    ? 'Warning: Long conversations may be less effective. Consider starting a new chat in the same project.'
+                    : 'Send message'}
+                </TooltipContent>
               </Tooltip>
             )}
           </TooltipProvider>
@@ -730,6 +738,7 @@ export function Chat({
           onScreenshot={handleScreenshot}
           uploadingImages={uploadingImages}
           onSketchSubmit={handleSketchSubmit}
+          messages={messages}
         />
       </div>
     </div>
