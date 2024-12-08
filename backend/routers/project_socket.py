@@ -100,6 +100,29 @@ class ProjectManager:
             datetime.datetime.now() - self.last_activity
         ) > datetime.timedelta(minutes=timeout_minutes)
 
+    async def kill(self):
+        self.sandbox_status = SandboxStatus.BUILDING
+        await self.emit_project(await self._get_project_status())
+
+        # Close all websockets
+        close_tasks = []
+        for sockets in self.chat_sockets.values():
+            for socket in sockets:
+                try:
+                    close_tasks.append(socket.close())
+                except Exception:
+                    pass
+        if close_tasks:
+            await asyncio.gather(*close_tasks)
+
+        # Clear socket and agent dictionaries
+        self.chat_sockets.clear()
+        self.chat_agents.clear()
+
+        project = self.db.query(Project).filter(Project.id == self.project_id).first()
+        if project and project.modal_volume_label:
+            await DevSandbox.terminate_project_resources(project)
+
     async def _manage_sandbox_task(self):
         print(f"Managing sandbox for project {self.project_id}...")
         self.sandbox_status = SandboxStatus.BUILDING

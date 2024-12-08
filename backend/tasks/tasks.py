@@ -32,6 +32,7 @@ async def cleanup_inactive_project_managers():
             to_remove.append(project_id)
 
     for project_id in to_remove:
+        await project_managers[project_id].kill()
         del project_managers[project_id]
         print(f"Cleaned up inactive project manager for project {project_id}")
 

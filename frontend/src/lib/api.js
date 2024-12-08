@@ -142,6 +142,10 @@ class ApiClient {
     return this._delete(`/api/teams/${teamId}/projects/${projectId}`);
   }
 
+  async restartProject(teamId, projectId) {
+    return this._post(`/api/teams/${teamId}/projects/${projectId}/restart`);
+  }
+
   async generateTeamInvite(teamId) {
     return this._post(`/api/teams/${teamId}/invites`);
   }

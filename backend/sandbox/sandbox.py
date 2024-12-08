@@ -73,6 +73,12 @@ async def _vol_to_paths(vol: modal.Volume):
     return paths
 
 
+def _strip_app_prefix(path: str) -> str:
+    if path.startswith("/app/"):
+        return path[len("/app/") :]
+    return path
+
+
 class DevSandbox:
     def __init__(self, project_id: int, sb: modal.Sandbox, vol: modal.Volume):
         self.project_id = project_id
@@ -139,8 +145,7 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
         await proc.wait.aio()
 
     async def read_file_contents(self, path: str) -> str:
-        if path.startswith("/app/"):
-            path = path[len("/app/") :]
+        path = _strip_app_prefix(path)
         content = []
         async for chunk in self.vol.read_file.aio(path):
             content.append(chunk.decode("utf-8"))
@@ -154,6 +159,18 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
                 await sb.terminate.aio()
             except Exception as e:
                 print("Error terminating sandbox", e)
+
+    @classmethod
+    async def get_project_file_contents(
+        cls, project: Project, path: str
+    ) -> Optional[str]:
+        if vol_id := project.modal_volume_label:
+            vol = await modal.Volume.lookup.aio(label=vol_id)
+            data = b""
+            async for chunk in vol.read_file.aio(_strip_app_prefix(path)):
+                data += chunk
+            return data.decode("utf-8")
+        return None
 
     @classmethod
     async def destroy_project_resources(cls, project: Project):
@@ -234,7 +251,7 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
                     encrypted_ports=[3000],
                     timeout=expires_in,
                     cpu=0.125,
-                    memory=1024,
+                    memory=1024 * 2,
                 )
                 project.modal_sandbox_id = sb.object_id
                 project.modal_sandbox_last_used_at = datetime.datetime.now()

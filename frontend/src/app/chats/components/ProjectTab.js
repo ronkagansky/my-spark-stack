@@ -10,6 +10,7 @@ import {
   Loader2,
   RotateCcw,
   Trash2,
+  Rocket,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,118 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useRouter } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+
+function ChatsTab({ chats, isLoadingChats, router }) {
+  return (
+    <Card className="p-4">
+      {isLoadingChats ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+      ) : chats?.length === 0 ? (
+        <div className="text-sm text-muted-foreground">
+          No chats in this project yet.
+        </div>
+      ) : (
+        <ScrollArea className="h-[400px]">
+          <div className="space-y-2">
+            {chats?.map((chat) => (
+              <div
+                key={chat.id}
+                className="flex items-start gap-3 text-sm p-2 hover:bg-muted rounded-md cursor-pointer"
+                onClick={() => router.push(`/chats/${chat.id}`)}
+              >
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {chat.name || 'Untitled Chat'}
+                  </div>
+                  <div className="text-muted-foreground text-xs">
+                    {new Date(chat.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+    </Card>
+  );
+}
+
+function HistoryTab({ gitLog, isLoadingGitLog, handleRestore }) {
+  return (
+    <Card className="p-4">
+      {isLoadingGitLog ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+      ) : (
+        <ScrollArea className="h-[400px]">
+          <div className="space-y-2">
+            {gitLog?.lines?.map((entry) => (
+              <div key={entry.hash} className="flex items-start gap-3 text-sm">
+                <div className="text-muted-foreground font-mono">
+                  {entry.hash.substring(0, 7)}
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">{entry.message}</div>
+                  <div className="text-muted-foreground text-xs">
+                    {new Date(entry.date).toLocaleDateString()}
+                  </div>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRestore(entry.hash)}
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Restore Version</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+    </Card>
+  );
+}
+
+function DeployTab() {
+  return (
+    <Card className="p-4">
+      <div className="space-y-4">
+        <div className="text-sm text-muted-foreground">
+          <p>
+            Deploy your project to make it accessible on the internet. Currently
+            supporting:
+          </p>
+          <ul className="list-disc list-inside mt-2">
+            <li>Netlify (static sites and frontend applications)</li>
+          </ul>
+        </div>
+
+        <Button className="w-full">
+          <img
+            src="https://www.netlify.com/img/deploy/button.svg"
+            alt="Deploy to Netlify"
+            className="h-5"
+          />
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 export function ProjectTab({ project, onSendMessage }) {
   const { team, refreshProjects } = useUser();
@@ -39,6 +152,7 @@ export function ProjectTab({ project, onSendMessage }) {
   const [isLoadingGitLog, setIsLoadingGitLog] = useState(true);
   const [chats, setChats] = useState([]);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchGitLog = async () => {
@@ -115,6 +229,25 @@ export function ProjectTab({ project, onSendMessage }) {
     }
   };
 
+  const handleRestartProject = async () => {
+    try {
+      await api.restartProject(team.id, project.id);
+      await refreshProjects();
+      router.refresh();
+      toast({
+        title: 'Project Restarted',
+        description: 'The project has been successfully restarted.',
+      });
+    } catch (error) {
+      console.error('Failed to restart project:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to restart the project. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <ScrollArea className="h-full p-6">
       <div className="space-y-6">
@@ -180,96 +313,52 @@ export function ProjectTab({ project, onSendMessage }) {
           )}
         </div>
 
-        <div className="grid gap-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-2">
+        <Tabs defaultValue="chats" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="chats" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              <h3 className="font-semibold">Chats</h3>
-            </div>
-            {isLoadingChats ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </div>
-            ) : chats?.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No chats in this project yet.
-              </div>
-            ) : (
-              <ScrollArea className="h-[250px]">
-                <div className="space-y-2">
-                  {chats?.map((chat) => (
-                    <div
-                      key={chat.id}
-                      className="flex items-start gap-3 text-sm p-2 hover:bg-muted rounded-md cursor-pointer"
-                      onClick={() => router.push(`/chats/${chat.id}`)}
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {chat.name || 'Untitled Chat'}
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                          {new Date(chat.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-2">
+              Chats
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
               <GitBranch className="h-4 w-4" />
-              <h3 className="font-semibold">History</h3>
-            </div>
-            {isLoadingGitLog ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </div>
-            ) : (
-              <ScrollArea className="h-[250px]">
-                <div className="space-y-2">
-                  {gitLog?.lines?.map((entry) => (
-                    <div
-                      key={entry.hash}
-                      className="flex items-start gap-3 text-sm"
-                    >
-                      <div className="text-muted-foreground font-mono">
-                        {entry.hash.substring(0, 7)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{entry.message}</div>
-                        <div className="text-muted-foreground text-xs">
-                          {new Date(entry.date).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRestore(entry.hash)}
-                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Restore Version</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </Card>
-        </div>
+              History
+            </TabsTrigger>
+            <TabsTrigger value="deploy" className="flex items-center gap-2">
+              <Rocket className="h-4 w-4" />
+              Deploy
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="pt-6 border-t">
+          <TabsContent value="chats" className="mt-4">
+            <ChatsTab
+              chats={chats}
+              isLoadingChats={isLoadingChats}
+              router={router}
+            />
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-4">
+            <HistoryTab
+              gitLog={gitLog}
+              isLoadingGitLog={isLoadingGitLog}
+              handleRestore={handleRestore}
+            />
+          </TabsContent>
+
+          <TabsContent value="deploy" className="mt-4">
+            <DeployTab />
+          </TabsContent>
+        </Tabs>
+
+        <div className="pt-6 border-t space-y-2">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleRestartProject}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Restart Project
+          </Button>
           <Button
             variant="destructive"
             className="w-full"

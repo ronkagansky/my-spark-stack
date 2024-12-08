@@ -42,6 +42,8 @@ async def get_chat(
     )
     if chat is None:
         raise HTTPException(status_code=404, detail="Chat not found")
+    if chat.messages:
+        chat.messages = sorted(chat.messages, key=lambda x: x.created_at)
     return chat
 
 

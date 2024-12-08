@@ -95,8 +95,9 @@ async def get_project_git_log(
     db: Session = Depends(get_db),
 ):
     project = await get_project(team_id, project_id, current_user, db)
-    sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
-    content = await sandbox.run_command('git log --pretty="%h|%s|%aN|%aE|%aD" -n 10')
+    content = await DevSandbox.get_project_file_contents(project, "/app/git.log")
+    if not content:
+        return ProjectGitLogResponse(lines=[])
     return ProjectGitLogResponse.from_content(content)
 
 
@@ -123,6 +124,24 @@ async def get_project_chats(
         .all()
     )
     return chats
+
+
+@router.post("/{project_id}/restart")
+async def restart_project(
+    team_id: int,
+    project_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = get_project_for_user(db, team_id, project_id, current_user)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    from routers.project_socket import project_managers
+
+    if project_id in project_managers:
+        await project_managers[project_id].kill()
+        del project_managers[project_id]
 
 
 @router.delete("/{project_id}")
