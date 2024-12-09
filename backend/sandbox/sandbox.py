@@ -4,15 +4,13 @@ import asyncio
 import base64
 import datetime
 import uuid
-from sqlalchemy.orm import Session
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, AsyncGenerator
 from modal.volume import FileEntryType
 from asyncio import Lock
 from functools import lru_cache
 
 from db.database import get_db
 from db.models import Project, PreparedSandbox, Stack
-from config import TARGET_PREPARED_SANDBOXES_PER_STACK
 
 app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
@@ -111,6 +109,13 @@ class DevSandbox:
             return (await proc.stdout.read.aio()) + (await proc.stderr.read.aio())
         except Exception as e:
             return f"Error: {e}"
+
+    async def run_command_stream(
+        self, command: str, workdir: Optional[str] = None
+    ) -> AsyncGenerator[str, None]:
+        proc = await self.sb.exec.aio("sh", "-c", command, workdir=workdir or "/app")
+        async for chunk in proc.stderr:
+            yield chunk
 
     async def write_file_contents_and_commit(
         self, files: List[Tuple[str, str]], commit_message: str

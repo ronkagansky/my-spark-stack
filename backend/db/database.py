@@ -11,6 +11,7 @@ from config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     AWS_REGION,
+    RUN_STACK_SYNC_ON_START,
 )
 
 engine = create_engine(
@@ -63,7 +64,8 @@ def _try_init_stacks():
 def init_db():
     # Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    _try_init_stacks()
+    if RUN_STACK_SYNC_ON_START:
+        _try_init_stacks()
 
 
 def get_db():

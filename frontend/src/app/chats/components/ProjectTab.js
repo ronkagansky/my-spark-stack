@@ -10,7 +10,6 @@ import {
   Loader2,
   RotateCcw,
   Trash2,
-  Rocket,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -111,26 +110,110 @@ function HistoryTab({ gitLog, isLoadingGitLog, handleRestore }) {
   );
 }
 
-function DeployTab() {
+function DeployTab({ project, team }) {
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployMessage, setDeployMessage] = useState(null);
+  const [appName, setAppName] = useState(project.name);
+  const { toast } = useToast();
+
+  const handleDeploy = async () => {
+    setIsDeploying(true);
+    setDeployMessage('Deploying...');
+    try {
+      await api.deployNetlify(
+        team.id,
+        project.id,
+        {
+          appName,
+        },
+        (message) => {
+          try {
+            const data = JSON.parse(message);
+            if (data.message) {
+              setDeployMessage(data.message);
+            }
+            if (data.open_url) {
+              window.open(data.open_url, '_blank');
+            }
+          } catch (e) {
+            console.error('Failed to parse deploy status:', e);
+          }
+        }
+      );
+      toast({
+        title: 'Deployment Complete',
+        description: 'Your project has been deployed to Netlify.',
+      });
+    } catch (error) {
+      console.error('Failed to deploy:', error);
+      toast({
+        title: 'Deployment Failed',
+        description: 'There was an error deploying to Netlify.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
   return (
     <Card className="p-4">
       <div className="space-y-4">
         <div className="text-sm text-muted-foreground">
           <p>
-            Deploy your project to make it accessible on the internet. Currently
-            supporting:
+            For long-term hosting, we support deploying to Netlify (a free
+            Netlify account is required).
           </p>
           <ul className="list-disc list-inside mt-2">
-            <li>Netlify (static sites and frontend applications)</li>
+            <li>24/7 uptime</li>
+            <li>Custom domains</li>
           </ul>
         </div>
 
-        <Button className="w-full">
-          <img
-            src="https://www.netlify.com/img/deploy/button.svg"
-            alt="Deploy to Netlify"
-            className="h-5"
-          />
+        <div className="space-y-4">
+          {/* <div className="space-y-2">
+            <label className="text-sm font-medium">Netlify Team Slug</label>
+            <Input
+              placeholder="Find under team settings on Netlify"
+              value={teamSlug}
+              onChange={(e) => setTeamSlug(e.target.value)}
+            />
+            {slugInvalid && (
+              <p className="text-sm text-destructive">
+                Team slug should look something like 'my-team-slug'.
+              </p>
+            )}
+          </div> */}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Netlify App Name (if new)
+            </label>
+            <Input
+              placeholder="Application name on Netlify"
+              value={appName}
+              onChange={(e) => setAppName(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <Button
+          className="w-full"
+          onClick={handleDeploy}
+          disabled={isDeploying || !appName}
+        >
+          {isDeploying ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              {deployMessage}
+            </>
+          ) : (
+            <img
+              src="https://www.netlify.com/img/deploy/button.svg"
+              alt="Deploy to Netlify"
+              className="h-5"
+            />
+          )}
         </Button>
       </div>
     </Card>
@@ -206,7 +289,7 @@ export function ProjectTab({ project, onSendMessage }) {
 
   const handleRestore = async (hash) => {
     await onSendMessage({
-      content: `Revert changes using \`git revert ${hash}..HEAD\``,
+      content: `$ git revert ${hash}..HEAD`,
       images: [],
     });
   };
@@ -236,7 +319,8 @@ export function ProjectTab({ project, onSendMessage }) {
       router.refresh();
       toast({
         title: 'Project Restarted',
-        description: 'The project has been successfully restarted.',
+        description:
+          'The project has been successfully restarted. Reconnect to continue.',
       });
     } catch (error) {
       console.error('Failed to restart project:', error);
@@ -323,10 +407,10 @@ export function ProjectTab({ project, onSendMessage }) {
               <GitBranch className="h-4 w-4" />
               History
             </TabsTrigger>
-            <TabsTrigger value="deploy" className="flex items-center gap-2">
+            {/* <TabsTrigger value="deploy" className="flex items-center gap-2">
               <Rocket className="h-4 w-4" />
               Deploy
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="chats" className="mt-4">
@@ -346,7 +430,7 @@ export function ProjectTab({ project, onSendMessage }) {
           </TabsContent>
 
           <TabsContent value="deploy" className="mt-4">
-            <DeployTab />
+            <DeployTab project={project} team={team} />
           </TabsContent>
         </Tabs>
 

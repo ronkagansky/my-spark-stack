@@ -65,6 +65,39 @@ class ApiClient {
     return res.json();
   }
 
+  async _get_stream(endpoint, params = {}, onMessage) {
+    if (typeof params === 'function' && !onMessage) {
+      onMessage = params;
+      params = {};
+    }
+
+    const searchParams = new URLSearchParams({
+      ...params,
+      token: localStorage.getItem('token'),
+    });
+
+    const eventSource = new EventSource(
+      `${API_URL}${endpoint}?${searchParams.toString()}`
+    );
+
+    return new Promise((resolve, reject) => {
+      eventSource.onmessage = (event) => {
+        onMessage?.(event.data);
+      };
+
+      eventSource.onerror = (error) => {
+        eventSource.close();
+        console.error(error);
+        reject(error);
+      };
+
+      eventSource.addEventListener('complete', () => {
+        eventSource.close();
+        resolve();
+      });
+    });
+  }
+
   async createAccount(username) {
     const data = await this._post('/api/auth/create', { username });
     localStorage.setItem('token', data.token);
@@ -160,6 +193,14 @@ class ApiClient {
 
   async updateTeam(teamId, teamData) {
     return this._patch(`/api/teams/${teamId}`, teamData);
+  }
+
+  async deployNetlify(teamId, projectId, deployData, onMessage) {
+    return this._get_stream(
+      `/api/teams/${teamId}/projects/${projectId}/do-deploy/netlify`,
+      deployData,
+      onMessage
+    );
   }
 }
 

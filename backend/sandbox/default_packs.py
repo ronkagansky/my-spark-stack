@@ -34,11 +34,23 @@ if [ ! -d ".git" ]; then
     git commit -m 'Initial commit'
 fi
 
-if [ ! -f '.env' ]; then
-    touch .env
+cat > .gitignore << 'EOF'
+node_modules/
+.config/
+.env
+.next/
+.cache/
+.netlify/
+*.log
+dist/
+build/
+EOF
+
+if [ ! -f '/app/.env' ]; then
+    touch /app/.env
 fi
 set -a
-[ -f .env ] && . .env
+[ -f /app/.env ] && . /app/.env
 set +a
 
 curl -o /app/frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/next.config.mjs.example

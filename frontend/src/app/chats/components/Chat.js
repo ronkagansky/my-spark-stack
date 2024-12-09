@@ -148,7 +148,7 @@ const MessageList = ({ messages, status }) => (
           {msg.role === 'user' ? 'H' : 'AI'}
         </div>
         <div className="flex-1">
-          <div className="mt-1 prose prose-sm max-w-none">
+          <div className="mt-1 prose prose-sm max-w-[80%]">
             {msg.images && msg.images.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {msg.images.map((img, imgIndex) => (
@@ -168,7 +168,7 @@ const MessageList = ({ messages, status }) => (
               components={components}
               rehypePlugins={[rehypeRaw]}
               remarkPlugins={[remarkGfm]}
-              className="w-full"
+              className="max-w-[80%]"
             >
               {fixCodeBlocks(msg.content, status === 'WORKING')}
             </ReactMarkdown>
@@ -286,7 +286,7 @@ const ChatInput = ({
     return null;
   };
 
-  const isLongConversation = messages.length > 20;
+  const isLongConversation = messages.length > 40;
 
   return (
     <>

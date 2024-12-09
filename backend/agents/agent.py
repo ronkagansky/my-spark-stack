@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import AsyncGenerator, List, Dict, Any, Callable, Optional
+from typing import AsyncGenerator, List, Optional
 import re
 import json
 
@@ -8,7 +8,7 @@ from sandbox.sandbox import DevSandbox
 from agents.prompts import (
     chat_complete,
 )
-from config import FAST_MODEL, MAIN_MODEL, MAIN_PROVIDER
+from config import MAIN_MODEL, MAIN_PROVIDER
 from agents.diff import remove_file_changes
 from agents.providers import AgentTool, LLM_PROVIDERS
 
@@ -38,12 +38,15 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
 
     return AgentTool(
         name="run_command",
-        description="Run a command in the project sandbox",
+        description="Run a shell command in the project sandbox. Use for installing packages or reading the content of files. NEVER use to modify the content of files.",
         parameters={
             "type": "object",
             "properties": {
                 "command": {"type": "string"},
-                "workdir": {"type": "string"},
+                "workdir": {
+                    "type": "string",
+                    "description": "The directory to run the command in. Defaults to /app and most of the time that's what you want.",
+                },
             },
             "required": ["command"],
         },
@@ -122,20 +125,17 @@ DO NOT include any code blocks in your response or text outside of the markdown 
 """
 
 SYSTEM_EXEC_PROMPT = """
-You are a full-stack export developer on the platform Prompt Stack. You are given a project and a sandbox to develop in and a plan (for the most recent message) from a senior engineer.
+You are a full-stack export developer on the platform Prompt Stack. You are given a <project> and a <stack> sandbox to develop in and a <plan> from a senior engineer.
 
-<tools>
-<command name="run_command">
+<commands>
 You are able run shell commands in the sandbox.
 
 - This includes common tools like `npm`, `cat`, `ls`, `git`, etc. avoid any commands that require a GUI or interactivity.
 - DO NOT USE TOOLS to modify the content of files. You also do not need to display the commands you use.
 - DO NOT use `touch`, `vim`, `nano`, etc.
-</command>
-<command name="navigate_to">
-You are able to navigate the user's browser to a given path.
-</command>
-</tools>
+
+You must use the proper tool calling syntax to actually execute the command (even if you haven't done this for previous steps).
+</commands>
 
 <formatting-instructions>
 You'll respond in plain markdown for a chat interface and use special codeblocks for coding and updating files. Generally keep things brief.
@@ -158,27 +158,7 @@ YOU must use well formatted simplified code blocks to update files.
 </simple-code-block-template>
 
 You should literally output "... existing code ..." and write actual code in place of the {{ edit_1 }} and {{ edit_2 }} sections.
-
-<example>
-I'll now add a main function to the existing file.
-
-```python
-# /app/backend/main.py
-# ... existing code ...
-
-def main():
-    print("Hello, world!")
-```
-
-The file has been updated to include the main function.
-</example>
 </formatting-instructions>
-
-<additional-info>
-- When you use these code blocks the system will automatically apply the file changes (do not also use tools to do the same thing).
-- This apply will happen after you've finished your response and automatically include a git commit of all changes.
-- No need to run `npm run dev`, etc since the sandbox will handle that.
-</additional-info>
 
 <project>
 {project_text}
@@ -195,6 +175,14 @@ The file has been updated to include the main function.
 <plan>
 {plan_text}
 </plan>
+
+<tips>
+- When you use these code blocks the system will automatically apply the file changes (do not also use tools to do the same thing).
+- This apply will happen after you've finished your response and automatically include a git commit of all changes.
+- No need to run `npm run dev`, etc since the sandbox will handle that.
+</tips>
+
+Follow the <plan>.
 """
 
 SYSTEM_FOLLOW_UP_PROMPT = """
@@ -328,12 +316,32 @@ class Agent:
                     role="assistant", delta_thinking_content=chunk["content"]
                 )
 
+    async def _run_command_only_step(self, command: str) -> AsyncGenerator[str, None]:
+        if not self.sandbox:
+            yield PartialChatMessage(
+                role="assistant",
+                delta_content="Sandbox is still booting! Try again later.",
+            )
+            return
+        yield PartialChatMessage(
+            role="assistant", delta_content=f"Running `{command}`...\n```\n"
+        )
+        async for chunk in self.sandbox.run_command_stream(command):
+            yield PartialChatMessage(role="assistant", delta_content=chunk)
+        yield PartialChatMessage(role="assistant", delta_content="\n```")
+
     async def step(
         self,
         messages: List[ChatMessage],
         sandbox_file_paths: Optional[List[str]] = None,
     ) -> AsyncGenerator[PartialChatMessage, None]:
         yield PartialChatMessage(role="assistant", delta_content="")
+
+        # just run the command and return the output
+        if messages[-1].role == "user" and messages[-1].content.startswith("$ "):
+            async for chunk in self._run_command_only_step(messages[-1].content[2:]):
+                yield chunk
+            return
 
         if sandbox_file_paths is not None:
             files_text = "\n".join(sandbox_file_paths)
