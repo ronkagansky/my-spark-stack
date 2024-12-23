@@ -36,7 +36,7 @@ async def _is_url_up(url: str) -> bool:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 return response.status < 500
-    except:
+    except Exception:
         return False
 
 

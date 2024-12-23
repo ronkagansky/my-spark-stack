@@ -16,6 +16,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function PreviewTab({
   projectPreviewUrl,
@@ -121,13 +127,25 @@ export function PreviewTab({
           <Button variant="ghost" size="icon" onClick={handleRefresh}>
             <RotateCw className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.open(projectPreviewUrl, '_blank')}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => window.open(projectPreviewUrl, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  This preview URL is temporary and will change when the project
+                  is rebooted
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       <div

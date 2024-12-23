@@ -47,7 +47,11 @@ const FileTreeNode = ({ name, children, level = 0, onSelect, isSelected }) => {
         ) : (
           <File className="h-4 w-4 shrink-0 mr-1" />
         )}
-        <span className="truncate">{name.split('/').pop()}</span>
+        <span className="truncate">
+          {name.startsWith('/app/')
+            ? name.split('/app/')[1]
+            : name.split('/').pop()}
+        </span>
       </div>
       {hasChildren && isOpen && (
         <div>
@@ -79,7 +83,11 @@ export function FilesTab({ projectFileTree, project }) {
   const fileTree = useMemo(() => {
     const tree = {};
     projectFileTree.forEach((path) => {
-      const parts = path.split('/');
+      if (!path.startsWith('/app/')) return;
+
+      const relativePath = path.substring(5);
+      const parts = relativePath.split('/');
+
       let current = tree;
       parts.forEach((part, i) => {
         if (i === parts.length - 1) {
@@ -177,7 +185,7 @@ export function FilesTab({ projectFileTree, project }) {
             'flex items-center justify-center transition-all duration-300 ease-in-out',
             isTreeCollapsed
               ? 'w-12 border-r hover:bg-accent/10'
-              : 'w-1 hover:bg-accent cursor-col-resize'
+              : 'w-4 hover:bg-accent cursor-col-resize'
           )}
           onMouseDown={!isTreeCollapsed ? handleMouseDown : undefined}
         >
