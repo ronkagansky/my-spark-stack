@@ -4,7 +4,7 @@ $ alembic revision --autogenerate -m "..."
 $ alembic upgrade head
 """
 
-from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum, ARRAY
+from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum, ARRAY, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
@@ -46,6 +46,8 @@ class Project(TimestampMixin, Base):
     modal_sandbox_id = Column(String, nullable=True)
     modal_sandbox_expires_at = Column(DateTime(timezone=True), nullable=True)
     modal_volume_label = Column(String, nullable=True)
+    # handy debugging flag to prevent cleanup
+    modal_never_cleanup = Column(Boolean, nullable=True, default=False)
 
     team_id = Column(
         Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False

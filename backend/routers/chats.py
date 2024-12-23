@@ -8,7 +8,7 @@ from db.models import User, Chat, Team, Project, Stack
 from db.queries import get_chat_for_user
 from agents.prompts import name_chat
 from sandbox.sandbox import DevSandbox
-from config import CREDITS_CHAT_COST
+from config import CREDITS_CHAT_COST, PROJECTS_SET_NEVER_CLEANUP
 from schemas.models import ChatCreate, ChatUpdate, ChatResponse
 from routers.auth import get_current_user_from_token
 
@@ -80,6 +80,7 @@ async def create_chat(
             user_id=current_user.id,
             team_id=team_id,
             stack_id=stack.id,
+            model_never_cleanup=PROJECTS_SET_NEVER_CLEANUP,
         )
         db.add(project)
         db.commit()
