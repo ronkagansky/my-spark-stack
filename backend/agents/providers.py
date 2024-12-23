@@ -346,9 +346,11 @@ class AnthropicLLMProvider(LLMProvider):
                         }
                         tool_calls_buffer = []
                         content_buffer = ""
-                else:
+                elif chunk.type == "message_delta" and chunk.delta.stop_reason == "end_turn":
                     running = False
                     break
+                else:
+                    print(f"Unhandled anthropic chunk: {chunk}")
 
 
     async def _handle_tool_call(self, tools: List[AgentTool], tool_call) -> str:

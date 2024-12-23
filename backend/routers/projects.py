@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy import and_
 from sse_starlette.sse import EventSourceResponse
+from fastapi.responses import StreamingResponse
 import json
 import re
+import io
 
 from db.database import get_db
 from db.models import User, Project, Team, TeamMember, Chat
@@ -16,7 +18,7 @@ from schemas.models import (
     ProjectUpdate,
     ChatResponse,
 )
-from sandbox.sandbox import DevSandbox
+from sandbox.sandbox import DevSandbox, SandboxNotReadyException
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/teams/{team_id}/projects", tags=["projects"])
@@ -275,3 +277,62 @@ async def delete_project(
     await DevSandbox.destroy_project_resources(project)
 
     return {"message": "Project deleted successfully"}
+
+
+@router.get("/{project_id}/app.zip")
+async def get_project_zip(
+    team_id: int,
+    project_id: int,
+   #  current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    # project = get_project_for_user(db, team_id, project_id, current_user)
+    # if project is None:
+    #     raise HTTPException(status_code=404, detail="Project not found")
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
+    except SandboxNotReadyException:
+        raise HTTPException(status_code=400, detail="Sandbox not ready. Project must be running.")
+
+    git_sha = await sandbox.run_command("git rev-parse HEAD")
+    if not git_sha.strip():
+        git_sha = "init"
+    else:
+        git_sha = git_sha.strip()[:10]
+    git_sha_fn = f"app-{project.id}-{git_sha}.zip".replace(" ", "-")
+
+    exclude_content = """
+**/node_modules/**
+**/.next/**
+**/build/**
+/app/git.log
+/app/tmp/**
+/app/.git/**
+""".strip()
+    await sandbox.run_command(f"echo '{exclude_content}' > /tmp/zip-exclude.txt")
+    await sandbox.run_command("mkdir -p /app/tmp")
+    out = await sandbox.run_command(
+        f"cd /app && zip -r /app/tmp/{git_sha_fn} . -x@/tmp/zip-exclude.txt"
+    )
+    print("get_project_zip", project_id, out)
+    print(await sandbox.run_command("ls -la /app/tmp"))
+
+    async def _stream_zip():
+        try:
+            async for chunk in sandbox.stream_file_contents(f"/app/tmp/{git_sha_fn}", binary_mode=True):
+                yield chunk
+        finally:
+            # Clean up the zip file after streaming
+            await sandbox.run_command(f"rm -f /tmp/{git_sha_fn}")
+
+    return StreamingResponse(
+        _stream_zip(),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{git_sha_fn}"'
+        }
+    )

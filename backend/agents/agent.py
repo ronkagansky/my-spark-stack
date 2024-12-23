@@ -91,6 +91,10 @@ They will be able to edit files, run arbitrary commands in the sandbox, and navi
 {files_text}
 </project-files>
 
+<git-log>
+{git_log_text}
+</git-log>
+
 Answer the following questions:
 1. What is being asked by the most recent message?
 1a. Is this a general question, command to build something, etc.?
@@ -264,6 +268,7 @@ class Agent:
         self,
         messages: List[ChatMessage],
         project_text: str,
+        git_log_text: str,
         stack_text: str,
         files_text: str,
     ) -> AsyncGenerator[PartialChatMessage, None]:
@@ -278,6 +283,7 @@ class Agent:
             project_text=project_text,
             stack_text=stack_text,
             files_text=files_text,
+            git_log_text=git_log_text,
         )
 
         # Convert messages to provider format
@@ -316,42 +322,36 @@ class Agent:
                     role="assistant", delta_thinking_content=chunk["content"]
                 )
 
-    async def _run_command_only_step(self, command: str) -> AsyncGenerator[str, None]:
-        if not self.sandbox:
-            yield PartialChatMessage(
-                role="assistant",
-                delta_content="Sandbox is still booting! Try again later.",
-            )
-            return
-        yield PartialChatMessage(
-            role="assistant", delta_content=f"Running `{command}`...\n```\n"
+    async def _git_log_text(self, git_log: str) -> str:
+        git_text = "\n".join(
+            [
+                f"{items[0]}: {items[1]}"
+                for items in [line.split("|") for line in git_log.split("\n") if line]
+            ]
         )
-        async for chunk in self.sandbox.run_command_stream(command):
-            yield PartialChatMessage(role="assistant", delta_content=chunk)
-        yield PartialChatMessage(role="assistant", delta_content="\n```")
+        return git_text
 
     async def step(
         self,
         messages: List[ChatMessage],
         sandbox_file_paths: Optional[List[str]] = None,
+        sandbox_git_log: Optional[str] = None,
     ) -> AsyncGenerator[PartialChatMessage, None]:
         yield PartialChatMessage(role="assistant", delta_content="")
-
-        # just run the command and return the output
-        if messages[-1].role == "user" and messages[-1].content.startswith("$ "):
-            async for chunk in self._run_command_only_step(messages[-1].content[2:]):
-                yield chunk
-            return
 
         if sandbox_file_paths is not None:
             files_text = "\n".join(sandbox_file_paths)
         else:
             files_text = "Sandbox is still booting..."
+        if sandbox_git_log is not None:
+            git_log_text = await self._git_log_text(sandbox_git_log)
+        else:
+            git_log_text = "Sandbox is still booting..."
         project_text = self._get_project_text()
         stack_text = self.stack.prompt
 
         plan_content = ""
-        async for chunk in self._plan(messages, project_text, stack_text, files_text):
+        async for chunk in self._plan(messages, project_text, git_log_text, stack_text, files_text):
             yield chunk
             plan_content += chunk.delta_thinking_content
 

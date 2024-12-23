@@ -11,10 +11,17 @@ import {
   File,
   PanelLeftClose,
   PanelLeft,
+  Download,
 } from 'lucide-react';
 import { useUser } from '@/context/user-context';
 import { getLanguageFromFilename } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const FileTreeNode = ({ name, children, level = 0, onSelect, isSelected }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -151,6 +158,14 @@ export function FilesTab({ projectFileTree, project }) {
     };
   }, [isResizing]);
 
+  const handleDownload = () => {
+    if (!team || !project) return;
+    window.open(
+      `/api/teams/${team.id}/projects/${project.id}/app.zip`,
+      '_blank'
+    );
+  };
+
   return (
     <div className="flex flex-col h-full p-4 gap-4">
       <div className="flex-1 flex rounded-lg border bg-background shadow-sm">
@@ -164,6 +179,23 @@ export function FilesTab({ projectFileTree, project }) {
           <div className="h-full flex flex-col">
             <div className="p-3 border-b flex items-center justify-between bg-muted/40">
               <span className="text-sm font-medium">Files</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleDownload}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download Project</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <ScrollArea className="flex-1">
               <div className="p-3">

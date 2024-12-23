@@ -205,16 +205,13 @@ export default function WorkspacePage({ chatId }) {
           )}`
         );
       } catch (error) {
-        if (error.message.includes('Payment Required')) {
-          toast({
-            title: 'Error',
-            description:
-              'Not enough credits. Please purchase more credits to continue.',
-            variant: 'destructive',
-          });
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+        if (error.message.includes('credits')) {
           router.push('/settings?buy=true');
-        } else {
-          throw error;
         }
       }
     } else {
