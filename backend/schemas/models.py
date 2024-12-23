@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
+from db.models import TeamRole
 
 
 class UserCreate(BaseModel):
@@ -145,3 +146,24 @@ class TeamInviteResponse(BaseModel):
 
 class TeamUpdate(BaseModel):
     name: Optional[str] = None
+
+
+class TeamMemberBase(BaseModel):
+    role: TeamRole
+
+
+class TeamMemberUpdate(TeamMemberBase):
+    pass
+
+
+class TeamMemberResponse(TeamMemberBase):
+    id: int
+    team_id: int
+    user_id: int
+    username: str
+    email: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True

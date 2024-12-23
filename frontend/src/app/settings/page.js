@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   HomeIcon,
@@ -45,10 +45,34 @@ function SettingsContent() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const shouldHighlightBuy = searchParams.get('buy') === 'true';
+
+  useEffect(() => {
+    if (team?.id) {
+      loadTeamMembers();
+    }
+  }, [team?.id]);
+
+  const loadTeamMembers = async () => {
+    try {
+      setIsLoadingMembers(true);
+      const members = await api.getTeamMembers(team.id);
+      setTeamMembers(members);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load team members',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  };
 
   const handleTeamChange = async (teamId) => {
     localStorage.setItem('team', teamId);
@@ -120,6 +144,42 @@ function SettingsContent() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateMemberRole = async (userId, newRole) => {
+    try {
+      await api.updateTeamMember(team.id, userId, { role: newRole });
+      await loadTeamMembers();
+      toast({
+        title: 'Success',
+        description: 'Member role updated successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update member role',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!confirm('Are you sure you want to remove this member?')) return;
+
+    try {
+      await api.removeTeamMember(team.id, userId);
+      await loadTeamMembers();
+      toast({
+        title: 'Success',
+        description: 'Member removed successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove member',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -354,6 +414,40 @@ function SettingsContent() {
                     </div>
                   </div>
 
+                  <div className="space-y-2 mt-4">
+                    <div className="border-t my-4" />
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Change Team
+                    </label>
+                    <Select
+                      value={team?.id.toString()}
+                      onValueChange={handleTeamChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((t) => (
+                          <SelectItem key={t.id} value={t.id.toString()}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader className="space-y-2">
+                <CardTitle>Team Member Settings</CardTitle>
+                <CardDescription>
+                  Manage your team members and their roles.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
                   <div className="space-y-4">
                     <Button onClick={handleGenerateInvite}>
                       Generate Invite Link
@@ -367,28 +461,54 @@ function SettingsContent() {
                       </div>
                     )}
                   </div>
-                </div>
 
-                <div className="space-y-2 mt-4">
-                  <div className="border-t my-4" />
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Change Team
-                  </label>
-                  <Select
-                    value={team?.id.toString()}
-                    onValueChange={handleTeamChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teams.map((t) => (
-                        <SelectItem key={t.id} value={t.id.toString()}>
-                          {t.name}
-                        </SelectItem>
+                  {isLoadingMembers ? (
+                    <div className="text-center py-4">Loading members...</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {teamMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between py-2"
+                        >
+                          <div>
+                            <div className="font-medium">{member.username}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {member.email || 'No email set'}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Select
+                              value={member.role}
+                              onValueChange={(value) =>
+                                handleUpdateMemberRole(member.user_id, value)
+                              }
+                              disabled={member.user_id === user.id}
+                            >
+                              <SelectTrigger className="w-[110px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="member">Member</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {member.user_id !== user.id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  handleRemoveMember(member.user_id)
+                                }
+                              >
+                                <XIcon className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -13,7 +13,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -27,7 +28,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -42,7 +44,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -59,7 +62,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -193,6 +197,18 @@ class ApiClient {
 
   async updateTeam(teamId, teamData) {
     return this._patch(`/api/teams/${teamId}`, teamData);
+  }
+
+  async getTeamMembers(teamId) {
+    return this._get(`/api/teams/${teamId}/members`);
+  }
+
+  async updateTeamMember(teamId, userId, memberData) {
+    return this._patch(`/api/teams/${teamId}/members/${userId}`, memberData);
+  }
+
+  async removeTeamMember(teamId, userId) {
+    return this._delete(`/api/teams/${teamId}/members/${userId}`);
   }
 
   async deployNetlify(teamId, projectId, deployData, onMessage) {

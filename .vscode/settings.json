@@ -1,15 +1,10 @@
 {
-    // Default formatter and format on save
     "editor.defaultFormatter": null,
     "editor.formatOnSave": true,
-
-    // Python settings
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true
     },
-
-    // JavaScript/React settings
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
@@ -22,12 +17,12 @@
     "[typescriptreact]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
-
-    // Prettier specific settings
     "prettier.singleQuote": true,
     "prettier.trailingComma": "es5",
     "prettier.tabWidth": 2,
     "prettier.semi": true,
     "prettier.jsxSingleQuote": false,
-    "prettier.bracketSpacing": true
+    "prettier.bracketSpacing": true,
+    "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+    "python.pythonPath": "${workspaceFolder}/backend/venv/bin/python"
 } 

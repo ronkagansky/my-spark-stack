@@ -31,7 +31,7 @@ export default function AuthPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to create account',
+        description: error.message,
         variant: 'destructive',
       });
     } finally {
