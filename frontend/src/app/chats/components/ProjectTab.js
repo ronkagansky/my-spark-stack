@@ -289,7 +289,7 @@ export function ProjectTab({ project, onSendMessage }) {
 
   const handleRestore = async (hash) => {
     await onSendMessage({
-      content: `$ git revert ${hash}..HEAD`,
+      content: `Please revert recent changes with $ git revert ${hash}..HEAD`,
       images: [],
     });
   };

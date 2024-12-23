@@ -178,7 +178,10 @@ class ProjectManager:
         await self.emit_project(await self._get_project_status())
 
     def remove_chat_socket(self, chat_id: int, websocket: WebSocket):
-        self.chat_sockets[chat_id].remove(websocket)
+        try:
+            self.chat_sockets[chat_id].remove(websocket)
+        except ValueError:
+            pass
         if len(self.chat_sockets[chat_id]) == 0:
             del self.chat_sockets[chat_id]
             del self.chat_agents[chat_id]
