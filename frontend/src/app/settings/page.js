@@ -118,7 +118,7 @@ function SettingsContent() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update profile',
+        description: error.message || 'Failed to update profile',
         variant: 'destructive',
       });
     } finally {
