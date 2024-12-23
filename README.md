@@ -9,7 +9,7 @@
 - 🤖 AI-powered code generation
 - ⚡️ Real-time development environment
 - 🎨 Multiple arbitrary starter templates (see `/images`)
-- 👥 Team collaboration
+- 👥 Team collaboration and management
 - 📝 Git version control
 - 🔄 Live preview
 - 🧠 Chain-of-Thought reasoning for complex asks
