@@ -15,7 +15,7 @@ from db.models import Project, PreparedSandbox, Stack
 app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
 
-IGNORE_PATHS = ["node_modules", ".git", ".next", "build"]
+IGNORE_PATHS = ["node_modules", ".git", ".next", "build", "git.log"]
 
 
 @lru_cache()
