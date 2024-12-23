@@ -80,7 +80,7 @@ async def create_chat(
             user_id=current_user.id,
             team_id=team_id,
             stack_id=stack.id,
-            model_never_cleanup=PROJECTS_SET_NEVER_CLEANUP,
+            modal_never_cleanup=PROJECTS_SET_NEVER_CLEANUP,
         )
         db.add(project)
         db.commit()
