@@ -64,7 +64,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         token = jwt.encode(
             {
                 "sub": new_user.username,
-                "exp": datetime.now() + timedelta(days=30),
+                "exp": datetime.now() + timedelta(days=10_000),
             },
             JWT_SECRET_KEY,
             algorithm="HS256",
