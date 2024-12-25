@@ -69,7 +69,7 @@ PACKS = [
     StackPack(
         title="Next.js",
         description="A simple Nextjs App. Best for starting from scratch with minimal components.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:7ef15857dc430f0af0ece838a0fd674dacf1e3bb3975aa2f240e9cdb9ce0297b",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:39e137085f0c7b0ff0d8018a70ae3e52724dfc20e3a62a65cf3f9f2bfeea6dac",
         sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -108,7 +108,7 @@ Code Tips:
     StackPack(
         title="Next.js Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:8e6a2e6752f8f4884ed03925db0514aea4678825890cb106bbcd598d91fe0e8b",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:437d5ce8ac2074535aef4cc4fbf6b5e1091287fe625cafe303713ca38f0de314",
         sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
