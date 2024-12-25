@@ -24,6 +24,7 @@ _DIFF_TIPS = {
     "<CardBody": "Ensure in Shadcn UI, <Card>s use <CardContent> instead of <CardBody>.",
     "<Slider": "Ensure <Slider />s in Shadcn have at least values= or a min= and a max= attribute.",
     r"Layout\(": "Ensure Layouts in Next.js retain <html> and <body> tags.",
+    "use-toast": "Ensure the import is from \"@/hooks/use-toast\" (rather than components)",
 }
 
 
