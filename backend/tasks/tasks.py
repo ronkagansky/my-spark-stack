@@ -62,9 +62,9 @@ async def maintain_prepared_sandboxes(db: Session):
                 db.add(psbox)
                 db.commit()
 
-    known_pack_hashes = set(psbox.pack_hash for psbox in psboxes)
+    latest_stack_hashes = set(stack.pack_hash for stack in stacks)
     psboxes_to_delete = db.query(PreparedSandbox).filter(
-        PreparedSandbox.pack_hash.notin_(known_pack_hashes)
+        PreparedSandbox.pack_hash.notin_(latest_stack_hashes)
     ).all()
     print(f"Deleting {len(psboxes_to_delete)} prepared sandboxes with stale hashes")
     for psbox in psboxes_to_delete:
