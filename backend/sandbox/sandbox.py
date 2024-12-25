@@ -299,7 +299,7 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
             lock.release()
 
     @classmethod
-    async def prepare_sandbox(cls, stack: Stack) -> Tuple["DevSandbox", str]:
+    async def prepare_sandbox(cls, stack: Stack) -> Tuple["DevSandbox", str, str]:
         vol_id = f"prompt-stack-vol-{_unique_id()}"
         vol = modal.Volume.from_name(vol_id, create_if_missing=True)
         image = modal.Image.from_registry(stack.from_registry, add_python=None)
@@ -316,4 +316,4 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
         )
         await sb.set_tags.aio({"app": "prompt-stack"})
         await sb.wait.aio()
-        return sb, vol_id
+        return sb, vol_id, stack.pack_hash
