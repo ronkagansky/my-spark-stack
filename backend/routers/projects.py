@@ -309,9 +309,9 @@ async def get_project_zip(
 **/node_modules/**
 **/.next/**
 **/build/**
-/app/git.log
-/app/tmp/**
-/app/.git/**
+**/git.log
+**/tmp/**
+**/.git/**
 """.strip()
     await sandbox.run_command(f"echo '{exclude_content}' > /tmp/zip-exclude.txt")
     await sandbox.run_command("mkdir -p /app/tmp")

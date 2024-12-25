@@ -40,7 +40,21 @@ export function UserProvider({ children }) {
 
   useEffect(() => {
     if (localStorage.getItem('token')) {
-      api.getCurrentUser().then(setUser);
+      api
+        .getCurrentUser()
+        .then(setUser)
+        .catch((e) => {
+          if (e.message.includes('token')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('team');
+            setUser(null);
+            setTeam(null);
+            setChats([]);
+            setTeams([]);
+            setProjects([]);
+            window.location.href = '/';
+          }
+        });
       fetchUserData();
     }
   }, []);

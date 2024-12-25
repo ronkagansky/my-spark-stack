@@ -3,12 +3,11 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
-from typing import Optional
 
 from db.database import get_db
 from db.models import User, Team, TeamMember, TeamRole
 from schemas.models import UserCreate, UserResponse, AuthResponse, UserUpdate
-from config import JWT_SECRET_KEY, CREDITS_DEFAULT
+from config import JWT_SECRET_KEY, CREDITS_DEFAULT, JWT_EXPIRATION_DAYS
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -64,7 +63,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         token = jwt.encode(
             {
                 "sub": new_user.username,
-                "exp": datetime.now() + timedelta(days=10_000),
+                "exp": datetime.now() + timedelta(days=JWT_EXPIRATION_DAYS),
             },
             JWT_SECRET_KEY,
             algorithm="HS256",
