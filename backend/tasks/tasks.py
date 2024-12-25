@@ -2,6 +2,7 @@ import traceback
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import functools
+import modal
 
 from routers.project_socket import project_managers
 from db.models import Project, PreparedSandbox, Stack
@@ -60,6 +61,16 @@ async def maintain_prepared_sandboxes(db: Session):
                 )
                 db.add(psbox)
                 db.commit()
+
+    known_pack_hashes = set(psbox.pack_hash for psbox in psboxes)
+    psboxes_to_delete = db.query(PreparedSandbox).filter(
+        PreparedSandbox.pack_hash.notin_(known_pack_hashes)
+    ).all()
+    print(f"Deleting {len(psboxes_to_delete)} prepared sandboxes with stale hashes")
+    for psbox in psboxes_to_delete:
+        db.delete(psbox)
+        db.commit()
+        await modal.Volume.delete.aio(label=psbox.modal_volume_label)
 
 
 @task_handler()
