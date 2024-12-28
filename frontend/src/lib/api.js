@@ -91,8 +91,8 @@ class ApiClient {
 
       eventSource.onerror = (error) => {
         eventSource.close();
-        console.error(error);
-        reject(error);
+        console.warning(error);
+        resolve();
       };
 
       eventSource.addEventListener('complete', () => {
@@ -215,11 +215,23 @@ class ApiClient {
     return this._post(`/api/teams/${teamId}/projects/${projectId}/zip`);
   }
 
-  async deployNetlify(teamId, projectId, deployData, onMessage) {
+  async deployCreateGithub(teamId, projectId, deployData, onMessage) {
     return this._get_stream(
-      `/api/teams/${teamId}/projects/${projectId}/do-deploy/netlify`,
+      `/api/teams/${teamId}/projects/${projectId}/deploy-create/github`,
       deployData,
       onMessage
+    );
+  }
+
+  async deployStatusGithub(teamId, projectId) {
+    return this._get(
+      `/api/teams/${teamId}/projects/${projectId}/deploy-status/github`
+    );
+  }
+
+  async deployPushGithub(teamId, projectId) {
+    return this._post(
+      `/api/teams/${teamId}/projects/${projectId}/deploy-push/github`
     );
   }
 }

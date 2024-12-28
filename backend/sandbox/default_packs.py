@@ -44,6 +44,7 @@ node_modules/
 *.log
 dist/
 build/
+tmp/
 EOF
 
 if [ ! -f '/app/.env' ]; then

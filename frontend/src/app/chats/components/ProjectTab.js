@@ -112,113 +112,195 @@ function HistoryTab({ gitLog, isLoadingGitLog, handleRestore }) {
 }
 
 function DeployTab({ project, team }) {
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deployMessage, setDeployMessage] = useState(null);
-  const [appName, setAppName] = useState(project.name);
+  const [status, setStatus] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [githubToken, setGithubToken] = useState('');
   const { toast } = useToast();
 
-  const handleDeploy = async () => {
-    setIsDeploying(true);
-    setDeployMessage('Deploying...');
+  useEffect(() => {
+    const fetchGithubDeployStatus = async () => {
+      const status = await api.deployStatusGithub(team.id, project.id);
+      setStatus(status);
+    };
+    fetchGithubDeployStatus();
+  }, [project, team]);
+
+  const handleGithubCreateDeploy = async () => {
+    if (!githubToken) {
+      toast({
+        title: 'GitHub Token Required',
+        description: 'Please enter your GitHub token to continue.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsCreating(true);
+    setMessage('Deploying...');
     try {
-      await api.deployNetlify(
+      await api.deployCreateGithub(
         team.id,
         project.id,
         {
-          appName,
+          githubToken,
         },
         (message) => {
           try {
             const data = JSON.parse(message);
             if (data.message) {
-              setDeployMessage(data.message);
+              setMessage(data.message);
             }
-            if (data.open_url) {
-              window.open(data.open_url, '_blank');
+            if (data.done) {
+              toast({
+                title: 'Integration Complete',
+                description: 'Your project has been integrated with GitHub.',
+              });
+              setIsCreating(false);
             }
           } catch (e) {
             console.error('Failed to parse deploy status:', e);
           }
         }
       );
-      toast({
-        title: 'Deployment Complete',
-        description: 'Your project has been deployed to Netlify.',
-      });
     } catch (error) {
       console.error('Failed to deploy:', error);
       toast({
-        title: 'Deployment Failed',
-        description: 'There was an error deploying to Netlify.',
+        title: 'Integration Failed',
+        description: 'There was an error integrating with GitHub.',
         variant: 'destructive',
       });
     } finally {
-      setIsDeploying(false);
+      setIsCreating(false);
     }
   };
 
-  return (
-    <Card className="p-4">
-      <div className="space-y-4">
-        <div className="text-sm text-muted-foreground">
-          <p>
-            For long-term hosting, we support deploying to Netlify (a free
-            Netlify account is required).
-          </p>
-          <ul className="list-disc list-inside mt-2">
-            <li>24/7 uptime</li>
-            <li>Custom domains</li>
-          </ul>
-        </div>
+  const handleGithubPushDeploy = async () => {
+    setIsPushing(true);
+    setMessage('Pushing...');
+    try {
+      await api.deployPushGithub(team.id, project.id);
+      toast({
+        title: 'Push Complete',
+        description: 'Your project has been pushed to GitHub.',
+      });
+    } catch (error) {
+      console.error('Failed to push:', error);
+      toast({
+        title: 'Push Failed',
+        description: 'There was an error pushing to GitHub.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPushing(false);
+    }
+  };
 
+  if (status?.created) {
+    return (
+      <Card className="p-4">
         <div className="space-y-4">
-          {/* <div className="space-y-2">
-            <label className="text-sm font-medium">Netlify Team Slug</label>
-            <Input
-              placeholder="Find under team settings on Netlify"
-              value={teamSlug}
-              onChange={(e) => setTeamSlug(e.target.value)}
-            />
-            {slugInvalid && (
-              <p className="text-sm text-destructive">
-                Team slug should look something like 'my-team-slug'.
-              </p>
-            )}
-          </div> */}
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Netlify App Name (if new)
-            </label>
-            <Input
-              placeholder="Application name on Netlify"
-              value={appName}
-              onChange={(e) => setAppName(e.target.value)}
-            />
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">GitHub</h3>
+              <a
+                href={`https://github.com/${status.repo_name}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline"
+              >
+                {status.repo_name}
+              </a>
+            </div>
+            <Button onClick={handleGithubPushDeploy} disabled={isPushing}>
+              {isPushing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {message}
+                </>
+              ) : (
+                <>
+                  <GitBranch className="mr-2 h-4 w-4" />
+                  Push Changes
+                </>
+              )}
+            </Button>
           </div>
         </div>
+      </Card>
+    );
+  } else if (status && !status.created) {
+    return (
+      <Card className="p-4">
+        <div className="space-y-4">
+          <div className="text-sm text-muted-foreground">
+            <p>
+              For long-term hosting and CI/CD deployments, we support syncing
+              with GitHub.
+            </p>
+            <ul className="list-disc list-inside mt-2">
+              <li>24/7 uptime</li>
+              <li>Custom domains</li>
+              <li>Free hosting with tools like Netlify, Vercel, and more</li>
+            </ul>
+          </div>
 
-        <Button
-          className="w-full"
-          onClick={handleDeploy}
-          disabled={isDeploying || !appName}
-        >
-          {isDeploying ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {deployMessage}
-            </>
-          ) : (
-            <img
-              src="https://www.netlify.com/img/deploy/button.svg"
-              alt="Deploy to Netlify"
-              className="h-5"
-            />
-          )}
-        </Button>
-      </div>
-    </Card>
-  );
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Step 1: GitHub Token</h3>
+              <p className="text-sm text-muted-foreground">
+                Create a GitHub token with <b>repo</b> access at{' '}
+                <a
+                  href="https://github.com/settings/tokens/new"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  github.com/settings/tokens/new
+                </a>
+              </p>
+              <Input
+                type="password"
+                placeholder="Enter your GitHub token"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Step 2: Create Repository</h3>
+              <p className="text-sm text-muted-foreground">
+                Create a new GitHub repository to host your project.
+              </p>
+              <Button
+                onClick={handleGithubCreateDeploy}
+                // disabled={!githubToken || isDeploying}
+                className="w-full"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {message}
+                  </>
+                ) : (
+                  <>
+                    <GitBranch className="mr-2 h-4 w-4" />
+                    Create Repository
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  } else {
+    return (
+      <Card className="flex items-center justify-center p-4">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </Card>
+    );
+  }
 }
 
 export function ProjectTab({ project, onSendMessage }) {

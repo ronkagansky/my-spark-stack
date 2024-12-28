@@ -4,9 +4,9 @@ from typing import List
 from sqlalchemy import and_
 from sse_starlette.sse import EventSourceResponse
 from fastapi.responses import StreamingResponse, JSONResponse
+import requests
 import json
 import re
-import io
 
 from db.database import get_db
 from db.models import User, Project, Team, TeamMember, Chat
@@ -102,115 +102,6 @@ async def get_project_git_log(
     if not content:
         return ProjectGitLogResponse(lines=[])
     return ProjectGitLogResponse.from_content(content.decode("utf-8"))
-
-
-@router.get("/{project_id}/do-deploy/netlify")
-async def deploy_netlify(
-    team_id: int,
-    project_id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    token = request.query_params.get("token")
-    current_user = await get_current_user_from_token(token, db)
-    project = await get_project(team_id, project_id, current_user, db)
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    app_name = request.query_params.get("appName")
-    if not app_name:
-        raise HTTPException(status_code=400, detail="Missing teamSlug or appName")
-
-    async def event_generator():
-        sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
-
-        netlify_config = """
-[build]
-  publish = "frontend/.next"
-  command = ""
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-""".strip()
-
-        await sandbox.run_command(f"echo '{netlify_config}' > /app/netlify.toml")
-
-        yield {
-            "event": "message",
-            "data": json.dumps({"message": "Installing netlify..."}),
-        }
-        async for chunk in sandbox.run_command_stream(
-            "npm install -g netlify-cli --force"
-        ):
-            print("netlify-install", repr(chunk))
-            pass
-
-        await sandbox.run_command(
-            "mkdir -p /app/.config/netlify && mkdir -p /root/.config/netlify"
-        )
-        await sandbox.run_command(
-            "if [ -f /root/.config/netlify/config.json ]; then cp /root/.config/netlify/config.json /app/.config/netlify/config.json; fi"
-        )
-
-        yield {
-            "event": "message",
-            "data": json.dumps({"message": "Logging in to Netlify..."}),
-        }
-        async for chunk in sandbox.run_command_stream("netlify login"):
-            print("netlify-login", repr(chunk))
-            url_match = re.search(r"(https://app.netlify.com/[^ ]+)", chunk)
-            if url_match:
-                url = url_match.group(1)
-                yield {
-                    "event": "message",
-                    "data": json.dumps(
-                        {"open_url": url, "message": "Login to continue."}
-                    ),
-                }
-
-        await sandbox.run_command(
-            "if [ -f /root/.config/netlify/config.json ]; then cp /root/.config/netlify/config.json /app/.config/netlify/config.json; fi"
-        )
-
-        yield {
-            "event": "message",
-            "data": json.dumps({"message": "Creating site..."}),
-        }
-        async for chunk in sandbox.run_command_stream(
-            f"[ ! -f /app/.netlify/state.json ] && ((sleep 2; echo -n '\n'; sleep 2; echo -n '\n'; sleep 2; echo -n '{app_name}\n') | netlify init)"
-        ):
-            print("netlify-init", repr(chunk))
-            if "already exists" in chunk:
-                break
-
-        yield {
-            "event": "message",
-            "data": json.dumps({"message": "Building site..."}),
-        }
-        async for chunk in sandbox.run_command_stream(
-            "npm run build", workdir="/app/frontend"
-        ):
-            print("netlify-build", repr(chunk))
-
-        yield {
-            "event": "message",
-            "data": json.dumps({"message": "Deploying site... ~10 minutes."}),
-        }
-        opened_url = False
-        async for chunk in sandbox.run_command_stream("netlify deploy --prod"):
-            print("netlify-deploy", repr(chunk))
-            url_match = re.search(r"(https://app.netlify.com/sites[^\s]+)", chunk)
-            if url_match and not opened_url:
-                url = url_match.group(1)
-                yield {
-                    "event": "message",
-                    "data": json.dumps({"open_url": url}),
-                }
-                opened_url = True
-
-        print("netlify-complete")
-
-    return EventSourceResponse(event_generator())
 
 
 @router.get("/{project_id}/chats", response_model=List[ChatResponse])
@@ -382,3 +273,111 @@ async def get_project_download_zip(
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error accessing zip file: {str(e)}")
+    
+@router.get("/{project_id}/deploy-status/github")
+async def deploy_status_github(
+    team_id: int,
+    project_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = get_project_for_user(db, team_id, project_id, current_user)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
+    has_origin = "origin" in await sandbox.run_command("git remote -v")
+    env_text = await sandbox.run_command("cat /app/.env")
+    has_token = "GITHUB_TOKEN" in env_text
+
+    repo_name = re.search(r"GITHUB_REPO=(.*)", env_text).group(1)
+
+    return JSONResponse(content={"created": has_token and has_origin, "repo_name": repo_name})
+
+@router.post("/{project_id}/deploy-push/github")
+async def deploy_push_github(
+    team_id: int,
+    project_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = get_project_for_user(db, team_id, project_id, current_user)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
+
+    out = await sandbox.run_command("git push -u origin main --force")
+    print(out)
+
+    return JSONResponse(content={"done": True})
+
+
+@router.get("/{project_id}/deploy-create/github")
+async def deploy_create_github(
+    team_id: int,
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    token = request.query_params.get("token")
+    current_user = await get_current_user_from_token(token, db)
+    project = await get_project(team_id, project_id, current_user, db)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    github_token = request.query_params.get("githubToken")
+    if not github_token:
+        raise HTTPException(status_code=400, detail="Missing githubToken")
+    
+    repo_name = project.name.replace(" ", "-").lower()
+
+    async def event_generator():
+
+        sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
+
+        yield {
+            "event": "message",
+            "data": json.dumps({"message": "Creating repository..."}),
+        }
+
+        remotes = await sandbox.run_command("git remote -v")
+        if 'origin' not in remotes:
+
+            create_repo_data= requests.post("https://api.github.com/user/repos", headers={
+                "Authorization": f"Bearer {github_token}",
+                "Accept": "application/vnd.github.v3+json",
+            }, json={
+                "name": repo_name,
+            }).json()
+
+            yield {
+                "event": "message",
+                "data": json.dumps({"message": "Connecting to repository..."}),
+            }
+
+            if 'already exists' in repr(create_repo_data):
+                owner_name = requests.get("https://api.github.com/user", headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                }).json()["login"]
+                full_name = f"{owner_name}/{repo_name}"
+            else:
+                full_name = create_repo_data["full_name"]
+                owner_name = create_repo_data["owner"]["login"]
+
+            await sandbox.run_command(f"git remote add origin https://{owner_name}:{github_token}@github.com/{full_name}.git")
+            yield {
+                "event": "message",
+                "data": json.dumps({"message": "Pushing to repository..."}),
+            }
+            await sandbox.run_command("git branch -M main")
+            await sandbox.run_command("git push -u origin main")
+            await sandbox.run_command(f"echo -n 'GITHUB_TOKEN={github_token}\nGITHUB_REPO={full_name}\nGITHUB_OWNER={owner_name}' >> /app/.env")
+
+        yield {
+            "event": "message",
+            "data": json.dumps({"done": True}),
+        }
+
+    return EventSourceResponse(event_generator())
