@@ -16,6 +16,7 @@
 - 🔌 Support for OpenAI and Anthropic models
 - 📱 Multi-page app generation
 - 📸 Sketch and screenshot uploads
+- 🚀 Deployment to GitHub (+ Netlify, Vercel, etc)
 
 ## Setup
 

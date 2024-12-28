@@ -322,7 +322,11 @@ export function ProjectTab({ project, onSendMessage }) {
           </TabsContent>
 
           <TabsContent value="deploy" className="mt-4">
-            <DeployTab project={project} team={team} />
+            <DeployTab
+              project={project}
+              team={team}
+              onSendMessage={onSendMessage}
+            />
           </TabsContent>
         </Tabs>
 

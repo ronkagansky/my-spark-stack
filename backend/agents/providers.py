@@ -349,6 +349,8 @@ class AnthropicLLMProvider(LLMProvider):
                 elif chunk.type == "message_delta" and chunk.delta.stop_reason == "end_turn":
                     running = False
                     break
+                elif chunk.type == "message_delta" and chunk.delta.stop_reason == "tool_use":
+                    pass
                 else:
                     print(f"Unhandled anthropic chunk: {chunk}")
 

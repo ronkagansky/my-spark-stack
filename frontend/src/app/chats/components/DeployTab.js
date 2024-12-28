@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { GitBranch, Loader2, Rocket } from 'lucide-react';
+import { GitBranch, Loader2, Globe } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { HostingGuideDialog } from './HostingGuideDialog';
 
-export function DeployTab({ project, team }) {
+export function DeployTab({ project, team, onSendMessage }) {
   const [status, setStatus] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
@@ -136,7 +136,7 @@ export function DeployTab({ project, team }) {
           className="w-full mt-4"
           onClick={() => setShowHostingGuide(true)}
         >
-          <Rocket className="mr-2 h-4 w-4" />
+          <Globe className="mr-2 h-4 w-4" />
           How do I host this as a website for free?
         </Button>
 
@@ -144,6 +144,7 @@ export function DeployTab({ project, team }) {
           open={showHostingGuide}
           onOpenChange={setShowHostingGuide}
           repoName={status.repo_name}
+          onSendMessage={onSendMessage}
         />
       </>
     );
