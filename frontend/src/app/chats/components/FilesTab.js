@@ -22,6 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 const FileTreeNode = ({ name, children, level = 0, onSelect, isSelected }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,8 +85,9 @@ export function FilesTab({ projectFileTree, project }) {
   const [fileContent, setFileContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
-  const [treeWidth, setTreeWidth] = useState(256);
+  const [treeWidth, setTreeWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
+  const { toast } = useToast();
 
   const fileTree = useMemo(() => {
     const tree = {};
@@ -112,7 +114,7 @@ export function FilesTab({ projectFileTree, project }) {
     if (!filename || !team || !project) return;
     setSelectedFile(filename);
     setIsLoading(true);
-    setTreeWidth(256);
+    setTreeWidth(200);
     try {
       const response = await api.getProjectFile(team.id, project.id, filename);
       setFileContent(response.content);
@@ -139,7 +141,7 @@ export function FilesTab({ projectFileTree, project }) {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing) return;
-      const newWidth = Math.max(200, Math.min(600, e.clientX));
+      const newWidth = Math.max(160, Math.min(400, e.clientX));
       setTreeWidth(newWidth);
     };
 
@@ -158,26 +160,34 @@ export function FilesTab({ projectFileTree, project }) {
     };
   }, [isResizing]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!team || !project) return;
-    window.open(
-      `/api/teams/${team.id}/projects/${project.id}/app.zip`,
-      '_blank'
-    );
+    try {
+      const { url } = await api.zipProject(team.id, project.id);
+      window.open(url, '_blank');
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Download failed',
+        description:
+          'Failed to download project files. Please try again later.',
+      });
+      console.error('Error downloading project:', error);
+    }
   };
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
-      <div className="flex-1 flex rounded-lg border bg-background shadow-sm">
+      <div className="flex-1 flex rounded-lg border bg-background shadow-sm min-h-0">
         <div
           className={cn(
-            'border-r flex-shrink-0 transition-all duration-300 ease-in-out',
+            'border-r flex-shrink-0 transition-all duration-300 ease-in-out min-h-0',
             isTreeCollapsed ? 'w-0 overflow-hidden' : ''
           )}
           style={{ width: isTreeCollapsed ? 0 : treeWidth }}
         >
-          <div className="h-full flex flex-col">
-            <div className="p-3 border-b flex items-center justify-between bg-muted/40">
+          <div className="h-full flex flex-col min-h-0">
+            <div className="p-3 border-b flex items-center justify-between bg-muted/40 flex-shrink-0">
               <span className="text-sm font-medium">Files</span>
               <TooltipProvider>
                 <Tooltip>
@@ -187,17 +197,20 @@ export function FilesTab({ projectFileTree, project }) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      disabled={!project}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Download Project</p>
+                    <p>
+                      {project ? 'Download Project' : 'No project selected'}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
               <div className="p-3">
                 {Object.entries(fileTree).map(([name, children]) => (
                   <FileTreeNode
@@ -217,7 +230,7 @@ export function FilesTab({ projectFileTree, project }) {
             'flex items-center justify-center transition-all duration-300 ease-in-out',
             isTreeCollapsed
               ? 'w-12 border-r hover:bg-accent/10'
-              : 'w-4 hover:bg-accent cursor-col-resize'
+              : 'w-4 hover:bg-accent cursor-col-resize border-x'
           )}
           onMouseDown={!isTreeCollapsed ? handleMouseDown : undefined}
         >
@@ -259,7 +272,7 @@ export function FilesTab({ projectFileTree, project }) {
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              Select a file to view
+              Select file
             </div>
           )}
         </div>

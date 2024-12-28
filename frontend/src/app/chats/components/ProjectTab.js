@@ -10,6 +10,7 @@ import {
   Loader2,
   RotateCcw,
   Trash2,
+  Rocket,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -407,10 +408,10 @@ export function ProjectTab({ project, onSendMessage }) {
               <GitBranch className="h-4 w-4" />
               History
             </TabsTrigger>
-            {/* <TabsTrigger value="deploy" className="flex items-center gap-2">
+            <TabsTrigger value="deploy" className="flex items-center gap-2">
               <Rocket className="h-4 w-4" />
               Deploy
-            </TabsTrigger> */}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="chats" className="mt-4">

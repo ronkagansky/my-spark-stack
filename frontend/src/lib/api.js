@@ -211,6 +211,10 @@ class ApiClient {
     return this._delete(`/api/teams/${teamId}/members/${userId}`);
   }
 
+  async zipProject(teamId, projectId) {
+    return this._post(`/api/teams/${teamId}/projects/${projectId}/zip`);
+  }
+
   async deployNetlify(teamId, projectId, deployData, onMessage) {
     return this._get_stream(
       `/api/teams/${teamId}/projects/${projectId}/do-deploy/netlify`,

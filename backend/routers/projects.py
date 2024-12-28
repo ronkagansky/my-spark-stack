@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy import and_
 from sse_starlette.sse import EventSourceResponse
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 import json
 import re
 import io
@@ -279,16 +279,16 @@ async def delete_project(
     return {"message": "Project deleted successfully"}
 
 
-@router.get("/{project_id}/app.zip")
-async def get_project_zip(
+@router.post("/{project_id}/zip")
+async def generate_project_zip(
     team_id: int,
     project_id: int,
-   #  current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    # project = get_project_for_user(db, team_id, project_id, current_user)
-    # if project is None:
-    #     raise HTTPException(status_code=404, detail="Project not found")
+    project = get_project_for_user(db, team_id, project_id, current_user)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
     project = db.query(Project).filter(Project.id == project_id).first()
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -305,34 +305,80 @@ async def get_project_zip(
         git_sha = git_sha.strip()[:10]
     git_sha_fn = f"app-{project.id}-{git_sha}.zip".replace(" ", "-")
 
+    # I dont know why but getting it to ignore has been a pain
     exclude_content = """
 **/node_modules/**
 **/.next/**
 **/build/**
+git.log
 **/git.log
-**/tmp/**
-**/.git/**
+tmp
+tmp/
+**/tmp
+**/tmp/
+/tmp
+/tmp/
+.git
+.git/
+**/.git
+**/.git/
 """.strip()
     await sandbox.run_command(f"echo '{exclude_content}' > /tmp/zip-exclude.txt")
     await sandbox.run_command("mkdir -p /app/tmp")
+    
+    # Clean up any tmp directories before zipping
+    await sandbox.run_command("find /app -type d -name 'tmp' -exec rm -rf {} +")
+    
     out = await sandbox.run_command(
         f"cd /app && zip -r /app/tmp/{git_sha_fn} . -x@/tmp/zip-exclude.txt"
     )
-    print("get_project_zip", project_id, out)
-    print(await sandbox.run_command("ls -la /app/tmp"))
 
-    async def _stream_zip():
-        try:
-            async for chunk in sandbox.stream_file_contents(f"/app/tmp/{git_sha_fn}", binary_mode=True):
-                yield chunk
-        finally:
-            # Clean up the zip file after streaming
-            await sandbox.run_command(f"rm -f /tmp/{git_sha_fn}")
+    return JSONResponse(content={"url": f"/api/teams/{team_id}/projects/{project_id}/download-zip?path={git_sha_fn}"})
 
-    return StreamingResponse(
-        _stream_zip(),
-        media_type="application/zip",
-        headers={
-            "Content-Disposition": f'attachment; filename="{git_sha_fn}"'
-        }
-    )
+
+@router.get("/{project_id}/download-zip")
+async def get_project_download_zip(
+    team_id: int,
+    project_id: int,
+    path: str = Query(..., description="Path to the zip file"),
+    db: Session = Depends(get_db),
+):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Validate path format and prevent directory traversal
+    expected_prefix = f"app-{project_id}-"
+    if (
+        not path.startswith(expected_prefix) 
+        or not path.endswith(".zip")
+        or "/" in path 
+        or "\\" in path 
+        or ".." in path
+        or not re.match(r"^app-\d+-[a-f0-9]{1,10}\.zip$", path)
+    ):
+        raise HTTPException(status_code=400, detail="Invalid zip file path")
+
+    try:
+        sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
+        file_size = await sandbox.run_command(f"stat -c%s /app/tmp/{path}")
+        file_size = int(file_size.strip())
+
+        async def _stream_zip():
+            try:
+                async for chunk in sandbox.stream_file_contents(f"/app/tmp/{path}", binary_mode=True):
+                    yield chunk
+            finally:
+                # Clean up the zip file after streaming
+                await sandbox.run_command(f"rm -f /tmp/{path}")
+
+        return StreamingResponse(
+            _stream_zip(),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{path}"',
+                "Content-Length": str(file_size)
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error accessing zip file: {str(e)}")
