@@ -290,7 +290,10 @@ async def deploy_status_github(
     env_text = await sandbox.run_command("cat /app/.env")
     has_token = "GITHUB_TOKEN" in env_text
 
-    repo_name = re.search(r"GITHUB_REPO=(.*)", env_text).group(1)
+    try:
+        repo_name = re.search(r"GITHUB_REPO=(.*)", env_text).group(1)
+    except Exception:
+        repo_name = None
 
     return JSONResponse(content={"created": has_token and has_origin, "repo_name": repo_name})
 
