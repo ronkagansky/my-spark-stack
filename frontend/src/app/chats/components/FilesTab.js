@@ -87,6 +87,7 @@ export function FilesTab({ projectFileTree, project }) {
   const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
   const [treeWidth, setTreeWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
+  const [isZipping, setIsZipping] = useState(false);
   const { toast } = useToast();
 
   const fileTree = useMemo(() => {
@@ -162,6 +163,7 @@ export function FilesTab({ projectFileTree, project }) {
 
   const handleDownload = async () => {
     if (!team || !project) return;
+    setIsZipping(true);
     try {
       const { url } = await api.zipProject(team.id, project.id);
       window.open(url, '_blank');
@@ -173,6 +175,8 @@ export function FilesTab({ projectFileTree, project }) {
           'Failed to download project files. Please try again later.',
       });
       console.error('Error downloading project:', error);
+    } finally {
+      setIsZipping(false);
     }
   };
 
@@ -197,9 +201,13 @@ export function FilesTab({ projectFileTree, project }) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      disabled={!project}
+                      disabled={!project || isZipping}
                     >
-                      <Download className="h-4 w-4" />
+                      {isZipping ? (
+                        <div className="animate-spin h-5 w-5 border-2 border-gray-500 border-t-transparent rounded-full" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>

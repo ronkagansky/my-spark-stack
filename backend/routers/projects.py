@@ -373,7 +373,7 @@ async def deploy_create_github(
             }
             await sandbox.run_command("git branch -M main")
             await sandbox.run_command("git push -u origin main")
-            await sandbox.run_command(f"echo -n 'GITHUB_TOKEN={github_token}\nGITHUB_REPO={full_name}\nGITHUB_OWNER={owner_name}' >> /app/.env")
+            await sandbox.run_command(f"echo -n 'GITHUB_TOKEN={github_token}\nGITHUB_REPO={full_name}\nGITHUB_OWNER={owner_name}\n' >> /app/.env")
 
         yield {
             "event": "message",
