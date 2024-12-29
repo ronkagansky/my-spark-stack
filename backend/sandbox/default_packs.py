@@ -150,8 +150,8 @@ Code Tips:
     ),
     StackPack(
         title="p5.js",
-        description="A simple Nextjs App with p5.js. Best for generative art, games, and simulations.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-p5@sha256:f187aa9a2fdec972d8e8f705920c3c80c97c7ee36454f0f574bc61f624c7a224",
+        description="A simple app with p5.js. Best for generative art, games, and simulations.",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-p5@sha256:3271b97e3096c0f344758ca0444910116e8d07da61ac70f43639c96d911f1110",
         sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -212,6 +212,47 @@ class Ball {
     // ... draw code ...
   }
 } 
+```
+""".strip(),
+        setup_time_seconds=60,
+    ),
+    StackPack(
+        title="Pixi.js",
+        description="A app with Pixi.js. Best for games and animations.",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-pixi@sha256:ef2337594f07f1d0da3111640d8988e1416bd4777332e8a6d3ffd54022973c1c",
+        sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
+        sandbox_start_cmd=_START_NEXT_JS_CMD,
+        prompt="""
+You are building a Pixi.js app within a Next.js app.
+
+The user ONLY wants to build a Pixi.js app, do not attempt to use any Next.js features or other React features.
+
+Already included:
+- Next.js v15 (app already created)
+- Pixi.js v8.6.6
+- Addons: @pixi/mesh-extras
+
+Style Tips:
+- Keep your code clean and readable
+- Use Pixi.js best practices
+
+Structure Tips:
+- ALL changes and features should be in /app/frontend/app/src/pixi/*.js
+- At all times, /app/frontend/app/src/pixi/app.js should include "new Application()" and "await app.init(...)"
+
+```javascript
+// /app/frontend/app/src/pixi/app.js
+// example app.js
+import { Application, Assets, Graphics, MeshRope, Point } from 'pixi.js';
+
+(async () =>
+{
+    const app = new Application();
+    await app.init({ resizeTo: window });
+    document.body.appendChild(app.canvas);
+
+    // ... pixi code ...
+})();
 ```
 """.strip(),
         setup_time_seconds=60,
