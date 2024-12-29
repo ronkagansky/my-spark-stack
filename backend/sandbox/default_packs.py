@@ -151,7 +151,7 @@ Code Tips:
     StackPack(
         title="p5.js",
         description="A simple Nextjs App with p5.js. Best for generative art and physics.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-p5@sha256:c9be3512e33cc9fa6bc57ab12aba14dd4f3911496a5bd7085d1793385537b6fe",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-p5@sha256:f187aa9a2fdec972d8e8f705920c3c80c97c7ee36454f0f574bc61f624c7a224",
         sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""

@@ -67,11 +67,14 @@ async def maintain_prepared_sandboxes(db: Session):
         (PreparedSandbox.pack_hash.notin_(latest_stack_hashes)) |
         (PreparedSandbox.pack_hash.is_(None))
     ).all()
-    print(f"Deleting {len(psboxes_to_delete)} prepared sandboxes with stale hashes")
-    for psbox in psboxes_to_delete:
-        db.delete(psbox)
-        db.commit()
-        await modal.Volume.delete.aio(label=psbox.modal_volume_label)
+    if len(psboxes_to_delete) > 0:
+        print(
+            f"Deleting {len(psboxes_to_delete)} prepared sandboxes with stale hashes"
+        )
+        for psbox in psboxes_to_delete:
+            db.delete(psbox)
+            db.commit()
+            await modal.Volume.delete.aio(label=psbox.modal_volume_label)
 
 
 @task_handler()
