@@ -81,7 +81,7 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
         new_content = await _apply_smart_diff(
             original_content, change.diff, "\n".join([f" - {t}" for t in tips])
         )
-        print(f"Applying smart diff to {change.path}")
+        print(f"Applying smart diff to {change.path}, reasons: {skip_conditions}")
         return FileChange(
             path=change.path,
             diff=change.diff,

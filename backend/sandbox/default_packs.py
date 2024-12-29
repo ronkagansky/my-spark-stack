@@ -81,6 +81,7 @@ Already included:
 - Next.js v15 (app already created)
 - tailwindcss
 - `npm install` already run for these
+- /app/.env, /app/.git
 
 Style Tips:
 - Use inline tailwind classes over custom css
@@ -123,6 +124,7 @@ Already included:
 - recharts v2.13
 - All shadcn components are already installed (import them like `@/components/ui/button`)
 - `npm install` already run for these
+- /app/.env, /app/.git
 
 Style Tips:
 - Use inline tailwind classes over custom css
@@ -163,6 +165,7 @@ Already included:
 - Next.js v15 (app already created)
 - p5.js v1.11.2
 - Addons: p5.sound.min.js, p5.collide2d
+- /app/.env, /app/.git
 
 Style Tips:
 - Keep your code clean and readable
@@ -231,6 +234,7 @@ Already included:
 - Next.js v15 (app already created)
 - Pixi.js v8.6.6
 - Addons: @pixi/mesh-extras
+- /app/.env, /app/.git
 
 Style Tips:
 - Keep your code clean and readable
