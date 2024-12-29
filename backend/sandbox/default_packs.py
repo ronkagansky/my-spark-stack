@@ -150,7 +150,7 @@ Code Tips:
     StackPack(
         title="p5.js",
         description="A simple Nextjs App with p5.js. Best for generative art and physics.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:3263c87182a8ba416a7a47ca912525157de1430059164c58c2e667ec76e9a147",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-p5@sha256:3263c87182a8ba416a7a47ca912525157de1430059164c58c2e667ec76e9a147",
         sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -168,11 +168,12 @@ Style Tips:
 - Use p5.js best practices
 
 Structure Tips:
-- ALL of your changes should pretty much be on /app/frontend/public/sketch.js
+- ALL changes and features should be in /app/frontend/public/sketch.js
 - At all times, sketch.js should include setup() windowResized() and draw() functions
 - If the user wants to add a p5.js addon, edit layout.js to add a new <Script> (following existing scripts in that files)
 
 ```javascript
+// /app/frontend/public/sketch.js
 // example sketch.js
 ... variables ...
 
