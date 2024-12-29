@@ -92,10 +92,15 @@ Respond with <output-format> without the tags.
     user_prompt = seed_prompt
     content = await chat_complete(system_prompt, user_prompt)
     try:
-        stack = re.search(r"stack: (.*)", content).group(1)
-        stack = stack.strip().lower().replace(" ", "")
-        if stack not in [t.strip().lower().replace(" ", "") for t in stack_titles]:
-            raise Exception(f"Stack {stack} not found in {stack_titles}")
+        # Extract stack from response
+        stack = re.search(r"stack: (.*)", content).group(1).strip()
+        
+        # Create a mapping of normalized titles to original titles
+        stack_map = {title.lower().replace(" ", ""): title for title in stack_titles}
+        
+        # Try to find the stack in our normalized mapping
+        normalized_input = stack.lower().replace(" ", "")
+        return stack_map.get(normalized_input, default)
+        
     except Exception:
-        stack = default
-    return stack
+        return default
