@@ -47,6 +47,14 @@ async def get_chat(
     return chat
 
 
+def _pick_stack(db: Session, seed_prompt: str) -> Stack:
+    # TODO: AI
+    title = "Next.js Shadcn"
+    if "p5" in seed_prompt.lower():
+        title = "p5.js"
+    return db.query(Stack).filter(Stack.title == title).first()
+
+
 @router.post("", response_model=ChatResponse)
 async def create_chat(
     chat: ChatCreate,
@@ -63,8 +71,7 @@ async def create_chat(
     team_id = team.id
 
     if chat.stack_id is None:
-        # TODO: AI
-        stack = db.query(Stack).filter(Stack.title == "Next.js Shadcn").first()
+        stack = _pick_stack(db, chat.seed_prompt)
     else:
         stack = db.query(Stack).filter(Stack.id == chat.stack_id).first()
         if stack is None:
