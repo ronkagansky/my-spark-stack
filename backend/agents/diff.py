@@ -64,7 +64,7 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
         for pattern, tip in _DIFF_TIPS.items():
             if re.search(pattern, change.diff):
                 tips.append(tip)
-        if "existing code" not in change.diff and len(tips) == 0:
+        if "existing code" not in change.diff and "... existing" not in change.diff and len(tips) == 0:
             return change
         try:
             original_content = await sandbox.read_file_contents(change.path)
