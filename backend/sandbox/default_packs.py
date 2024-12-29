@@ -27,6 +27,7 @@ fi
 
 git config --global user.email 'bot@prompt-stack.sshh.io'
 git config --global user.name 'Prompt Stack Bot'
+git config --global init.defaultBranch main
 if [ ! -d ".git" ]; then
     git init
     git config --global init.defaultBranch main
@@ -161,7 +162,7 @@ The user ONLY wants to build a p5.js sketch, do not attempt to use any Next.js f
 Already included:
 - Next.js v15 (app already created)
 - p5.js v1.11.2
-- Some common addons
+- Addons: p5.sound.min.js, p5.collide2d
 
 Style Tips:
 - Keep your code clean and readable

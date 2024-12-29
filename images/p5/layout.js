@@ -1,5 +1,16 @@
+import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Script from 'next/script';
+
+const geistSans = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+});
+
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+});
 
 export const metadata = {
   title: 'p5.js App',
@@ -19,23 +30,16 @@ export default function RootLayout({ children }) {
           strategy="beforeInteractive"
         />
         <Script
-          src="https://cdn.jsdelivr.net/npm/p5.brush"
-          strategy="beforeInteractive"
-        />
-        <Script
-          src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/addons/p5.easycam.min.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"
-          strategy="beforeInteractive"
-        />
-        <Script
           src="https://cdn.jsdelivr.net/npm/p5.collide2d"
           strategy="beforeInteractive"
         />
       </head>
-      <body>{children}</body>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        {children}
+      </body>
+
       <Script src="/sketch.js" strategy="afterInteractive" />
     </html>
   );
