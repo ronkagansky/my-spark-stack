@@ -70,7 +70,7 @@ PACKS = [
     StackPack(
         title="Next.js",
         description="A simple Nextjs App. Best for starting from scratch with minimal components.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:39e137085f0c7b0ff0d8018a70ae3e52724dfc20e3a62a65cf3f9f2bfeea6dac",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:293b552ccb5a72ec6d0f87fa85b7be17c68469991d9fcb4989dce98527bee95d",
         sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -109,7 +109,7 @@ Code Tips:
     StackPack(
         title="Next.js Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:437d5ce8ac2074535aef4cc4fbf6b5e1091287fe625cafe303713ca38f0de314",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:69fb8314ae636edd622cc73242a1d4b5e2846de952849daeb99dd72e48040d49",
         sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -146,6 +146,52 @@ Code Tips:
     1. $ npm install react-leaflet leaflet
     2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
 - If you need placeholder images, use https://prompt-stack.sshh.io/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a rand image)
+""".strip(),
+        setup_time_seconds=60,
+    ),
+    StackPack(
+        title="p5.js",
+        description="A simple Nextjs App with p5.js. Best for generative art and physics.",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:3263c87182a8ba416a7a47ca912525157de1430059164c58c2e667ec76e9a147",
+        sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
+        sandbox_start_cmd=_START_NEXT_JS_CMD,
+        prompt="""
+You are building a p5.js sketch within a Next.js app.
+
+The user ONLY wants to build a p5.js sketch, do not attempt to use any Next.js features or other React features.
+
+Already included:
+- Next.js v15 (app already created)
+- p5.js v1.11.2
+- Some common addons
+
+Style Tips:
+- Keep your code clean and readable
+- Use p5.js best practices
+
+Structure Tips:
+- ALL of your changes should pretty much be on /app/frontend/public/sketch.js
+- At all times, sketch.js should include setup() windowResized() and draw() functions
+- If the user wants to add a p5.js addon, edit layout.js to add a new <Script> (following existing scripts in that files)
+
+```javascript
+// example sketch.js
+... variables ...
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  ...
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+function draw() {
+  background(0);
+  ...
+}
+```
 """.strip(),
         setup_time_seconds=60,
     ),
