@@ -69,6 +69,7 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
             "existing code" not in change.diff,
             "... existing" not in change.diff,
             "the same..." not in change.diff,
+            "... rest" not in change.diff,
             len(tips) == 0
         ]
         if all(skip_conditions):
