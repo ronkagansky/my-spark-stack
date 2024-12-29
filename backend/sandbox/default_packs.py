@@ -169,7 +169,9 @@ Style Tips:
 - Use p5.js best practices
 
 Structure Tips:
-- ALL changes and features should be in /app/frontend/public/sketch.js
+- ALL changes and features should be in /app/frontend/public/{sketch,helpers,objects}.js
+- Organize "objects" (balls, items, etc) into objects.js
+- Organize "utils" (utility functions, etc) into helpers.js
 - At all times, sketch.js should include setup() windowResized() and draw() functions
 - If the user wants to add a p5.js addon, edit layout.js to add a new <Script> (following existing scripts in that files)
 
@@ -191,6 +193,25 @@ function draw() {
   background(0);
   ...
 }
+```
+
+```javascript
+// /app/frontend/public/objects.js
+// example objects.js
+
+class Ball {
+  constructor(x, y, size = 30) {
+    // ... init code ...
+  }
+
+  update() {
+    // ... update code ...
+  }
+
+  draw() {
+    // ... draw code ...
+  }
+} 
 ```
 """.strip(),
         setup_time_seconds=60,

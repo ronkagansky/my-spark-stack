@@ -33,6 +33,8 @@ export default function RootLayout({ children }) {
           src="https://cdn.jsdelivr.net/npm/p5.collide2d"
           strategy="beforeInteractive"
         />
+        <Script src="/helpers.js" strategy="beforeInteractive" />
+        <Script src="/objects.js" strategy="beforeInteractive" />
         <Script src="/sketch.js" strategy="beforeInteractive" />
       </head>
       <body

@@ -19,12 +19,16 @@ RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-
     cd frontend && \
     npm run build
 
-RUN curl -o /frontend/public/sketch.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/sketch.js && \
-    curl -o /frontend/src/app/globals.css https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/globals.css && \
-    curl -o /frontend/src/app/layout.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/layout.js && \
-    curl -o /frontend/src/app/page.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/page.js
+RUN curl -o /frontend/public/sketch.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/public/sketch.js && \
+    curl -o /frontend/public/helpers.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/public/helpers.js && \
+    curl -o /frontend/public/objects.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/public/objects.js && \
+    curl -o /frontend/src/app/globals.css https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/src/app/globals.css && \
+    curl -o /frontend/src/app/layout.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/src/app/layout.js && \
+    curl -o /frontend/src/app/page.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/p5/src/app/page.js && \
+    rm -rf /frontend/public/*.svg
 
 RUN ls -asl /frontend && \
+    ls -asl /frontend/public && \
     ls -asl /frontend/src/app && \
     cat /frontend/package.json
 
