@@ -19,6 +19,8 @@ RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-
     cd frontend && \
     npm run build
 
+RUN curl -o /frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/next.config.mjs.example
+
 RUN ls -asl /frontend && \
     cat /frontend/package.json
 

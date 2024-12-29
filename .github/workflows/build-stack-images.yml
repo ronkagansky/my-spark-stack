@@ -21,6 +21,8 @@ jobs:
             dockerfile: images/NextjsShadcnDockerFile
           - name: nextjs-vanilla
             dockerfile: images/NextjsVanillaDockerFile
+          - name: nextjs-p5
+            dockerfile: images/NextjsP5DockerFile
     name: Build ${{ matrix.app.name }} Image
     runs-on: ubuntu-latest
     permissions:
