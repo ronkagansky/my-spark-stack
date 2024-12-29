@@ -52,6 +52,8 @@ def _pick_stack(db: Session, seed_prompt: str) -> Stack:
     title = "Next.js Shadcn"
     if "p5" in seed_prompt.lower():
         title = "p5.js"
+    if "pixi" in seed_prompt.lower():
+        title = "Pixi.js"
     return db.query(Stack).filter(Stack.title == title).first()
 
 
