@@ -39,6 +39,7 @@ import {
 const STARTER_PROMPTS = [
   'Build a 90s themed cat facts app with catfact.ninja API',
   'Build a modern control panel for a spaceship',
+  'Build a basic p5.js asteroid game',
 ];
 
 const EmptyState = ({
