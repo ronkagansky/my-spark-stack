@@ -1,6 +1,6 @@
 import datetime
 import re
-from typing import Tuple
+from typing import List, Tuple
 
 from config import FAST_MODEL, MAIN_MODEL, FAST_PROVIDER
 from agents.providers import LLM_PROVIDERS
@@ -65,3 +65,37 @@ async def write_commit_message(content: str) -> str:
         "You are a helpful assistant that writes commit messages for git. Given the following changes, write a commit message for the changes. Respond only with the commit message. Do not use quotes or special characters.",
         content[:100000],
     )
+
+
+async def pick_stack(seed_prompt: str, stack_titles: List[str], default: str) -> str:
+    system_prompt = f"""
+You are a helpful full-stack developer helping advise a user on which stack to use.
+
+Stacks: {stack_titles}
+
+User prompt: {repr(seed_prompt)}
+
+Tips:
+- Strongly lean towards `Next.js Shadcn` for apps, websites, etc.
+- Strongly lean towards `p5.js` for generative art, games, simulations, etc.
+- Use other stacks unless theirs a very clear reason to not use Shadcn or p5.js
+
+Describe what they might need briefly and then pick the stack that best fits their needs.
+
+<output-format>
+reasoning: ...
+stack: ...
+</output-format>
+
+Respond with <output-format> without the tags.
+"""
+    user_prompt = seed_prompt
+    content = await chat_complete(system_prompt, user_prompt)
+    try:
+        stack = re.search(r"stack: (.*)", content).group(1)
+        stack = stack.strip().lower().replace(" ", "")
+        if stack not in [t.strip().lower().replace(" ", "") for t in stack_titles]:
+            raise Exception(f"Stack {stack} not found in {stack_titles}")
+    except Exception:
+        stack = default
+    return stack

@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 from db.database import get_db
 from db.models import User, Chat, Team, Project, Stack
 from db.queries import get_chat_for_user
-from agents.prompts import name_chat
+from agents.prompts import name_chat, pick_stack
 from sandbox.sandbox import DevSandbox
 from config import CREDITS_CHAT_COST, PROJECTS_SET_NEVER_CLEANUP
 from schemas.models import ChatCreate, ChatUpdate, ChatResponse
@@ -47,13 +47,15 @@ async def get_chat(
     return chat
 
 
-def _pick_stack(db: Session, seed_prompt: str) -> Stack:
-    # TODO: AI
-    title = "Next.js Shadcn"
+async def _pick_stack(db: Session, seed_prompt: str) -> Stack:
     if "p5" in seed_prompt.lower():
         title = "p5.js"
-    if "pixi" in seed_prompt.lower():
+    elif "pixi" in seed_prompt.lower():
         title = "Pixi.js"
+    else:
+        title = await pick_stack(
+            seed_prompt, [s.title for s in db.query(Stack).all()], default="Next.js Shadcn"
+        )
     return db.query(Stack).filter(Stack.title == title).first()
 
 
@@ -73,7 +75,7 @@ async def create_chat(
     team_id = team.id
 
     if chat.stack_id is None:
-        stack = _pick_stack(db, chat.seed_prompt)
+        stack = await _pick_stack(db, chat.seed_prompt)
     else:
         stack = db.query(Stack).filter(Stack.id == chat.stack_id).first()
         if stack is None:
