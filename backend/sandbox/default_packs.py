@@ -56,8 +56,6 @@ fi
 set -a
 [ -f /app/.env ] && . /app/.env
 set +a
-
-curl -o /app/frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/next.config.mjs.example
 """.strip()
 
 _START_NEXT_JS_CMD = f"""
