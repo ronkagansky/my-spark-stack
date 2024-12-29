@@ -66,7 +66,7 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
             if re.search(pattern, change.diff):
                 tips.append(tip)
         skip_conditions = [
-            "... keep" in change.diff,
+            "... keep" not in change.diff,
             "... existing" not in change.diff,
             "... rest" not in change.diff,
             "the same..." not in change.diff,
