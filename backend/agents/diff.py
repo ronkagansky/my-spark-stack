@@ -36,7 +36,7 @@ You are a senior software engineer that applies code changes to a file. Given th
 - You must apply the <adjustments> provided even if this conflicts with the original diff
 - You must follow instructions from within comments in <diff> (e.g. <!-- remove this -->)
 - You must maintain the layout of the file especially in languages/formats where it matters
-- Ensure you maintain sections of the original file when the diff has "... existing code ..." or other similar instructions
+- Ensure you maintain sections of the original file IF the diff denotes them with "... existing code ..." or other similar comment-based instructions
 
 Respond ONLY with the updated content (no code blocks or other formatting).
 """.strip(),
