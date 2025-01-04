@@ -4,7 +4,17 @@ $ alembic revision --autogenerate -m "..."
 $ alembic upgrade head
 """
 
-from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum, ARRAY, Boolean
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    ForeignKey,
+    Text,
+    DateTime,
+    Enum,
+    ARRAY,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
@@ -145,6 +155,8 @@ class Chat(TimestampMixin, Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    is_public = Column(Boolean, nullable=False, default=False)
+    public_share_id = Column(String, unique=True, nullable=True, index=True)
 
     # Relationships
     project = relationship("Project", back_populates="chats")

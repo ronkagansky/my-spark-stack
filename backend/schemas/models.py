@@ -71,6 +71,8 @@ class ChatResponse(BaseModel):
     updated_at: Optional[datetime] = None
     messages: Optional[List[MessageResponse]] = None
     project: Optional[ProjectResponse] = None
+    is_public: bool
+    public_share_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -119,6 +121,7 @@ class AuthResponse(BaseModel):
 class ChatUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    is_public: Optional[bool] = None
 
 
 class ProjectUpdate(BaseModel):
