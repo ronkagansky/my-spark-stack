@@ -25,6 +25,11 @@ if [ ! -d 'frontend' ]; then
     cp -r /frontend .; 
 fi
 
+if [ -f /app/frontend/package.json ]; then
+    cat /app/frontend/package.json
+    ls -l /app/frontend
+fi
+
 git config --global user.email 'bot@prompt-stack.sshh.io'
 git config --global user.name 'Prompt Stack Bot'
 git config --global init.defaultBranch main
