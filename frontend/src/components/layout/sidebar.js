@@ -11,6 +11,7 @@ import {
   Pencil,
   Trash2,
   MessageCircle,
+  BookOpen,
 } from 'lucide-react';
 import { useUser } from '@/context/user-context';
 import { useRouter } from 'next/navigation';
@@ -147,6 +148,22 @@ export const Sidebar = () => {
               <MessageCircle className="mr-2 h-4 w-4" />
               Feedback
             </Button>
+            {process.env.NEXT_PUBLIC_HIDE_BLOG_BUTTON !== 'true' && (
+              <Button
+                variant="outline"
+                className="w-full justify-start mt-2"
+                size="sm"
+                onClick={() =>
+                  window.open(
+                    'https://blog.sshh.io/p/building-v0-in-a-weekend',
+                    '_blank'
+                  )
+                }
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                Dev Blog
+              </Button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             <div className="space-y-4">

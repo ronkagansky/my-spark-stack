@@ -98,7 +98,7 @@ export function HostingGuideDialog({
                   className="bg-muted p-2 rounded text-sm cursor-pointer border-2 border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/80 transition-all flex flex-col group"
                   onClick={() =>
                     onSendMessage({
-                      content: `Please create (or update) /app/frontend/netlify.toml with:
+                      content: `If this is a NextJS project (ignore if not), please create (or update) /app/frontend/netlify.toml with:
 
 [[plugins]]
 package = "@netlify/plugin-nextjs"`,

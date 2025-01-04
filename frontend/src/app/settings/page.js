@@ -183,6 +183,29 @@ function SettingsContent() {
     }
   };
 
+  const handleBuyCredits = () => {
+    if (!user?.email) {
+      if (
+        !confirm(
+          'It is strongly recommended to set an email address for account recovery before making purchases. Click OK to proceed anyway, or Cancel to set your email first.'
+        )
+      ) {
+        setIsEditing(true);
+        // Scroll to user settings card
+        document
+          .querySelector('.space-y-8')
+          ?.firstElementChild?.scrollIntoView({
+            behavior: 'smooth',
+          });
+        return;
+      }
+    }
+    window.location.href = `${
+      process.env.NEXT_PUBLIC_STRIPE_LINK ||
+      'https://buy.stripe.com/28odUpcNb0Xm4ww8wz'
+    }?client_reference_id=promptstack___team_${team.id}`;
+  };
+
   return (
     <div className="flex h-screen">
       {/* Toggle Button */}
@@ -398,9 +421,7 @@ function SettingsContent() {
                             <Button
                               variant="secondary"
                               size="default"
-                              onClick={() =>
-                                (window.location.href = `https://buy.stripe.com/28odUpcNb0Xm4ww8wz?client_reference_id=promptstack___team_${team.id}`)
-                              }
+                              onClick={handleBuyCredits}
                             >
                               <PlusCircleIcon className="h-4 w-4 mr-2" />
                               Buy More Credits
