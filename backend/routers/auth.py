@@ -13,6 +13,29 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 API_KEY_HEADER = APIKeyHeader(name="Authorization")
 
+# List of forbidden phrases in usernames
+FORBIDDEN_USERNAME_PHRASES = [
+    "admin",
+    "root",
+    "system",
+    "superuser",
+    "administrator",
+    "moderator",
+    "support",
+    "security",
+    "promptstack",
+]
+
+
+def _validate_username(username: str) -> None:
+    """Validate username doesn't contain forbidden phrases."""
+    username_lower = username.lower()
+    for phrase in FORBIDDEN_USERNAME_PHRASES:
+        if phrase in username_lower:
+            raise HTTPException(
+                status_code=400, detail=f"Username cannot contain the phrase '{phrase}'"
+            )
+
 
 async def get_current_user_from_token(
     token: str = Security(API_KEY_HEADER), db: Session = Depends(get_db)
@@ -34,6 +57,9 @@ async def get_current_user_from_token(
 
 @router.post("/create", response_model=AuthResponse)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    # Validate username doesn't contain forbidden phrases
+    _validate_username(user.username)
+
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
