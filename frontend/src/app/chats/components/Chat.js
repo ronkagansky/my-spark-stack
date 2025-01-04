@@ -50,18 +50,18 @@ const EmptyState = ({
   projects,
   onProjectSelect,
 }) => (
-  <div className="flex flex-col items-center justify-center h-full">
-    <div className="max-w-md w-full space-y-4">
+  <div className="flex flex-col items-center justify-center min-h-0 h-full overflow-hidden">
+    <div className="max-w-md w-full space-y-4 p-4">
       <Select
         value={selectedProject}
         onValueChange={(value) => {
           onProjectSelect(value);
         }}
       >
-        <SelectTrigger className="w-full py-10">
+        <SelectTrigger className="w-full py-9">
           <SelectValue placeholder="Select a Project" />
         </SelectTrigger>
-        <SelectContent className="max-h-[500px] w-full">
+        <SelectContent className="max-h-[40vh] w-full overflow-y-auto">
           {[
             {
               id: null,
@@ -92,10 +92,10 @@ const EmptyState = ({
             onStackSelect(value);
           }}
         >
-          <SelectTrigger className="w-full py-10">
+          <SelectTrigger className="w-full py-9">
             <SelectValue placeholder="Select a Stack" />
           </SelectTrigger>
-          <SelectContent className="max-h-[500px] w-full">
+          <SelectContent className="max-h-[40vh] w-full overflow-y-auto">
             {[
               {
                 id: null,
