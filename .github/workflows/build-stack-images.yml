@@ -29,8 +29,25 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: ${{ (inputs.stack == 'all' && fromJSON('[{"name":"angular-vanilla","dockerfile":"images/AngularVanillaDockerFile"},{"name":"nextjs-shadcn","dockerfile":"images/NextjsShadcnDockerFile"},{"name":"nextjs-vanilla","dockerfile":"images/NextjsVanillaDockerFile"},{"name":"nextjs-p5","dockerfile":"images/NextjsP5DockerFile"},{"name":"nextjs-pixi","dockerfile":"images/NextjsPixiDockerFile"}]')) || fromJSON(format('[{"name":"%s","dockerfile":"images/%sDockerFile"}]', inputs.stack, replace(inputs.stack, '-', ''))) }}
-    name: Build ${{ matrix.app.name }} Image
+        include: ${{
+          inputs.stack == 'all'
+          && fromJSON('[
+          {"name":"angular-vanilla","dockerfile":"images/AngularVanillaDockerFile"},
+          {"name":"nextjs-shadcn","dockerfile":"images/NextjsShadcnDockerFile"},
+          {"name":"nextjs-vanilla","dockerfile":"images/NextjsVanillaDockerFile"},
+          {"name":"nextjs-p5","dockerfile":"images/NextjsP5DockerFile"},
+          {"name":"nextjs-pixi","dockerfile":"images/NextjsPixiDockerFile"}
+          ]')
+          || fromJSON(format('[{"name":"%s","dockerfile":"images/%sDockerFile"}]',
+          inputs.stack,
+          inputs.stack == 'angular-vanilla' && 'AngularVanilla'
+          || inputs.stack == 'nextjs-shadcn' && 'NextjsShadcn'
+          || inputs.stack == 'nextjs-vanilla' && 'NextjsVanilla'
+          || inputs.stack == 'nextjs-p5' && 'NextjsP5'
+          || inputs.stack == 'nextjs-pixi' && 'NextjsPixi'
+          ))
+          }}
+    name: Build ${{ matrix.include.name }} Image
     permissions:
       contents: read
       packages: write
@@ -50,7 +67,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-pack-${{ matrix.app.name }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-pack-${{ matrix.include.name }}
           tags: |
             type=raw,value=${{ inputs.tag }}
 
@@ -58,7 +75,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: frontend
-          file: ${{ matrix.app.dockerfile }}
+          file: ${{ matrix.include.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
