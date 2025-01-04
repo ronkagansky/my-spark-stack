@@ -36,24 +36,24 @@ jobs:
   build-and-push:
     strategy:
       matrix:
-        app:
+        include:
           - name: nextjs-shadcn
             dockerfile: images/NextjsShadcnDockerFile
-            input: build_nextjs_shadcn
+            condition: ${{ inputs.build_nextjs_shadcn }}
           - name: nextjs-vanilla
             dockerfile: images/NextjsVanillaDockerFile
-            input: build_nextjs_vanilla
+            condition: ${{ inputs.build_nextjs_vanilla }}
           - name: nextjs-p5
             dockerfile: images/NextjsP5DockerFile
-            input: build_nextjs_p5
+            condition: ${{ inputs.build_nextjs_p5 }}
           - name: nextjs-pixi
             dockerfile: images/NextjsPixiDockerFile
-            input: build_nextjs_pixi
+            condition: ${{ inputs.build_nextjs_pixi }}
           - name: angular-vanilla
             dockerfile: images/AngularVanillaDockerFile
-            input: build_angular_vanilla
-    if: ${{ inputs[format('{0}', matrix.app.input)] == 'true' }}
-    name: Build ${{ matrix.app.name }} Image
+            condition: ${{ inputs.build_angular_vanilla }}
+    if: ${{ matrix.condition == 'true' }}
+    name: Build ${{ matrix.name }} Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,7 +74,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-pack-${{ matrix.app.name }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-pack-${{ matrix.name }}
           tags: |
             type=raw,value=${{ inputs.tag }}
 
@@ -82,7 +82,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: frontend
-          file: ${{ matrix.app.dockerfile }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
