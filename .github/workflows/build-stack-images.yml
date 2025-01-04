@@ -8,6 +8,26 @@ on:
         required: false
         default: 'latest'
         type: string
+      build_nextjs_shadcn:
+        description: 'Build Next.js Shadcn Image'
+        type: boolean
+        default: false
+      build_nextjs_vanilla:
+        description: 'Build Next.js Vanilla Image'
+        type: boolean
+        default: false
+      build_nextjs_p5:
+        description: 'Build Next.js P5 Image'
+        type: boolean
+        default: false
+      build_nextjs_pixi:
+        description: 'Build Next.js Pixi Image'
+        type: boolean
+        default: false
+      build_angular_vanilla:
+        description: 'Build Angular Vanilla Image'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -19,14 +39,20 @@ jobs:
         app:
           - name: nextjs-shadcn
             dockerfile: images/NextjsShadcnDockerFile
+            input: build_nextjs_shadcn
           - name: nextjs-vanilla
             dockerfile: images/NextjsVanillaDockerFile
+            input: build_nextjs_vanilla
           - name: nextjs-p5
             dockerfile: images/NextjsP5DockerFile
+            input: build_nextjs_p5
           - name: nextjs-pixi
             dockerfile: images/NextjsPixiDockerFile
+            input: build_nextjs_pixi
           - name: angular-vanilla
             dockerfile: images/AngularVanillaDockerFile
+            input: build_angular_vanilla
+    if: ${{ inputs[matrix.app.input] == true }}
     name: Build ${{ matrix.app.name }} Image
     runs-on: ubuntu-latest
     permissions:
