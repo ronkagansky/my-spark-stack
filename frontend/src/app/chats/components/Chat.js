@@ -58,7 +58,7 @@ const EmptyState = ({
           onProjectSelect(value);
         }}
       >
-        <SelectTrigger className="w-full py-9">
+        <SelectTrigger className="w-full py-8 md:py-9">
           <SelectValue placeholder="Select a Project" />
         </SelectTrigger>
         <SelectContent className="max-h-[40vh] w-full overflow-y-auto">
@@ -92,7 +92,7 @@ const EmptyState = ({
             onStackSelect(value);
           }}
         >
-          <SelectTrigger className="w-full py-9">
+          <SelectTrigger className="w-full py-8 md:py-9">
             <SelectValue placeholder="Select a Stack" />
           </SelectTrigger>
           <SelectContent className="max-h-[40vh] w-full overflow-y-auto">

@@ -141,8 +141,8 @@ export function PreviewTab({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>
-                    This preview URL is temporary and will change when the project
-                    is rebooted
+                    This preview URL is temporary and will change when the
+                    project is rebooted
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -157,7 +157,7 @@ export function PreviewTab({
         <div
           className="w-full h-full flex items-start justify-center p-4"
           style={{
-            minHeight: viewport === 'full' ? '100%' : 'auto'
+            minHeight: viewport === 'full' ? '100%' : 'auto',
           }}
         >
           <div
@@ -176,7 +176,10 @@ export function PreviewTab({
               src={`${projectPreviewUrl}${debouncedPath}`}
               style={{
                 ...viewportStyles[viewport],
-                height: viewport === 'full' ? '100%' : viewportStyles[viewport].height
+                height:
+                  viewport === 'full'
+                    ? '100%'
+                    : viewportStyles[viewport].height,
               }}
               className="border shadow-sm bg-white"
               title="Project Preview"

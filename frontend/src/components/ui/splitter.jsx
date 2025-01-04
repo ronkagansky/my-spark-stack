@@ -5,7 +5,7 @@ const Splitter = ({
   className = '',
   minLeftWidth = 300,
   minRightWidth = 50,
-  defaultLeftWidth = '70%'
+  defaultLeftWidth = '70%',
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [leftWidth, setLeftWidth] = useState(defaultLeftWidth);
@@ -16,6 +16,14 @@ const Splitter = ({
   const handleMouseDown = (e) => {
     e.preventDefault();
     setIsDragging(true);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  };
+
+  const handleTouchStart = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    document.body.style.userSelect = 'none';
   };
 
   useEffect(() => {
@@ -24,40 +32,74 @@ const Splitter = ({
 
       const container = containerRef.current;
       const containerRect = container.getBoundingClientRect();
-      const newLeftWidth = e.clientX - containerRect.left;
+      const newLeftWidth = Math.max(
+        minLeftWidth,
+        Math.min(
+          e.clientX - containerRect.left,
+          containerRect.width - minRightWidth
+        )
+      );
 
-      // Calculate the right width based on the new left width
-      const rightWidth = containerRect.width - newLeftWidth;
+      setLeftWidth(newLeftWidth);
+    };
 
-      // Only update if both panes meet minimum width requirements
-      if (newLeftWidth >= minLeftWidth && rightWidth >= minRightWidth) {
-        setLeftWidth(`${(newLeftWidth / containerRect.width) * 100}%`);
-      }
+    const handleTouchMove = (e) => {
+      if (!isDragging || !containerRef.current) return;
+
+      const touch = e.touches[0];
+      const container = containerRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const newLeftWidth = Math.max(
+        minLeftWidth,
+        Math.min(
+          touch.clientX - containerRect.left,
+          containerRect.width - minRightWidth
+        )
+      );
+
+      setLeftWidth(newLeftWidth);
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      document.body.style.userSelect = '';
     };
 
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isDragging, minLeftWidth, minRightWidth]);
 
   const [leftChild, rightChild] = React.Children.toArray(children);
 
   return (
-    <div ref={containerRef} className={`flex h-full w-full ${className}`}>
+    <div
+      ref={containerRef}
+      className={`flex h-full w-full select-none ${className}`}
+      style={{ cursor: isDragging ? 'col-resize' : 'default' }}
+    >
       <div
         ref={leftPaneRef}
         className="flex-shrink-0"
-        style={{ width: leftWidth }}
+        style={{
+          width: typeof leftWidth === 'number' ? `${leftWidth}px` : leftWidth,
+        }}
       >
         {leftChild}
       </div>
@@ -67,6 +109,7 @@ const Splitter = ({
           isDragging ? 'bg-primary/10' : ''
         }`}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
       >
         <div className="absolute inset-y-0 -left-2 right-2 cursor-col-resize" />
       </div>
