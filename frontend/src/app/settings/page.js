@@ -8,6 +8,8 @@ import {
   MenuIcon,
   PlusCircleIcon,
   Pencil,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -34,10 +36,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTheme } from '@/context/theme-context';
 
 // Create a client component that uses useSearchParams
 function SettingsContent() {
   const { user, team, teams, refreshUser, refreshTeams } = useUser();
+  const { theme, setTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedEmail, setEditedEmail] = useState(user?.email || '');
   const [isEditingTeam, setIsEditingTeam] = useState(false);
@@ -309,6 +313,38 @@ function SettingsContent() {
                           </label>
                           <div className="text-base">
                             {user?.email || '(not set)'}
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none">
+                              Theme
+                            </label>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant={
+                                  theme === 'light' ? 'default' : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setTheme('light')}
+                                className="w-24"
+                              >
+                                <Sun className="h-4 w-4 mr-2" />
+                                Light
+                              </Button>
+                              <Button
+                                variant={
+                                  theme === 'dark' ? 'default' : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setTheme('dark')}
+                                className="w-24"
+                              >
+                                <Moon className="h-4 w-4 mr-2" />
+                                Dark
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
