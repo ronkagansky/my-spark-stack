@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy.orm import joinedload
+import secrets
 
 from db.database import get_db
 from db.models import User, Chat, Team, Project, Stack
@@ -54,7 +55,9 @@ async def _pick_stack(db: Session, seed_prompt: str) -> Stack:
         title = "Pixi.js"
     else:
         title = await pick_stack(
-            seed_prompt, [s.title for s in db.query(Stack).all()], default="Next.js Shadcn"
+            seed_prompt,
+            [s.title for s in db.query(Stack).all()],
+            default="Next.js Shadcn",
         )
     return db.query(Stack).filter(Stack.title == title).first()
 
@@ -185,5 +188,60 @@ async def update_chat(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+    return chat
+
+
+@router.get("/public/{share_id}", response_model=ChatResponse)
+async def get_public_chat(
+    share_id: str,
+    db: Session = Depends(get_db),
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.public_share_id == share_id, Chat.is_public)
+        .options(joinedload(Chat.messages), joinedload(Chat.project))
+        .first()
+    )
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    if chat.messages:
+        chat.messages = sorted(chat.messages, key=lambda x: x.created_at)
+    return chat
+
+
+@router.post("/{chat_id}/share", response_model=ChatResponse)
+async def share_chat(
+    chat_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    chat = get_chat_for_user(db, chat_id, current_user)
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    if not chat.is_public:
+        chat.is_public = True
+        chat.public_share_id = secrets.token_urlsafe(16)
+        db.commit()
+        db.refresh(chat)
+
+    return chat
+
+
+@router.post("/{chat_id}/unshare", response_model=ChatResponse)
+async def unshare_chat(
+    chat_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    chat = get_chat_for_user(db, chat_id, current_user)
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    chat.is_public = False
+    chat.public_share_id = None
+    db.commit()
+    db.refresh(chat)
 
     return chat

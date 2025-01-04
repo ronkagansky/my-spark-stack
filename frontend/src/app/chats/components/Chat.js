@@ -14,6 +14,8 @@ import {
   Pencil,
   Mic,
   MicOff,
+  Share2,
+  Link,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import rehypeRaw from 'rehype-raw';
@@ -28,6 +30,7 @@ import { useUser } from '@/context/user-context';
 import { api, uploadImage } from '@/lib/api';
 import { resizeImage, captureScreenshot } from '@/lib/image';
 import { components } from '@/app/chats/components/MarkdownComponents';
+import { fixCodeBlocks } from '@/lib/code';
 import { SketchDialog } from './SketchDialog';
 import {
   Tooltip,
@@ -35,6 +38,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
+import { shareChat, unshareChat } from '@/lib/api';
 
 const STARTER_PROMPTS = [
   'Build a 90s themed cat facts app with catfact.ninja API',
@@ -458,35 +463,6 @@ const ChatInput = ({
   );
 };
 
-const fixCodeBlocks = (content, partial) => {
-  const replaceB64 = (_, filename, content) => {
-    const b64 = Buffer.from(JSON.stringify({ filename, content })).toString(
-      'base64'
-    );
-    return `<file-update>${b64}</file-update>`;
-  };
-
-  content = content.replace(
-    /```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```/g,
-    replaceB64
-  );
-  content = content.replace(
-    /```[\w.]+\n[/*]+ (\S+) \*\/\n([\s\S]+?)```/g,
-    replaceB64
-  );
-  content = content.replace(
-    /```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```/g,
-    replaceB64
-  );
-  if (partial) {
-    content = content.replace(
-      /```[\s\S]+$/,
-      '<file-loading>...</file-loading>'
-    );
-  }
-  return content;
-};
-
 const statusMap = {
   NEW_CHAT: { status: 'Ready', color: 'bg-gray-500', animate: false },
   DISCONNECTED: {
@@ -529,6 +505,7 @@ export function Chat({
   showStackPacks = false,
   suggestedFollowUps = [],
   onReconnect,
+  chat,
 }) {
   const { projects } = useUser();
   const [message, setMessage] = useState('');
@@ -539,6 +516,8 @@ export function Chat({
   const [stacks, setStackPacks] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchStackPacks = async () => {
@@ -662,20 +641,97 @@ export function Chat({
     }
   };
 
+  const handleShare = async () => {
+    try {
+      setIsSharing(true);
+      const response = chat.is_public
+        ? await api.unshareChat(chat.id)
+        : await api.shareChat(chat.id);
+
+      if (!response || !response.id) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Update local chat state with the response
+      chat.is_public = response.is_public;
+      chat.public_share_id = response.public_share_id;
+
+      if (response.is_public && response.public_share_id) {
+        const shareUrl = `${window.location.origin}/public/chat/${response.public_share_id}`;
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          toast({
+            title: 'Share link copied!',
+            description: 'The chat link has been copied to your clipboard.',
+          });
+        } catch (clipboardErr) {
+          toast({
+            title: 'Share link created',
+            description: shareUrl,
+          });
+        }
+      } else {
+        toast({
+          title: 'Chat unshared',
+          description: 'This chat is now private.',
+        });
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast({
+        title: 'Unable to share chat',
+        description: 'Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  console.log(chat);
+
   return (
     <div className="flex-1 flex flex-col md:max-w-[80%] md:mx-auto w-full h-[100dvh]">
       <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 border-b">
         <div className="px-4 py-2.5 pt-16 md:pt-2.5 flex items-center justify-between gap-4">
           <h1 className="text-base font-semibold truncate">{projectTitle}</h1>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div
-              className={`w-2 h-2 rounded-full ${statusMap[status].color} ${
-                statusMap[status].animate ? 'animate-pulse' : ''
-              }`}
-            />
-            <span className="text-sm text-muted-foreground capitalize">
-              {statusMap[status].status}
-            </span>
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {chat?.id && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleShare}
+                      disabled={isSharing}
+                    >
+                      {isSharing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : chat.is_public ? (
+                        <Link className="h-4 w-4" />
+                      ) : (
+                        <Share2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {chat.is_public ? 'Unshare chat' : 'Share chat'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-2 h-2 rounded-full ${statusMap[status].color} ${
+                  statusMap[status].animate ? 'animate-pulse' : ''
+                }`}
+              />
+              <span className="text-sm text-muted-foreground capitalize">
+                {statusMap[status].status}
+              </span>
+            </div>
           </div>
         </div>
       </div>

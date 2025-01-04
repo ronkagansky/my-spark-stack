@@ -234,6 +234,18 @@ class ApiClient {
       `/api/teams/${teamId}/projects/${projectId}/deploy-push/github`
     );
   }
+
+  async getPublicChat(shareId) {
+    return this._get(`/api/chats/public/${shareId}`);
+  }
+
+  async shareChat(chatId) {
+    return this._post(`/api/chats/${chatId}/share`);
+  }
+
+  async unshareChat(chatId) {
+    return this._post(`/api/chats/${chatId}/unshare`);
+  }
 }
 
 export async function uploadImage(imageData, contentType) {

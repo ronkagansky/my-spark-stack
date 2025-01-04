@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import Splitter from '@/components/ui/splitter';
 
 export default function WorkspacePage({ chatId }) {
-  const { addChat, team, projects, refreshProjects } = useUser();
+  const { addChat, team, projects, chats, refreshProjects } = useUser();
   const router = useRouter();
   const [projectId, setProjectId] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -28,6 +28,7 @@ export default function WorkspacePage({ chatId }) {
   const webSocketRef = useRef(null);
   const { toast } = useToast();
   const [isMobile, setIsMobile] = useState(false);
+  const chat = chats?.find((c) => c.id === +chatId);
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
@@ -312,6 +313,7 @@ export default function WorkspacePage({ chatId }) {
           <div className="flex-1">
             <div className={`h-full ${isPreviewOpen ? 'hidden' : 'block'}`}>
               <Chat
+                chat={chat}
                 connected={!!webSocketRef.current}
                 messages={messages}
                 onSendMessage={handleSendMessage}
@@ -349,6 +351,7 @@ export default function WorkspacePage({ chatId }) {
             className="h-full"
           >
             <Chat
+              chat={chat}
               connected={!!webSocketRef.current}
               messages={messages}
               onSendMessage={handleSendMessage}
