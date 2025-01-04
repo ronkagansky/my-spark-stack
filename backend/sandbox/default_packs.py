@@ -65,6 +65,13 @@ cd /app/frontend
 npm run dev
 """.strip()
 
+_START_ANGULAR_CMD = f"""
+{_SETUP_COMMON_CMD}
+cd /app/frontend
+npm run start -- --host 0.0.0.0 --port 3000
+""".strip()
+
+
 PACKS = [
     StackPack(
         title="Next.js",
@@ -258,6 +265,42 @@ import { Application, Assets, Graphics, MeshRope, Point } from 'pixi.js';
     // ... pixi code ...
 })();
 ```
+""".strip(),
+        setup_time_seconds=60,
+    ),
+    StackPack(
+        title="Angular",
+        description="A simple Angular app. Best for starting from scratch with Angular and minimal components.",
+        from_registry="ghcr.io/sshh12/prompt-stack-pack-angular-vanilla@sha256:46a870b62a584712f90749a3adcc9c4496437d2d7130991cee1030eea42bd46c",
+        sandbox_init_cmd=_SETUP_COMMON_CMD,
+        sandbox_start_cmd=_START_ANGULAR_CMD,
+        prompt="""
+You are building an Angular app.
+
+The user chose to use a "vanilla" app so avoid adding any additional dependencies unless they are explicitly asked for.
+
+Already included:
+- Angular v19 (app already created)
+- `npm install` already run for these
+- /app/.env, /app/.git
+
+Style Tips:
+- Assume the user wants a nice looking UI out of the box (so add styles as you create components and assume layouts based on what the user is building)
+- At the start, remove Angular boilerplate text from the index page
+
+Structure Tips:
+- Always use Angular's CLI to generate new components, services, etc.
+- Always ensure new components and pages are somehow accessible from the main app component
+- NEVER modify main.ts and use app.component.ts files for layouts
+
+Code Tips:
+- NEVER put a <a> in a <routerLink> tag (routerLink already uses a <a> tag)
+
+3rd Party Tips:
+- If you need to build a map, use @angular/google-maps
+    1. $ npm install @angular/google-maps
+    2. `import { GoogleMapsModule } from '@angular/google-maps'` (you do not need css imports)
+- If you need placeholder images, use https://prompt-stack.sshh.io/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a random image)
 """.strip(),
         setup_time_seconds=60,
     ),
