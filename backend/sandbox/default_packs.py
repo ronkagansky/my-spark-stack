@@ -18,7 +18,7 @@ class StackPack(BaseModel):
         return hashlib.sha256(content).hexdigest()[:12]
 
 
-_SETUP_NEXT_JS_CMD = """
+_SETUP_COMMON_CMD = """
 cd /app
 
 if [ ! -d 'frontend' ]; then 
@@ -60,7 +60,7 @@ set +a
 """.strip()
 
 _START_NEXT_JS_CMD = f"""
-{_SETUP_NEXT_JS_CMD}
+{_SETUP_COMMON_CMD}
 cd /app/frontend
 npm run dev
 """.strip()
@@ -70,7 +70,7 @@ PACKS = [
         title="Next.js",
         description="A simple Nextjs App. Best for starting from scratch with minimal components.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:293b552ccb5a72ec6d0f87fa85b7be17c68469991d9fcb4989dce98527bee95d",
-        sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
+        sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a Next.js app.
@@ -110,7 +110,7 @@ Code Tips:
         title="Next.js Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:69fb8314ae636edd622cc73242a1d4b5e2846de952849daeb99dd72e48040d49",
-        sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
+        sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a Next.js app with Shadcn UI.
@@ -154,7 +154,7 @@ Code Tips:
         title="p5.js",
         description="A simple app with p5.js. Best for generative art, games, and simulations.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-p5@sha256:3271b97e3096c0f344758ca0444910116e8d07da61ac70f43639c96d911f1110",
-        sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
+        sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a p5.js sketch within a Next.js app.
@@ -223,7 +223,7 @@ class Ball {
         title="Pixi.js",
         description="A app with Pixi.js. Best for games and animations.",
         from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-pixi@sha256:ef2337594f07f1d0da3111640d8988e1416bd4777332e8a6d3ffd54022973c1c",
-        sandbox_init_cmd=_SETUP_NEXT_JS_CMD,
+        sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
 You are building a Pixi.js app within a Next.js app.
