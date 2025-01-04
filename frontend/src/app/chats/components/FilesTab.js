@@ -254,7 +254,7 @@ export function FilesTab({ projectFileTree, project }) {
           <Splitter
             minLeftWidth={80}
             minRightWidth={80}
-            defaultLeftWidth={400}
+            defaultLeftWidth={'50%'}
             className="h-full"
           >
             <div className="h-full border-r flex-shrink-0">
