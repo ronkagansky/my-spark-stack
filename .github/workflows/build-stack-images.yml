@@ -8,26 +8,6 @@ on:
         required: false
         default: 'latest'
         type: string
-      build_nextjs_shadcn:
-        description: 'Build Next.js Shadcn Image'
-        type: boolean
-        default: false
-      build_nextjs_vanilla:
-        description: 'Build Next.js Vanilla Image'
-        type: boolean
-        default: false
-      build_nextjs_p5:
-        description: 'Build Next.js P5 Image'
-        type: boolean
-        default: false
-      build_nextjs_pixi:
-        description: 'Build Next.js Pixi Image'
-        type: boolean
-        default: false
-      build_angular_vanilla:
-        description: 'Build Angular Vanilla Image'
-        type: boolean
-        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -36,24 +16,18 @@ jobs:
   build-and-push:
     strategy:
       matrix:
-        include:
+        app:
           - name: nextjs-shadcn
             dockerfile: images/NextjsShadcnDockerFile
-            condition: ${{ inputs.build_nextjs_shadcn }}
           - name: nextjs-vanilla
             dockerfile: images/NextjsVanillaDockerFile
-            condition: ${{ inputs.build_nextjs_vanilla }}
           - name: nextjs-p5
             dockerfile: images/NextjsP5DockerFile
-            condition: ${{ inputs.build_nextjs_p5 }}
           - name: nextjs-pixi
             dockerfile: images/NextjsPixiDockerFile
-            condition: ${{ inputs.build_nextjs_pixi }}
           - name: angular-vanilla
             dockerfile: images/AngularVanillaDockerFile
-            condition: ${{ inputs.build_angular_vanilla }}
-    if: ${{ matrix.condition == 'true' }}
-    name: Build ${{ matrix.name }} Image
+    name: Build ${{ matrix.app.name }} Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,7 +48,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-pack-${{ matrix.name }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-pack-${{ matrix.app.name }}
           tags: |
             type=raw,value=${{ inputs.tag }}
 
@@ -82,7 +56,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: frontend
-          file: ${{ matrix.dockerfile }}
+          file: ${{ matrix.app.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
