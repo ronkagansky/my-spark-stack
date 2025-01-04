@@ -29,24 +29,21 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include: ${{
-          inputs.stack == 'all'
-          && fromJSON('[
-          {"name":"angular-vanilla","dockerfile":"images/AngularVanillaDockerFile"},
-          {"name":"nextjs-shadcn","dockerfile":"images/NextjsShadcnDockerFile"},
-          {"name":"nextjs-vanilla","dockerfile":"images/NextjsVanillaDockerFile"},
-          {"name":"nextjs-p5","dockerfile":"images/NextjsP5DockerFile"},
-          {"name":"nextjs-pixi","dockerfile":"images/NextjsPixiDockerFile"}
-          ]')
-          || fromJSON(format('[{"name":"%s","dockerfile":"images/%sDockerFile"}]',
-          inputs.stack,
-          inputs.stack == 'angular-vanilla' && 'AngularVanilla'
-          || inputs.stack == 'nextjs-shadcn' && 'NextjsShadcn'
-          || inputs.stack == 'nextjs-vanilla' && 'NextjsVanilla'
-          || inputs.stack == 'nextjs-p5' && 'NextjsP5'
-          || inputs.stack == 'nextjs-pixi' && 'NextjsPixi'
+        include: ${{ 
+          inputs.stack == 'all' && fromJSON('[
+            {"name":"angular-vanilla","dockerfile":"images/AngularVanillaDockerFile"},
+            {"name":"nextjs-shadcn","dockerfile":"images/NextjsShadcnDockerFile"},
+            {"name":"nextjs-vanilla","dockerfile":"images/NextjsVanillaDockerFile"},
+            {"name":"nextjs-p5","dockerfile":"images/NextjsP5DockerFile"},
+            {"name":"nextjs-pixi","dockerfile":"images/NextjsPixiDockerFile"}
+          ]') || fromJSON(toJSON(
+            inputs.stack == 'angular-vanilla' && [{"name":"angular-vanilla","dockerfile":"images/AngularVanillaDockerFile"}] ||
+            inputs.stack == 'nextjs-shadcn' && [{"name":"nextjs-shadcn","dockerfile":"images/NextjsShadcnDockerFile"}] ||
+            inputs.stack == 'nextjs-vanilla' && [{"name":"nextjs-vanilla","dockerfile":"images/NextjsVanillaDockerFile"}] ||
+            inputs.stack == 'nextjs-p5' && [{"name":"nextjs-p5","dockerfile":"images/NextjsP5DockerFile"}] ||
+            inputs.stack == 'nextjs-pixi' && [{"name":"nextjs-pixi","dockerfile":"images/NextjsPixiDockerFile"}]
           ))
-          }}
+        }}
     name: Build ${{ matrix.include.name }} Image
     permissions:
       contents: read
