@@ -10,7 +10,7 @@ from db.queries import get_chat_for_user
 from agents.prompts import name_chat, pick_stack
 from sandbox.sandbox import DevSandbox
 from config import CREDITS_CHAT_COST, PROJECTS_SET_NEVER_CLEANUP
-from schemas.models import ChatCreate, ChatUpdate, ChatResponse
+from schemas.models import ChatCreate, ChatUpdate, ChatResponse, PreviewUrlResponse
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
@@ -245,3 +245,25 @@ async def unshare_chat(
     db.refresh(chat)
 
     return chat
+
+
+@router.get("/public/{share_id}/preview-url", response_model=PreviewUrlResponse)
+async def get_public_chat_preview_url(
+    share_id: str,
+    db: Session = Depends(get_db),
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.public_share_id == share_id, Chat.is_public)
+        .options(joinedload(Chat.project))
+        .first()
+    )
+    if chat is None or not chat.project:
+        raise HTTPException(status_code=404, detail="Chat or project not found")
+
+    sandbox = await DevSandbox.get_or_create(chat.project.id, create_if_missing=True)
+    await sandbox.wait_for_up()
+    tunnels = await sandbox.sb.tunnels.aio()
+    preview_url = tunnels[3000].url
+
+    return {"preview_url": preview_url}

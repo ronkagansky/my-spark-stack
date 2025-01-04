@@ -17,6 +17,8 @@
 - 📱 Multi-page app generation
 - 📸 Sketch and screenshot uploads
 - 🚀 Deployment to GitHub (+ Netlify, Vercel, etc)
+- 🌙 Dark mode support
+- 🔗 Share chats and projects publicly
 
 ## Setup
 

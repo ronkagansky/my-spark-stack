@@ -170,3 +170,7 @@ class TeamMemberResponse(TeamMemberBase):
 
     class Config:
         from_attributes = True
+
+
+class PreviewUrlResponse(BaseModel):
+    preview_url: str

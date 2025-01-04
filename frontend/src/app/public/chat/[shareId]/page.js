@@ -10,27 +10,60 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { components } from '@/app/chats/components/MarkdownComponents';
 import { fixCodeBlocks } from '@/lib/code';
+import { Button } from '@/components/ui/button';
+import { ExternalLink, RotateCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
 export default function PublicChatPage() {
   const { shareId } = useParams();
   const [chat, setChat] = useState(null);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [projectPreviewPath, setProjectPreviewPath] = useState('/');
+  const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
+  const debouncedPath = useDebounce(projectPreviewPath, 500);
 
   useEffect(() => {
     const fetchChat = async () => {
+      setIsLoading(true);
       try {
         const response = await api.getPublicChat(shareId);
         if (!response || !response.id) {
           throw new Error('Invalid chat data received');
         }
         setChat(response);
+
+        if (response.project) {
+          try {
+            const previewResponse = await api.getPublicChatPreviewUrl(shareId);
+            setProjectPreviewUrl(previewResponse.preview_url);
+          } catch (previewErr) {
+            console.error('Error fetching preview URL:', previewErr);
+          }
+        }
       } catch (err) {
         console.error('Error fetching chat:', err);
         setError('This chat is not available or has been removed');
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchChat();
   }, [shareId]);
+
+  const handleIframeLoad = () => {
+    setIsIframeLoading(false);
+  };
+
+  const handleRefresh = () => {
+    const iframe = document.querySelector('iframe');
+    if (iframe) {
+      setIsIframeLoading(true);
+      iframe.src = iframe.src;
+    }
+  };
 
   if (error) {
     return (
@@ -43,13 +76,13 @@ export default function PublicChatPage() {
     );
   }
 
-  if (!chat) {
+  if (isLoading || !chat) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-4 space-y-4">
         <Card className="p-6">
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <RotateCw className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading chat...</p>
           </div>
         </Card>
       </div>
@@ -57,13 +90,13 @@ export default function PublicChatPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 space-y-4">
       <Card className="p-6">
         <h1 className="text-2xl font-bold mb-4">{chat.name}</h1>
         <div className="text-sm text-muted-foreground mb-4">
           Project: {chat.project?.name}
         </div>
-        <ScrollArea className="h-[600px] pr-4">
+        <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
             {chat.messages?.map((message, index) => (
               <div key={index} className="flex items-start gap-4">
@@ -116,6 +149,59 @@ export default function PublicChatPage() {
           </div>
         </ScrollArea>
       </Card>
+
+      {projectPreviewUrl && (
+        <Card className="p-6">
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={projectPreviewPath}
+                  onChange={(e) => setProjectPreviewPath(e.target.value)}
+                  className="w-[200px]"
+                  placeholder="Path (e.g. /)"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="icon" onClick={handleRefresh}>
+                  <RotateCw
+                    className={`h-4 w-4 ${
+                      isIframeLoading ? 'animate-spin' : ''
+                    }`}
+                  />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => window.open(projectPreviewUrl, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="w-full h-[600px] bg-muted/10 overflow-auto relative">
+              {isIframeLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                  <div className="flex flex-col items-center gap-2">
+                    <RotateCw className="h-8 w-8 animate-spin" />
+                    <p className="text-sm text-muted-foreground">
+                      Loading preview...
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="w-full h-full flex items-start justify-center p-4">
+                <iframe
+                  src={`${projectPreviewUrl}${debouncedPath}`}
+                  className="w-full h-full border shadow-sm bg-white"
+                  title="Project Preview"
+                  onLoad={handleIframeLoad}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

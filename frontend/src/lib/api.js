@@ -239,6 +239,10 @@ class ApiClient {
     return this._get(`/api/chats/public/${shareId}`);
   }
 
+  async getPublicChatPreviewUrl(shareId) {
+    return this._get(`/api/chats/public/${shareId}/preview-url`);
+  }
+
   async shareChat(chatId) {
     return this._post(`/api/chats/${chatId}/share`);
   }
