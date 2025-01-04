@@ -52,7 +52,7 @@ jobs:
           - name: angular-vanilla
             dockerfile: images/AngularVanillaDockerFile
             input: build_angular_vanilla
-    if: ${{ inputs[matrix.app.input] == true }}
+    if: ${{ inputs[format('{0}', matrix.app.input)] == 'true' }}
     name: Build ${{ matrix.app.name }} Image
     runs-on: ubuntu-latest
     permissions:
