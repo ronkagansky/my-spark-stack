@@ -8,25 +8,29 @@ on:
         required: false
         default: 'latest'
         type: string
+      stack:
+        description: 'Which stack to build (leave empty to build all)'
+        required: false
+        type: choice
+        options:
+          - all
+          - angular-vanilla
+          - nextjs-shadcn
+          - nextjs-vanilla
+          - nextjs-p5
+          - nextjs-pixi
+        default: 'all'
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
   build-and-push:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        app:
-          - name: nextjs-shadcn
-            dockerfile: images/NextjsShadcnDockerFile
-          - name: nextjs-vanilla
-            dockerfile: images/NextjsVanillaDockerFile
-          - name: nextjs-p5
-            dockerfile: images/NextjsP5DockerFile
-          - name: nextjs-pixi
-            dockerfile: images/NextjsPixiDockerFile
+        app: ${{ (inputs.stack == 'all' && fromJSON('[{"name":"angular-vanilla","dockerfile":"images/AngularVanillaDockerFile"},{"name":"nextjs-shadcn","dockerfile":"images/NextjsShadcnDockerFile"},{"name":"nextjs-vanilla","dockerfile":"images/NextjsVanillaDockerFile"},{"name":"nextjs-p5","dockerfile":"images/NextjsP5DockerFile"},{"name":"nextjs-pixi","dockerfile":"images/NextjsPixiDockerFile"}]')) || fromJSON(format('[{"name":"%s","dockerfile":"images/%sDockerFile"}]', inputs.stack, replace(inputs.stack, '-', ''))) }}
     name: Build ${{ matrix.app.name }} Image
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
