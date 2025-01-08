@@ -222,7 +222,8 @@ async def share_chat(
 
     if not chat.is_public:
         chat.is_public = True
-        chat.public_share_id = secrets.token_urlsafe(16)
+        if not chat.public_share_id:
+            chat.public_share_id = secrets.token_urlsafe(16)
         db.commit()
         db.refresh(chat)
 
@@ -240,7 +241,6 @@ async def unshare_chat(
         raise HTTPException(status_code=404, detail="Chat not found")
 
     chat.is_public = False
-    chat.public_share_id = None
     db.commit()
     db.refresh(chat)
 

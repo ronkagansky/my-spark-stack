@@ -1,7 +1,7 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import {
   ChevronRight,
   ChevronDown,
   File,
-  PanelLeftClose,
   PanelLeft,
   Download,
 } from 'lucide-react';

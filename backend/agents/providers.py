@@ -306,9 +306,7 @@ class AnthropicLLMProvider(LLMProvider):
                             arguments_dict = json.loads(
                                 tool_call["function"]["arguments"]
                             )
-                            tool_result = await self._handle_tool_call(
-                                tools, tool_call
-                            )
+                            tool_result = await self._handle_tool_call(tools, tool_call)
 
                             # Add tool use message
                             current_messages.append(
@@ -346,14 +344,21 @@ class AnthropicLLMProvider(LLMProvider):
                         }
                         tool_calls_buffer = []
                         content_buffer = ""
-                elif chunk.type == "message_delta" and chunk.delta.stop_reason == "end_turn":
+                elif (
+                    chunk.type == "message_delta"
+                    and chunk.delta.stop_reason == "end_turn"
+                ):
                     running = False
                     break
-                elif chunk.type == "message_delta" and chunk.delta.stop_reason == "tool_use":
+                elif (
+                    chunk.type == "message_delta"
+                    and chunk.delta.stop_reason == "tool_use"
+                ):
+                    pass
+                elif chunk.type == "message_stop":
                     pass
                 else:
                     print(f"Unhandled anthropic chunk: {chunk}")
-
 
     async def _handle_tool_call(self, tools: List[AgentTool], tool_call) -> str:
         # Anthropic specific implementation

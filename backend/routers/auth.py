@@ -132,6 +132,9 @@ async def update_user(
     if user_update.email:
         current_user.email = user_update.email
 
+    if user_update.user_type:
+        current_user.user_type = user_update.user_type
+
     try:
         db.commit()
         db.refresh(current_user)

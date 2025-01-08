@@ -61,10 +61,19 @@ session: Build the UI for Astro App
 
 
 async def write_commit_message(content: str) -> str:
-    return await chat_complete(
-        "You are a helpful assistant that writes commit messages for git. Given the following changes, write a commit message for the changes. Respond only with the commit message. Do not use quotes or special characters.",
+    msg = await chat_complete(
+        """
+You are a helpful assistant that writes commit messages for git. 
+
+Given the following changes, write a commit message for the changes. 
+
+- Respond only with the commit message.
+- Do not use quotes or special characters.
+- Do not use markdown formatting, newlines, or other formatting.
+""".strip(),
         content[:100000],
     )
+    return re.sub(r"[^\w\s]+", "", msg)
 
 
 async def pick_stack(seed_prompt: str, stack_titles: List[str], default: str) -> str:

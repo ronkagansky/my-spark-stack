@@ -192,8 +192,9 @@ class ApiClient {
     return this._post(`/api/teams/join/${inviteCode}`);
   }
 
-  async updateUser(userData) {
-    return this._patch('/api/auth/me', userData);
+  async updateUser(updates) {
+    const response = await this._patch('/api/auth/me', updates);
+    return response;
   }
 
   async updateTeam(teamId, teamData) {

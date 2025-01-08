@@ -38,12 +38,31 @@ import {
 } from '@/components/ui/tooltip';
 import { useTheme } from '@/context/theme-context';
 
+const USER_TYPES = {
+  web_designer: {
+    value: 'web_designer',
+    label: 'Web Designer',
+    description: 'Focus on web design and UI/UX with basic coding knowledge',
+  },
+  learning_to_code: {
+    value: 'learning_to_code',
+    label: 'Learning to Code',
+    description: 'New to programming, learning the basics',
+  },
+  expert_developer: {
+    value: 'expert_developer',
+    label: 'Expert Developer',
+    description: 'Experienced in software development and architecture',
+  },
+};
+
 // Create a client component that uses useSearchParams
 function SettingsContent() {
   const { user, team, teams, refreshUser, refreshTeams } = useUser();
   const { theme, setTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedEmail, setEditedEmail] = useState(user?.email || '');
+  const [editedUserType, setEditedUserType] = useState(user?.user_type);
   const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editedTeamName, setEditedTeamName] = useState(team?.name || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -108,6 +127,9 @@ function SettingsContent() {
       const updates = {};
       if (editedEmail !== user.email && !!editedEmail) {
         updates.email = editedEmail;
+      }
+      if (editedUserType !== user.user_type) {
+        updates.user_type = editedUserType;
       }
 
       if (Object.keys(updates).length > 0) {
@@ -282,6 +304,35 @@ function SettingsContent() {
                         />
                       </div>
 
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium leading-none">
+                          User Persona
+                        </label>
+                        <Select
+                          value={editedUserType}
+                          onValueChange={setEditedUserType}
+                        >
+                          <SelectTrigger>
+                            <SelectValue>
+                              {editedUserType &&
+                                USER_TYPES[editedUserType]?.label}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.values(USER_TYPES).map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                <div className="space-y-1">
+                                  <div>{type.label}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {type.description}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="space-x-2">
                         <Button onClick={handleSave} disabled={isUpdating}>
                           {isUpdating ? 'Saving...' : 'Save'}
@@ -291,6 +342,7 @@ function SettingsContent() {
                           onClick={() => {
                             setIsEditing(false);
                             setEditedEmail(user?.email || '');
+                            setEditedUserType(user?.user_type);
                           }}
                         >
                           Cancel
@@ -313,6 +365,16 @@ function SettingsContent() {
                           </label>
                           <div className="text-base">
                             {user?.email || '(not set)'}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium leading-none">
+                            User Persona
+                          </label>
+                          <div className="text-base">
+                            {user?.user_type &&
+                              USER_TYPES[user.user_type]?.label}
                           </div>
                         </div>
 
@@ -358,6 +420,7 @@ function SettingsContent() {
                               className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => {
                                 setEditedEmail(user?.email || '');
+                                setEditedUserType(user?.user_type);
                                 setIsEditing(true);
                               }}
                             >

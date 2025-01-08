@@ -11,7 +11,7 @@ from sandbox.sandbox import DevSandbox, SandboxNotReadyException
 from agents.agent import Agent, ChatMessage
 from agents.diff import parse_file_changes
 from db.database import get_db
-from db.models import Project, Message as DbChatMessage, Stack
+from db.models import Project, Message as DbChatMessage, Stack, User, Chat
 from db.queries import get_chat_for_user
 from agents.prompts import write_commit_message
 from routers.auth import get_current_user_from_token
@@ -89,6 +89,7 @@ class ProjectManager:
         self.project_id = project_id
         self.chat_sockets: Dict[int, List[WebSocket]] = {}
         self.chat_agents: Dict[int, Agent] = {}
+        self.chat_users: Dict[int, User] = {}
         self.lock: Lock = Lock()
         self.sandbox_status = SandboxStatus.OFFLINE
         self.sandbox = None
@@ -120,7 +121,7 @@ class ProjectManager:
         # Clear socket and agent dictionaries
         self.chat_sockets.clear()
         self.chat_agents.clear()
-
+        self.chat_users.clear()
         project = self.db.query(Project).filter(Project.id == self.project_id).first()
         if project and project.modal_volume_label:
             await DevSandbox.terminate_project_resources(project)
@@ -176,10 +177,13 @@ class ProjectManager:
                 self.db.query(Project).filter(Project.id == self.project_id).first()
             )
             stack = self.db.query(Stack).filter(Stack.id == project.stack_id).first()
-            agent = Agent(project, stack)
+            chat = self.db.query(Chat).filter(Chat.id == chat_id).first()
+            user = self.db.query(User).filter(User.id == chat.user_id).first()
+            agent = Agent(project, stack, user)
             agent.sandbox = self.sandbox
             self.chat_agents[chat_id] = agent
             self.chat_sockets[chat_id] = []
+            self.chat_users[chat_id] = user
         self.chat_sockets[chat_id].append(websocket)
         await self.emit_project(await self._get_project_status())
 
@@ -191,6 +195,7 @@ class ProjectManager:
         if len(self.chat_sockets[chat_id]) == 0:
             del self.chat_sockets[chat_id]
             del self.chat_agents[chat_id]
+            del self.chat_users[chat_id]
 
     async def _handle_chat_message(self, chat_id: int, message: ChatMessage):
         self.sandbox_status = SandboxStatus.WORKING

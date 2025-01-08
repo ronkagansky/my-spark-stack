@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
-from db.models import TeamRole
+from db.models import TeamRole, UserType
 
 
 class UserCreate(BaseModel):
@@ -11,11 +11,13 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    user_type: Optional[UserType] = None
 
 
 class UserResponse(BaseModel):
     id: int
     username: str
+    user_type: UserType
     email: Optional[str] = None
 
     class Config:
