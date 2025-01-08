@@ -21,12 +21,12 @@ export function FileUpdate({ children }) {
 
   return (
     <>
-      <div
+      <span
         onClick={handleClick}
         className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500"
       >
         {data.filename}
-      </div>
+      </span>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
@@ -56,9 +56,9 @@ export function FileUpdate({ children }) {
 
 function FileLoading() {
   return (
-    <div className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md animate-gradient bg-[length:200%_200%]">
+    <span className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md animate-gradient bg-[length:200%_200%]">
       ...
-    </div>
+    </span>
   );
 }
 

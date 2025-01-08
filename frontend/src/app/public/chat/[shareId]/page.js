@@ -20,6 +20,7 @@ export default function PublicChatPage() {
   const [chat, setChat] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [projectPreviewPath, setProjectPreviewPath] = useState('/');
   const [projectPreviewUrl, setProjectPreviewUrl] = useState(null);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
@@ -34,15 +35,6 @@ export default function PublicChatPage() {
           throw new Error('Invalid chat data received');
         }
         setChat(response);
-
-        if (response.project) {
-          try {
-            const previewResponse = await api.getPublicChatPreviewUrl(shareId);
-            setProjectPreviewUrl(previewResponse.preview_url);
-          } catch (previewErr) {
-            console.error('Error fetching preview URL:', previewErr);
-          }
-        }
       } catch (err) {
         console.error('Error fetching chat:', err);
         setError('This chat is not available or has been removed');
@@ -52,6 +44,23 @@ export default function PublicChatPage() {
     };
     fetchChat();
   }, [shareId]);
+
+  useEffect(() => {
+    const fetchPreview = async () => {
+      if (!chat?.project) return;
+
+      setIsPreviewLoading(true);
+      try {
+        const previewResponse = await api.getPublicChatPreviewUrl(shareId);
+        setProjectPreviewUrl(previewResponse.preview_url);
+      } catch (previewErr) {
+        console.error('Error fetching preview URL:', previewErr);
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    };
+    fetchPreview();
+  }, [chat, shareId]);
 
   const handleIframeLoad = () => {
     setIsIframeLoading(false);
@@ -92,9 +101,9 @@ export default function PublicChatPage() {
   return (
     <div className="container mx-auto p-4 space-y-4">
       <Card className="p-6">
-        <h1 className="text-2xl font-bold mb-4">{chat.name}</h1>
+        <h1 className="text-2xl font-bold mb-2">{chat.project?.name}</h1>
         <div className="text-sm text-muted-foreground mb-4">
-          Project: {chat.project?.name}
+          Chat: {chat.name}
         </div>
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
@@ -163,20 +172,28 @@ export default function PublicChatPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="icon" onClick={handleRefresh}>
-                  <RotateCw
-                    className={`h-4 w-4 ${
-                      isIframeLoading ? 'animate-spin' : ''
-                    }`}
-                  />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => window.open(projectPreviewUrl, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
+                {isPreviewLoading ? (
+                  <Button variant="ghost" size="icon" disabled>
+                    <RotateCw className="h-4 w-4 animate-spin" />
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="icon" onClick={handleRefresh}>
+                      <RotateCw
+                        className={`h-4 w-4 ${
+                          isIframeLoading ? 'animate-spin' : ''
+                        }`}
+                      />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => window.open(projectPreviewUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
             <div className="w-full h-[600px] bg-muted/10 overflow-auto relative">
