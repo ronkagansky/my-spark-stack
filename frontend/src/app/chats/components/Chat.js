@@ -39,7 +39,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { shareChat, unshareChat } from '@/lib/api';
+import { useShareChat } from '@/hooks/use-share-chat';
 
 const STARTER_PROMPTS = [
   'Build a 90s themed cat facts app with catfact.ninja API',
@@ -516,7 +516,7 @@ export function Chat({
   const [stacks, setStackPacks] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
+  const { sharingChatId, handleShare: shareChat } = useShareChat();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -641,50 +641,9 @@ export function Chat({
     }
   };
 
-  const handleShare = async () => {
-    try {
-      setIsSharing(true);
-      const response = chat.is_public
-        ? await api.unshareChat(chat.id)
-        : await api.shareChat(chat.id);
-
-      if (!response || !response.id) {
-        throw new Error('Invalid response from server');
-      }
-
-      // Update local chat state with the response
-      chat.is_public = response.is_public;
-      chat.public_share_id = response.public_share_id;
-
-      if (response.is_public && response.public_share_id) {
-        const shareUrl = `${window.location.origin}/public/chat/${response.public_share_id}`;
-        try {
-          await navigator.clipboard.writeText(shareUrl);
-          toast({
-            title: 'Share link copied!',
-            description: 'The chat link has been copied to your clipboard.',
-          });
-        } catch (clipboardErr) {
-          toast({
-            title: 'Share link created',
-            description: shareUrl,
-          });
-        }
-      } else {
-        toast({
-          title: 'Chat unshared',
-          description: 'This chat is now private.',
-        });
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      toast({
-        title: 'Unable to share chat',
-        description: 'Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSharing(false);
+  const handleShare = () => {
+    if (chat) {
+      shareChat(chat);
     }
   };
 
@@ -705,9 +664,9 @@ export function Chat({
                       size="icon"
                       className="h-8 w-8"
                       onClick={handleShare}
-                      disabled={isSharing}
+                      disabled={sharingChatId === chat.id}
                     >
-                      {isSharing ? (
+                      {sharingChatId === chat.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : chat.is_public ? (
                         <Link className="h-4 w-4" />
