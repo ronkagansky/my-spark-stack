@@ -34,7 +34,9 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME", "prompt-stack")
 
 # Secrets configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
-JWT_EXPIRATION_DAYS = _int_env("JWT_EXPIRATION_DAYS", 10_000)  # We don't have a sign back in feature
+JWT_EXPIRATION_DAYS = _int_env(
+    "JWT_EXPIRATION_DAYS", 10_000
+)  # We don't have a sign back in feature
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 
 # Modal config

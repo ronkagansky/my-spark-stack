@@ -44,16 +44,7 @@ export function UserProvider({ children }) {
         .getCurrentUser()
         .then(setUser)
         .catch((e) => {
-          if (e.message.includes('token')) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('team');
-            setUser(null);
-            setTeam(null);
-            setChats([]);
-            setTeams([]);
-            setProjects([]);
-            window.location.href = '/';
-          }
+          alert(e.message);
         });
       fetchUserData();
     }
@@ -65,8 +56,8 @@ export function UserProvider({ children }) {
     }
   }, [team?.id]);
 
-  const createAccount = async (username) => {
-    const user = await api.createAccount(username);
+  const createAccount = async (username, email) => {
+    const user = await api.createAccount(username, email);
     setUser(user);
     await fetchUserData();
     return user;

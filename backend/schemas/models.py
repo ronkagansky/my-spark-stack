@@ -6,6 +6,7 @@ from db.models import TeamRole
 
 class UserCreate(BaseModel):
     username: str
+    email: str
 
 
 class UserUpdate(BaseModel):

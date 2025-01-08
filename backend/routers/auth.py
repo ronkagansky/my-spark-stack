@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 API_KEY_HEADER = APIKeyHeader(name="Authorization")
 
 # List of forbidden phrases in usernames
-FORBIDDEN_USERNAME_PHRASES = [
+_FORBIDDEN_USERNAME_PHRASES = [
     "admin",
     "root",
     "system",
@@ -30,11 +30,9 @@ FORBIDDEN_USERNAME_PHRASES = [
 def _validate_username(username: str) -> None:
     """Validate username doesn't contain forbidden phrases."""
     username_lower = username.lower()
-    for phrase in FORBIDDEN_USERNAME_PHRASES:
+    for phrase in _FORBIDDEN_USERNAME_PHRASES:
         if phrase in username_lower:
-            raise HTTPException(
-                status_code=400, detail=f"Username cannot contain the phrase '{phrase}'"
-            )
+            raise ValueError(f"Username cannot contain the phrase '{phrase}'")
 
 
 async def get_current_user_from_token(
@@ -57,17 +55,30 @@ async def get_current_user_from_token(
 
 @router.post("/create", response_model=AuthResponse)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    # Validate username doesn't contain forbidden phrases
-    _validate_username(user.username)
+    # Check if email is already taken
+    existing_email = db.query(User).filter(User.email == user.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already exists")
 
-    existing_user = db.query(User).filter(User.username == user.username).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
+    # Validate username doesn't contain forbidden phrases
+    try:
+        _validate_username(user.username)
+    except ValueError:
+        user.username = "user"
+
+    # Check if username exists and append number if needed
+    base_username = user.username
+    username = base_username
+    counter = 1
+    while db.query(User).filter(User.username == username).first():
+        username = f"{base_username}{counter}"
+        counter += 1
+    user.username = username
 
     # Start transaction
     try:
         # Create user
-        new_user = User(username=user.username)
+        new_user = User(username=user.username, email=user.email)
         db.add(new_user)
         db.flush()  # Flush to get the user ID
 
