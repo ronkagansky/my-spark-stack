@@ -89,9 +89,20 @@ export default function PublicChatPage() {
     return (
       <div className="container mx-auto p-4 space-y-4">
         <Card className="p-6">
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <RotateCw className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading chat...</p>
+          <div className="space-y-4">
+            <div className="h-8 w-48 bg-muted animate-pulse rounded-md" />
+            <div className="h-4 w-32 bg-muted/60 animate-pulse rounded-md" />
+            <div className="space-y-4 mt-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded bg-muted/60 animate-pulse" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-3/4 bg-muted animate-pulse rounded-md" />
+                    <div className="h-4 w-1/2 bg-muted animate-pulse rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </Card>
       </div>
