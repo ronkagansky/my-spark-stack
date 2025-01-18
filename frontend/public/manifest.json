@@ -1,7 +1,7 @@
 {
   "name": "Spark Stack",
   "short_name": "Spark Stack",
-  "description": "Build full stack apps in seconds with AI.",
+  "description": "Build full stack apps and games in seconds using AI. Subscriptionless alternative to v0.dev and bolt.new.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -12,9 +12,34 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Spark Stack',
-  description: 'Build full stack apps in seconds with AI.',
+  title: 'Spark Stack - AI-Powered App and Game Builder',
+  description:
+    'Build full stack apps and games in seconds using AI. Subscriptionless alternative to v0.dev and bolt.new.',
   manifest: '/manifest.json',
+  keywords: [
+    'bolt.new alternative',
+    'v0.dev alternative',
+    'AI app generator',
+    'AI game builder',
+    'claude sonnet app builder',
+  ],
+  openGraph: {
+    title: 'Spark Stack',
+    description:
+      'Build full stack apps and games in seconds using AI. Subscriptionless alternative to v0.dev and bolt.new.',
+    url: 'https://sparkstack.app',
+    siteName: 'Spark Stack',
+    images: [],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Spark Stack',
+    description:
+      'Build full stack apps and games in seconds using AI. Subscriptionless alternative to v0.dev and bolt.new.',
+    images: [],
+  },
 };
 
 export default function RootLayout({ children }) {
