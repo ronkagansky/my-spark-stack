@@ -3,13 +3,18 @@ from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy.orm import joinedload
 import secrets
+from datetime import datetime, timezone
 
 from db.database import get_db
-from db.models import User, Chat, Team, Project, Stack
+from db.models import User, Chat, Team, Project, Stack, CreditDailyPool
 from db.queries import get_chat_for_user
 from agents.prompts import name_chat, pick_stack
 from sandbox.sandbox import DevSandbox
-from config import CREDITS_CHAT_COST, PROJECTS_SET_NEVER_CLEANUP
+from config import (
+    CREDITS_CHAT_COST,
+    PROJECTS_SET_NEVER_CLEANUP,
+    CREDITS_DAILY_SHARED_POOL,
+)
 from schemas.models import ChatCreate, ChatUpdate, ChatResponse, PreviewUrlResponse
 from routers.auth import get_current_user_from_token
 
@@ -60,6 +65,38 @@ async def _pick_stack(db: Session, seed_prompt: str) -> Stack:
             default="Next.js Shadcn",
         )
     return db.query(Stack).filter(Stack.title == title).first()
+
+
+async def _check_and_deduct_credits(db: Session, team: Team, cost: int) -> None:
+    """
+    Check if team has enough credits and deduct them, falling back to shared pool if needed.
+    Raises HTTPException if not enough credits available.
+    """
+    if team.credits < cost:
+        today = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        daily_pool = (
+            db.query(CreditDailyPool).filter(CreditDailyPool.date == today).first()
+        )
+
+        if not daily_pool:
+            daily_pool = CreditDailyPool(
+                date=today, credits_remaining=CREDITS_DAILY_SHARED_POOL
+            )
+            db.add(daily_pool)
+            db.commit()
+            db.refresh(daily_pool)
+
+        if daily_pool.credits_remaining < cost:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Not enough credits. Team has {team.credits} credits and daily free pool has {daily_pool.credits_remaining} credits. Required: {cost}",
+            )
+
+        daily_pool.credits_remaining -= cost
+    else:
+        team.credits -= cost
 
 
 @router.post("", response_model=ChatResponse)
@@ -119,13 +156,7 @@ async def create_chat(
         user_id=current_user.id,
     )
 
-    if team.credits < CREDITS_CHAT_COST:
-        raise HTTPException(
-            status_code=402,
-            detail=f"Team does not have enough credits. Required: {CREDITS_CHAT_COST}, Available: {team.credits}",
-        )
-
-    team.credits -= CREDITS_CHAT_COST
+    await _check_and_deduct_credits(db, team, CREDITS_CHAT_COST)
 
     try:
         db.add(new_chat)

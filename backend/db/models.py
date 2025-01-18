@@ -231,3 +231,11 @@ class TeamCreditPurchase(TimestampMixin, Base):
 
     # Relationship
     team = relationship("Team", back_populates="credit_purchases")
+
+
+class CreditDailyPool(TimestampMixin, Base):
+    __tablename__ = "credit_daily_pools"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime(timezone=True), nullable=False, unique=True, index=True)
+    credits_remaining = Column(Integer, nullable=False, default=0)

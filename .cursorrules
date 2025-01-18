@@ -4,13 +4,13 @@ Frontend (/frontend):
 
 - Use .js for JSX files
 - Use 'next/navigation' for all navigation/routing
-- Use prompt-stack/frontend/src/lib/api.js for all API calls
+- Use /frontend/src/lib/api.js for all API calls
 - Handlers (onClick, onSubmit, etc.) should be named handle{action} and explicitly defined `const handle{action} = (e) => { ... }`
 
 Backend (/backend):
 
 - Use pydantic for all data models
-- Use backend/db/models.py for all database models
+- Use /backend/db/models.py for all database models
   - Use alembic for generating migrations. You may modify the migration after it is created.
 - Use backend/schemas/models.py for all routes input/output pydantic models
 - Use backend/routers/{table}.py for all routes for that table/model
