@@ -6,12 +6,21 @@ import secrets
 from datetime import datetime, timezone
 
 from db.database import get_db
-from db.models import User, Chat, Team, Project, Stack, CreditDailyPool
+from db.models import (
+    User,
+    Chat,
+    Team,
+    Project,
+    Stack,
+    CreditDailyPool,
+    TeamCreditPurchase,
+)
 from db.queries import get_chat_for_user
 from agents.prompts import name_chat, pick_stack
 from sandbox.sandbox import DevSandbox
 from config import (
     CREDITS_CHAT_COST,
+    CREDIT_MAX_CHATS_FOR_SHARED_POOL,
     PROJECTS_SET_NEVER_CLEANUP,
     CREDITS_DAILY_SHARED_POOL,
 )
@@ -67,12 +76,32 @@ async def _pick_stack(db: Session, seed_prompt: str) -> Stack:
     return db.query(Stack).filter(Stack.title == title).first()
 
 
-async def _check_and_deduct_credits(db: Session, team: Team, cost: int) -> None:
+async def _check_and_deduct_credits(
+    db: Session, team: Team, cost: int, user: User
+) -> None:
     """
     Check if team has enough credits and deduct them, falling back to shared pool if needed.
     Raises HTTPException if not enough credits available.
     """
     if team.credits < cost:
+        # Check if team has ever purchased credits
+        has_purchased = (
+            db.query(TeamCreditPurchase)
+            .filter(TeamCreditPurchase.team_id == team.id)
+            .first()
+            is not None
+        )
+
+        # Check user's total chat count
+        total_chats = db.query(Chat).filter(Chat.user_id == user.id).count()
+
+        # Only allow credit pool for users who have never purchased and have less than N chats
+        if has_purchased or total_chats >= CREDIT_MAX_CHATS_FOR_SHARED_POOL:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Not enough credits. Team has {team.credits} credits. Required: {cost}. Purchase more credits to continue.",
+            )
+
         today = datetime.now(timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
@@ -156,7 +185,7 @@ async def create_chat(
         user_id=current_user.id,
     )
 
-    await _check_and_deduct_credits(db, team, CREDITS_CHAT_COST)
+    await _check_and_deduct_credits(db, team, CREDITS_CHAT_COST, current_user)
 
     try:
         db.add(new_chat)
