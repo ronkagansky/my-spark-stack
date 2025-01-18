@@ -11,17 +11,17 @@ export function WhatIsThisModal({ isOpen, onClose }) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>About Prompt Stack</DialogTitle>
+          <DialogTitle>About Spark Stack</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            Prompt Stack is an experimental tool for building web apps through
-            an AI-powered chat interface. Create quick MVPs with simple prompts.
+            Spark Stack is an experimental tool for building web apps through an
+            AI-powered chat interface. Create quick MVPs with simple prompts.
           </p>
           <div className="relative w-full h-[300px] rounded-lg overflow-hidden">
             <Image
               src="/screenshot.png" // Make sure to add your screenshot to the public folder
-              alt="Prompt Stack Screenshot"
+              alt="Spark Stack Screenshot"
               fill
               className="object-cover"
             />

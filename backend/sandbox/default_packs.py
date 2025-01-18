@@ -25,8 +25,8 @@ if [ ! -d 'frontend' ]; then
     cp -r /frontend .; 
 fi
 
-git config --global user.email 'bot@prompt-stack.sshh.io'
-git config --global user.name 'Prompt Stack Bot'
+git config --global user.email 'bot@sparkstack.app'
+git config --global user.name 'Spark Stack Bot'
 if [ ! -d ".git" ]; then
     git init
     git config --global init.defaultBranch main
@@ -141,7 +141,7 @@ Code Tips:
 - If you need to build a map, use react-leaflet
     1. $ npm install react-leaflet leaflet
     2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
-- If you need placeholder images, use https://prompt-stack.sshh.io/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a rand image)
+- If you need placeholder images, use https://sparkstack.app/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a rand image)
 """.strip(),
         setup_time_seconds=60,
     ),

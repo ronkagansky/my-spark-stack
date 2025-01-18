@@ -11,7 +11,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Prompt Stack',
+  title: 'Spark Stack',
   description: 'Build full stack apps in seconds with AI.',
   manifest: '/manifest.json',
 };

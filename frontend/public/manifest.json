@@ -1,6 +1,6 @@
 {
-  "name": "Prompt Stack",
-  "short_name": "Prompt Stack",
+  "name": "Spark Stack",
+  "short_name": "Spark Stack",
   "description": "Build full stack apps in seconds with AI.",
   "start_url": "/",
   "display": "standalone",

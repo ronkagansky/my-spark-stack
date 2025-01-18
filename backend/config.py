@@ -52,7 +52,7 @@ MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-3-5-sonnet-20241022")
 RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)
 RUN_STACK_SYNC_ON_START = _bool_env("RUN_STACK_SYNC_ON_START", default=True)
 TARGET_PREPARED_SANDBOXES_PER_STACK = _int_env("TARGET_PREPARED_SANDBOXES_PER_STACK", 3)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://prompt-stack.sshh.io")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://sparkstack.app")
 
 # Credits configuration
 CREDITS_DEFAULT = _int_env("CREDITS_DEFAULT", 20)
