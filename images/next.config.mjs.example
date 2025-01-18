@@ -9,6 +9,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'sparkstack.app',
+        pathname: '/api/mocks/images/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'picsum.photos',
       },
       {
