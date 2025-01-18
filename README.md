@@ -4,6 +4,8 @@
 
 <img width="800" alt="chrome_vMZlrhHm0u" src="https://github.com/user-attachments/assets/4c1912c9-85c9-4169-9d6c-bb5f96edd23e">
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/61t3xx?referralCode=c5mPsy)
+
 ## Features
 
 - 🤖 AI-powered code generation
