@@ -59,11 +59,17 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     # Check if email is already taken
     existing_email = db.query(User).filter(User.email == user.email).first()
     if existing_email:
-        send_login_link(user.email)
-        raise HTTPException(
-            status_code=409,
-            detail="Account already exists. Check your email for a login link.",
-        )
+        if user.email.endswith("sparkstack.app"):
+            raise HTTPException(
+                status_code=409,
+                detail="Logging into temporary accounts is not supported.",
+            )
+        else:
+            send_login_link(user.email)
+            raise HTTPException(
+                status_code=409,
+                detail="Account already exists. Check your email for a login link.",
+            )
 
     # Validate username doesn't contain forbidden phrases
     try:
