@@ -457,7 +457,6 @@ function SettingsContent() {
                           value={editedTeamName}
                           onChange={(e) => setEditedTeamName(e.target.value)}
                           placeholder={team?.name || 'Enter team name'}
-                          defaultValue={team?.name}
                         />
                         <div className="space-x-2">
                           <Button
