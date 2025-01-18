@@ -1,12 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useUser } from '@/context/user-context';
 import { Loader2 } from 'lucide-react';
 
-export default function EmailLoginPage() {
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+        <p className="mt-4 text-gray-600">Logging you in...</p>
+      </div>
+    </div>
+  );
+}
+
+function EmailLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
@@ -35,14 +46,7 @@ export default function EmailLoginPage() {
   }, [searchParams, router, refreshUser]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="mt-4 text-gray-600">Logging you in...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error) {
@@ -64,4 +68,12 @@ export default function EmailLoginPage() {
   }
 
   return null;
+}
+
+export default function EmailLoginPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <EmailLoginContent />
+    </Suspense>
+  );
 }
