@@ -210,7 +210,7 @@ function SettingsContent() {
   };
 
   const handleBuyCredits = () => {
-    if (!user?.email) {
+    if (!user?.email || user?.email.startsWith('user')) {
       if (
         !confirm(
           'It is strongly recommended to set an email address for account recovery before making purchases. Click OK to proceed anyway, or Cancel to set your email first.'
