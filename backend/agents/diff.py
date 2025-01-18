@@ -45,9 +45,9 @@ You are a senior software engineer that applies code changes to a file. Given th
 
 - You must apply the <adjustments> (if provided) even if this conflicts with the original diff
 - You must follow instructions from within comments in <diff> (e.g. <!-- remove this -->)
-- You must maintain the layout of the file especially in languages/formats where it matters
+- You must maintain the layout of the file especially in languages/formats where it matters. Carefully preserve imports.
 - Ensure you maintain sections of the original file IF the diff denotes them with "... existing code ..." or other similar comment-based instructions
-- You must provide the FULL content of the new file. All "..." should be replaced with the actual content.
+- You must provide the FULL content of the new file. All "... existing code ...", etc should be replaced with the actual content.
 
 Respond ONLY with the updated content in a code block.
 """.strip(),
@@ -94,6 +94,7 @@ async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChan
             if re.search(pattern, change.diff):
                 tips.append(tip)
         skip_conditions = [
+            "... (" not in change.diff,
             "... keep" not in change.diff,
             "... existing" not in change.diff,
             "... rest" not in change.diff,

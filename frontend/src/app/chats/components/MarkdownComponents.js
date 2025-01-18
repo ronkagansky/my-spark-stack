@@ -23,7 +23,7 @@ export function FileUpdate({ children }) {
     <>
       <span
         onClick={handleClick}
-        className="inline-block px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500"
+        className="inline-block max-w-[75vw] truncate px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-md cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-500"
       >
         {data.filename}
       </span>
