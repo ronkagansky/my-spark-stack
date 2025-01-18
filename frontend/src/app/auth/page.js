@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,15 @@ export default function AuthPage() {
   const { toast } = useToast();
   const { createAccount } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'prompt-stack.sshh.io'
+    ) {
+      window.location.href = 'https://sparkstack.app';
+    }
+  }, []);
 
   const generateTempEmail = (username) => {
     return `${username}@sparkstack.app`;
