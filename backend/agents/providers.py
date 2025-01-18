@@ -198,162 +198,167 @@ class AnthropicLLMProvider(LLMProvider):
         model: str,
         temperature: float = 0.0,
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        try:
-            # Convert tools to Anthropic format
-            anthropic_tools = [tool.to_anthropic_tool() for tool in tools]
+        # Convert tools to Anthropic format
+        anthropic_tools = [tool.to_anthropic_tool() for tool in tools]
 
-            # Extract system message and prepare current messages
-            system_message = next(
-                (msg["content"] for msg in messages if msg["role"] == "system"), None
-            )
+        # Extract system message and prepare current messages
+        system_message = next(
+            (msg["content"] for msg in messages if msg["role"] == "system"), None
+        )
 
-            # Convert messages to Anthropic format with image support
-            current_messages = []
-            for msg in messages:
-                if msg["role"] == "system":
+        # Convert messages to Anthropic format with image support
+        current_messages = []
+        for msg in messages:
+            if msg["role"] == "system":
+                continue
+
+            content = []
+            if isinstance(msg["content"], list):
+                for content_block in msg["content"]:
+                    if content_block["type"] == "text":
+                        # Only add text block if it's not empty
+                        if content_block["text"].strip():
+                            content.append(
+                                {"type": "text", "text": content_block["text"]}
+                            )
+                    elif content_block["type"] == "image_url":
+                        # Fetch and encode the image
+                        media_type, b64_data = await self._fetch_and_encode_image(
+                            content_block["image_url"]["url"]
+                        )
+                        content.append(
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": b64_data,
+                                },
+                            }
+                        )
+            else:
+                # Only add text content if it's not empty
+                if msg["content"] and msg["content"].strip():
+                    content.append({"type": "text", "text": msg["content"]})
+
+            # Only add message if it has content
+            if content:
+                current_messages.append({"role": msg["role"], "content": content})
+
+        running = True
+        while running:
+            create_params = {
+                "model": model,
+                "messages": current_messages,
+                "system": system_message,
+                "temperature": temperature,
+                "stream": True,
+                "max_tokens": 8192,
+            }
+
+            if tools:
+                create_params.update(
+                    {"tools": anthropic_tools, "tool_choice": {"type": "auto"}}
+                )
+
+            stream = await self.client.messages.create(**create_params)
+
+            tool_calls_buffer = []
+            content_buffer = ""
+
+            async for chunk in stream:
+                if chunk.type == "message_start":
                     continue
 
-                content = []
-                if isinstance(msg["content"], list):
-                    for content_block in msg["content"]:
-                        if content_block["type"] == "text":
-                            # Only add text block if it's not empty
-                            if content_block["text"].strip():
-                                content.append(
-                                    {"type": "text", "text": content_block["text"]}
-                                )
-                        elif content_block["type"] == "image_url":
-                            # Fetch and encode the image
-                            media_type, b64_data = await self._fetch_and_encode_image(
-                                content_block["image_url"]["url"]
-                            )
-                            content.append(
-                                {
-                                    "type": "image",
-                                    "source": {
-                                        "type": "base64",
-                                        "media_type": media_type,
-                                        "data": b64_data,
-                                    },
-                                }
-                            )
-                else:
-                    # Only add text content if it's not empty
-                    if msg["content"] and msg["content"].strip():
-                        content.append({"type": "text", "text": msg["content"]})
-
-                # Only add message if it has content
-                if content:
-                    current_messages.append({"role": msg["role"], "content": content})
-
-            running = True
-            while running:
-                create_params = {
-                    "model": model,
-                    "messages": current_messages,
-                    "system": system_message,
-                    "temperature": temperature,
-                    "stream": True,
-                    "max_tokens": 8192,
-                }
-
-                if tools:
-                    create_params.update(
-                        {"tools": anthropic_tools, "tool_choice": {"type": "auto"}}
-                    )
-
-                stream = await self.client.messages.create(**create_params)
-
-                tool_calls_buffer = []
-                content_buffer = ""
-
-                async for chunk in stream:
-                    if chunk.type == "message_start":
-                        continue
-
-                    if chunk.type == "content_block_start":
-                        if (
-                            hasattr(chunk.content_block, "type")
-                            and chunk.content_block.type == "tool_use"
-                        ):
-                            # Add new tool call to buffer
-                            tool_calls_buffer.append(
-                                {
-                                    "id": chunk.content_block.id,
-                                    "function": {
-                                        "name": chunk.content_block.name,
-                                        "arguments": "",
-                                    },
-                                }
-                            )
-
-                    elif chunk.type == "content_block_delta":
-                        if hasattr(chunk.delta, "type"):
-                            if chunk.delta.type == "text_delta":
-                                content_buffer += chunk.delta.text
-                                yield {"type": "content", "content": chunk.delta.text}
-                            elif chunk.delta.type == "input_json_delta":
-                                # Update arguments for the last tool call in buffer
-                                if tool_calls_buffer:
-                                    tool_calls_buffer[-1]["function"][
-                                        "arguments"
-                                    ] += chunk.delta.partial_json
-
-                    elif chunk.type == "content_block_stop":
-                        if tool_calls_buffer:
-                            # Process all tool calls in buffer
-                            for tool_call in tool_calls_buffer:
-
-                                arguments_dict = json.loads(
-                                    tool_call["function"]["arguments"]
-                                )
-                                tool_result = await self._handle_tool_call(
-                                    tools, tool_call
-                                )
-
-                                # Add tool use message
-                                current_messages.append(
-                                    {
-                                        "role": "assistant",
-                                        "content": [
-                                            {
-                                                "type": "tool_use",
-                                                "id": tool_call["id"],
-                                                "name": tool_call["function"]["name"],
-                                                "input": arguments_dict,
-                                            }
-                                        ],
-                                    }
-                                )
-
-                                # Add tool result message
-                                current_messages.append(
-                                    {
-                                        "role": "user",
-                                        "content": [
-                                            {
-                                                "type": "tool_result",
-                                                "tool_use_id": tool_call["id"],
-                                                "content": tool_result,
-                                            }
-                                        ],
-                                    }
-                                )
-
-                            # Yield all tool calls at once
-                            yield {
-                                "type": "tool_calls",
-                                "tool_calls": tool_calls_buffer,
+                if chunk.type == "content_block_start":
+                    if (
+                        hasattr(chunk.content_block, "type")
+                        and chunk.content_block.type == "tool_use"
+                    ):
+                        # Add new tool call to buffer
+                        tool_calls_buffer.append(
+                            {
+                                "id": chunk.content_block.id,
+                                "function": {
+                                    "name": chunk.content_block.name,
+                                    "arguments": "",
+                                },
                             }
-                            tool_calls_buffer = []
-                            content_buffer = ""
-                        else:
-                            running = False
-                            break
+                        )
 
-        finally:
-            # Ensure we clean up the HTTP client
-            await self.http_client.aclose()
+                elif chunk.type == "content_block_delta":
+                    if hasattr(chunk.delta, "type"):
+                        if chunk.delta.type == "text_delta":
+                            content_buffer += chunk.delta.text
+                            yield {"type": "content", "content": chunk.delta.text}
+                        elif chunk.delta.type == "input_json_delta":
+                            # Update arguments for the last tool call in buffer
+                            if tool_calls_buffer:
+                                tool_calls_buffer[-1]["function"][
+                                    "arguments"
+                                ] += chunk.delta.partial_json
+
+                elif chunk.type == "content_block_stop":
+                    if tool_calls_buffer:
+                        # Process all tool calls in buffer
+                        for tool_call in tool_calls_buffer:
+
+                            arguments_dict = json.loads(
+                                tool_call["function"]["arguments"]
+                            )
+                            tool_result = await self._handle_tool_call(tools, tool_call)
+
+                            # Add tool use message
+                            current_messages.append(
+                                {
+                                    "role": "assistant",
+                                    "content": [
+                                        {
+                                            "type": "tool_use",
+                                            "id": tool_call["id"],
+                                            "name": tool_call["function"]["name"],
+                                            "input": arguments_dict,
+                                        }
+                                    ],
+                                }
+                            )
+
+                            # Add tool result message
+                            current_messages.append(
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {
+                                            "type": "tool_result",
+                                            "tool_use_id": tool_call["id"],
+                                            "content": tool_result,
+                                        }
+                                    ],
+                                }
+                            )
+
+                        # Yield all tool calls at once
+                        yield {
+                            "type": "tool_calls",
+                            "tool_calls": tool_calls_buffer,
+                        }
+                        tool_calls_buffer = []
+                        content_buffer = ""
+                elif (
+                    chunk.type == "message_delta"
+                    and chunk.delta.stop_reason == "end_turn"
+                ):
+                    running = False
+                    break
+                elif (
+                    chunk.type == "message_delta"
+                    and chunk.delta.stop_reason == "tool_use"
+                ):
+                    pass
+                elif chunk.type == "message_stop":
+                    pass
+                else:
+                    print(f"Unhandled anthropic chunk: {chunk}")
 
     async def _handle_tool_call(self, tools: List[AgentTool], tool_call) -> str:
         # Anthropic specific implementation

@@ -1,19 +1,23 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
+from db.models import TeamRole, UserType
 
 
 class UserCreate(BaseModel):
     username: str
+    email: str
 
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    user_type: Optional[UserType] = None
 
 
 class UserResponse(BaseModel):
     id: int
     username: str
+    user_type: UserType
     email: Optional[str] = None
 
     class Config:
@@ -70,6 +74,8 @@ class ChatResponse(BaseModel):
     updated_at: Optional[datetime] = None
     messages: Optional[List[MessageResponse]] = None
     project: Optional[ProjectResponse] = None
+    is_public: bool
+    public_share_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -118,6 +124,7 @@ class AuthResponse(BaseModel):
 class ChatUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    is_public: Optional[bool] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -145,3 +152,28 @@ class TeamInviteResponse(BaseModel):
 
 class TeamUpdate(BaseModel):
     name: Optional[str] = None
+
+
+class TeamMemberBase(BaseModel):
+    role: TeamRole
+
+
+class TeamMemberUpdate(TeamMemberBase):
+    pass
+
+
+class TeamMemberResponse(TeamMemberBase):
+    id: int
+    team_id: int
+    user_id: int
+    username: str
+    email: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class PreviewUrlResponse(BaseModel):
+    preview_url: str

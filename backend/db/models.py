@@ -4,7 +4,17 @@ $ alembic revision --autogenerate -m "..."
 $ alembic upgrade head
 """
 
-from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime, Enum, ARRAY
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    ForeignKey,
+    Text,
+    DateTime,
+    Enum,
+    ARRAY,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
@@ -19,12 +29,20 @@ class TimestampMixin:
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class UserType(PyEnum):
+    WEB_DESIGNER = "web_designer"
+    LEARNING_TO_CODE = "learning_to_code"
+    EXPERT_DEVELOPER = "expert_developer"
+
+
 class User(TimestampMixin, Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
+    user_type = Column(Enum(UserType), nullable=False, default=UserType.WEB_DESIGNER)
     email = Column(String, unique=True, nullable=True)
+    email_verified = Column(Boolean, nullable=False, default=False)
     projects = relationship(
         "Project", back_populates="owner", cascade="all, delete-orphan"
     )
@@ -46,6 +64,8 @@ class Project(TimestampMixin, Base):
     modal_sandbox_id = Column(String, nullable=True)
     modal_sandbox_expires_at = Column(DateTime(timezone=True), nullable=True)
     modal_volume_label = Column(String, nullable=True)
+    # handy debugging flag to prevent cleanup
+    modal_never_cleanup = Column(Boolean, nullable=True, default=False)
 
     team_id = Column(
         Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False
@@ -143,6 +163,8 @@ class Chat(TimestampMixin, Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    is_public = Column(Boolean, nullable=False, default=False)
+    public_share_id = Column(String, unique=True, nullable=True, index=True)
 
     # Relationships
     project = relationship("Project", back_populates="chats")

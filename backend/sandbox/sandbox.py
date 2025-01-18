@@ -4,7 +4,7 @@ import asyncio
 import base64
 import datetime
 import uuid
-from typing import List, Optional, Tuple, AsyncGenerator
+from typing import List, Optional, Tuple, AsyncGenerator, Union
 from modal.volume import FileEntryType
 from asyncio import Lock
 from functools import lru_cache
@@ -15,7 +15,7 @@ from db.models import Project, PreparedSandbox, Stack
 app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
 
 
-IGNORE_PATHS = ["node_modules", ".git", ".next", "build"]
+IGNORE_PATHS = ["node_modules", ".git", ".next", "build", "git.log", "tmp"]
 
 
 @lru_cache()
@@ -36,7 +36,7 @@ async def _is_url_up(url: str) -> bool:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 return response.status < 500
-    except:
+    except Exception:
         return False
 
 
@@ -149,12 +149,28 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
         )
         await proc.wait.aio()
 
-    async def read_file_contents(self, path: str) -> str:
+    async def read_file_contents(self, path: str, does_not_exist_ok: bool = False) -> str:
         path = _strip_app_prefix(path)
         content = []
-        async for chunk in self.vol.read_file.aio(path):
-            content.append(chunk.decode("utf-8"))
+        try:
+            async for chunk in self.vol.read_file.aio(path):
+                content.append(chunk.decode("utf-8"))
+        except FileNotFoundError as e:
+            if does_not_exist_ok:
+                return ""
+            raise e
         return "".join(content)
+    
+    async def stream_file_contents(self, path: str, binary_mode: bool = False) -> AsyncGenerator[Union[str, bytes], None]:
+        path = _strip_app_prefix(path)
+        try:
+            async for chunk in self.vol.read_file.aio(path):
+                if binary_mode:
+                    yield chunk
+                else:
+                    yield chunk.decode("utf-8")
+        except FileNotFoundError as e:
+            raise e
 
     @classmethod
     async def terminate_project_resources(cls, project: Project):

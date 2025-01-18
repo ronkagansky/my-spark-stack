@@ -5,7 +5,6 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
-from datetime import timezone
 import pytz
 
 

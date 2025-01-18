@@ -11,6 +11,10 @@ import {
   Pencil,
   Trash2,
   MessageCircle,
+  BookOpen,
+  Share2,
+  Link,
+  Loader2,
 } from 'lucide-react';
 import { useUser } from '@/context/user-context';
 import { useRouter } from 'next/navigation';
@@ -22,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { useShareChat } from '@/hooks/use-share-chat';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
@@ -31,6 +36,7 @@ export const Sidebar = () => {
   const [editingChatId, setEditingChatId] = React.useState(null);
   const [editingName, setEditingName] = React.useState('');
   const { toast } = useToast();
+  const { sharingChatId, handleShare } = useShareChat();
 
   const handleChatClick = (chatId) => {
     router.push(`/chats/${chatId}`);
@@ -83,6 +89,12 @@ export const Sidebar = () => {
         console.error('Failed to delete chat:', error);
       }
     }
+  };
+
+  const handleShareClick = (chatId, e) => {
+    e.stopPropagation();
+    const chat = chats.find((c) => c.id === chatId);
+    handleShare(chat);
   };
 
   const toggleButton = (
@@ -147,6 +159,22 @@ export const Sidebar = () => {
               <MessageCircle className="mr-2 h-4 w-4" />
               Feedback
             </Button>
+            {process.env.NEXT_PUBLIC_HIDE_BLOG_BUTTON !== 'true' && (
+              <Button
+                variant="outline"
+                className="w-full justify-start mt-2"
+                size="sm"
+                onClick={() =>
+                  window.open(
+                    'https://blog.sshh.io/p/building-v0-in-a-weekend',
+                    '_blank'
+                  )
+                }
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                Dev Blog
+              </Button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto p-3">
             <div className="space-y-4">
@@ -195,6 +223,19 @@ export const Sidebar = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
+                              <DropdownMenuItem
+                                onClick={(e) => handleShareClick(chat.id, e)}
+                                disabled={sharingChatId === chat.id}
+                              >
+                                {sharingChatId === chat.id ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : chat.is_public ? (
+                                  <Link className="mr-2 h-4 w-4" />
+                                ) : (
+                                  <Share2 className="mr-2 h-4 w-4" />
+                                )}
+                                {chat.is_public ? 'Unshare' : 'Share'}
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={(e) => handleRename(chat.id, e)}
                               >

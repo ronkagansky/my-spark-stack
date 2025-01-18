@@ -4,8 +4,14 @@ import secrets
 import datetime
 from sqlalchemy.orm import Session
 
-from db.models import User, TeamInvite, TeamMember, Team
-from schemas.models import TeamResponse, TeamInviteResponse, TeamUpdate
+from db.models import User, TeamInvite, TeamMember, Team, TeamRole
+from schemas.models import (
+    TeamResponse,
+    TeamInviteResponse,
+    TeamUpdate,
+    TeamMemberResponse,
+    TeamMemberUpdate,
+)
 from routers.auth import get_current_user_from_token
 from db.database import get_db
 from config import FRONTEND_URL
@@ -115,3 +121,153 @@ async def update_team(
     db.commit()
     db.refresh(team)
     return team
+
+
+@router.get("/{team_id}/members", response_model=List[TeamMemberResponse])
+async def get_team_members(
+    team_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    # Verify user is a member of the team
+    member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a member of this team")
+
+    # Get all team members with user info
+    team_members = (
+        db.query(TeamMember)
+        .join(User, TeamMember.user_id == User.id)
+        .add_columns(
+            TeamMember.id,
+            TeamMember.team_id,
+            TeamMember.user_id,
+            TeamMember.role,
+            TeamMember.created_at,
+            TeamMember.updated_at,
+            User.username,
+            User.email
+        )
+        .filter(TeamMember.team_id == team_id)
+        .all()
+    )
+    
+    # Convert to response format
+    return [
+        {
+            "id": member.id,
+            "team_id": member.team_id,
+            "user_id": member.user_id,
+            "role": member.role,
+            "username": member.username,
+            "email": member.email,
+            "created_at": member.created_at,
+            "updated_at": member.updated_at,
+        }
+        for member in team_members
+    ]
+
+
+@router.patch("/{team_id}/members/{user_id}", response_model=TeamMemberResponse)
+async def update_team_member(
+    team_id: int,
+    user_id: int,
+    member_update: TeamMemberUpdate,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    # Verify user is an admin of the team
+    admin = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id,
+        TeamMember.role == TeamRole.ADMIN
+    ).first()
+    if not admin:
+        raise HTTPException(status_code=403, detail="Must be a team admin")
+
+    # Get the member to update
+    member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == user_id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Update member role
+    member.role = member_update.role
+    db.commit()
+    db.refresh(member)
+    
+    # Get updated member with user info
+    updated_member = (
+        db.query(TeamMember)
+        .join(User, TeamMember.user_id == User.id)
+        .add_columns(
+            TeamMember.id,
+            TeamMember.team_id,
+            TeamMember.user_id,
+            TeamMember.role,
+            TeamMember.created_at,
+            TeamMember.updated_at,
+            User.username,
+            User.email
+        )
+        .filter(
+            TeamMember.team_id == team_id,
+            TeamMember.user_id == user_id
+        )
+        .first()
+    )
+    
+    return {
+        "id": updated_member.id,
+        "team_id": updated_member.team_id,
+        "user_id": updated_member.user_id,
+        "role": updated_member.role,
+        "username": updated_member.username,
+        "email": updated_member.email,
+        "created_at": updated_member.created_at,
+        "updated_at": updated_member.updated_at,
+    }
+
+
+@router.delete("/{team_id}/members/{user_id}")
+async def remove_team_member(
+    team_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    # Verify user is an admin of the team
+    admin = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == current_user.id,
+        TeamMember.role == TeamRole.ADMIN
+    ).first()
+    if not admin:
+        raise HTTPException(status_code=403, detail="Must be a team admin")
+
+    # Get the member to remove
+    member = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.user_id == user_id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Don't allow removing the last admin
+    admins = db.query(TeamMember).filter(
+        TeamMember.team_id == team_id,
+        TeamMember.role == TeamRole.ADMIN
+    ).all()
+    if len(admins) == 1 and member.role == TeamRole.ADMIN:
+        raise HTTPException(status_code=400, detail="Cannot remove the last admin")
+
+    # Remove the member
+    db.delete(member)
+    db.commit()
+    
+    return {"status": "success"}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   HomeIcon,
@@ -8,6 +8,8 @@ import {
   MenuIcon,
   PlusCircleIcon,
   Pencil,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -34,21 +36,66 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTheme } from '@/context/theme-context';
+
+const USER_TYPES = {
+  web_designer: {
+    value: 'web_designer',
+    label: 'Web Designer',
+    description: 'Focus on web design and UI/UX with basic coding knowledge',
+  },
+  learning_to_code: {
+    value: 'learning_to_code',
+    label: 'Learning to Code',
+    description: 'New to programming, learning the basics',
+  },
+  expert_developer: {
+    value: 'expert_developer',
+    label: 'Expert Developer',
+    description: 'Experienced in software development and architecture',
+  },
+};
 
 // Create a client component that uses useSearchParams
 function SettingsContent() {
   const { user, team, teams, refreshUser, refreshTeams } = useUser();
+  const { theme, setTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedEmail, setEditedEmail] = useState(user?.email || '');
+  const [editedUserType, setEditedUserType] = useState(user?.user_type);
   const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editedTeamName, setEditedTeamName] = useState(team?.name || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const shouldHighlightBuy = searchParams.get('buy') === 'true';
+
+  useEffect(() => {
+    if (team?.id) {
+      loadTeamMembers();
+    }
+  }, [team?.id]);
+
+  const loadTeamMembers = async () => {
+    try {
+      setIsLoadingMembers(true);
+      const members = await api.getTeamMembers(team.id);
+      setTeamMembers(members);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load team members',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  };
 
   const handleTeamChange = async (teamId) => {
     localStorage.setItem('team', teamId);
@@ -81,6 +128,9 @@ function SettingsContent() {
       if (editedEmail !== user.email && !!editedEmail) {
         updates.email = editedEmail;
       }
+      if (editedUserType !== user.user_type) {
+        updates.user_type = editedUserType;
+      }
 
       if (Object.keys(updates).length > 0) {
         await api.updateUser(updates);
@@ -94,7 +144,7 @@ function SettingsContent() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update profile',
+        description: error.message || 'Failed to update profile',
         variant: 'destructive',
       });
     } finally {
@@ -121,6 +171,65 @@ function SettingsContent() {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleUpdateMemberRole = async (userId, newRole) => {
+    try {
+      await api.updateTeamMember(team.id, userId, { role: newRole });
+      await loadTeamMembers();
+      toast({
+        title: 'Success',
+        description: 'Member role updated successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update member role',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!confirm('Are you sure you want to remove this member?')) return;
+
+    try {
+      await api.removeTeamMember(team.id, userId);
+      await loadTeamMembers();
+      toast({
+        title: 'Success',
+        description: 'Member removed successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove member',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleBuyCredits = () => {
+    if (!user?.email) {
+      if (
+        !confirm(
+          'It is strongly recommended to set an email address for account recovery before making purchases. Click OK to proceed anyway, or Cancel to set your email first.'
+        )
+      ) {
+        setIsEditing(true);
+        // Scroll to user settings card
+        document
+          .querySelector('.space-y-8')
+          ?.firstElementChild?.scrollIntoView({
+            behavior: 'smooth',
+          });
+        return;
+      }
+    }
+    window.location.href = `${
+      process.env.NEXT_PUBLIC_STRIPE_LINK ||
+      'https://buy.stripe.com/28odUpcNb0Xm4ww8wz'
+    }?client_reference_id=promptstack___team_${team.id}`;
   };
 
   return (
@@ -195,6 +304,35 @@ function SettingsContent() {
                         />
                       </div>
 
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium leading-none">
+                          User Persona
+                        </label>
+                        <Select
+                          value={editedUserType}
+                          onValueChange={setEditedUserType}
+                        >
+                          <SelectTrigger>
+                            <SelectValue>
+                              {editedUserType &&
+                                USER_TYPES[editedUserType]?.label}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.values(USER_TYPES).map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                <div className="space-y-1">
+                                  <div>{type.label}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {type.description}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="space-x-2">
                         <Button onClick={handleSave} disabled={isUpdating}>
                           {isUpdating ? 'Saving...' : 'Save'}
@@ -204,6 +342,7 @@ function SettingsContent() {
                           onClick={() => {
                             setIsEditing(false);
                             setEditedEmail(user?.email || '');
+                            setEditedUserType(user?.user_type);
                           }}
                         >
                           Cancel
@@ -228,6 +367,48 @@ function SettingsContent() {
                             {user?.email || '(not set)'}
                           </div>
                         </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium leading-none">
+                            User Persona
+                          </label>
+                          <div className="text-base">
+                            {user?.user_type &&
+                              USER_TYPES[user.user_type]?.label}
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none">
+                              Theme
+                            </label>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant={
+                                  theme === 'light' ? 'default' : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setTheme('light')}
+                                className="w-24"
+                              >
+                                <Sun className="h-4 w-4 mr-2" />
+                                Light
+                              </Button>
+                              <Button
+                                variant={
+                                  theme === 'dark' ? 'default' : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setTheme('dark')}
+                                className="w-24"
+                              >
+                                <Moon className="h-4 w-4 mr-2" />
+                                Dark
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       <TooltipProvider>
@@ -239,6 +420,7 @@ function SettingsContent() {
                               className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => {
                                 setEditedEmail(user?.email || '');
+                                setEditedUserType(user?.user_type);
                                 setIsEditing(true);
                               }}
                             >
@@ -338,9 +520,7 @@ function SettingsContent() {
                             <Button
                               variant="secondary"
                               size="default"
-                              onClick={() =>
-                                (window.location.href = `https://buy.stripe.com/28odUpcNb0Xm4ww8wz?client_reference_id=promptstack___team_${team.id}`)
-                              }
+                              onClick={handleBuyCredits}
                             >
                               <PlusCircleIcon className="h-4 w-4 mr-2" />
                               Buy More Credits
@@ -354,6 +534,40 @@ function SettingsContent() {
                     </div>
                   </div>
 
+                  <div className="space-y-2 mt-4">
+                    <div className="border-t my-4" />
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Change Team
+                    </label>
+                    <Select
+                      value={team?.id.toString()}
+                      onValueChange={handleTeamChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((t) => (
+                          <SelectItem key={t.id} value={t.id.toString()}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader className="space-y-2">
+                <CardTitle>Team Member Settings</CardTitle>
+                <CardDescription>
+                  Manage your team members and their roles.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
                   <div className="space-y-4">
                     <Button onClick={handleGenerateInvite}>
                       Generate Invite Link
@@ -367,28 +581,54 @@ function SettingsContent() {
                       </div>
                     )}
                   </div>
-                </div>
 
-                <div className="space-y-2 mt-4">
-                  <div className="border-t my-4" />
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Change Team
-                  </label>
-                  <Select
-                    value={team?.id.toString()}
-                    onValueChange={handleTeamChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teams.map((t) => (
-                        <SelectItem key={t.id} value={t.id.toString()}>
-                          {t.name}
-                        </SelectItem>
+                  {isLoadingMembers ? (
+                    <div className="text-center py-4">Loading members...</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {teamMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between py-2"
+                        >
+                          <div>
+                            <div className="font-medium">{member.username}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {member.email || 'No email set'}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Select
+                              value={member.role}
+                              onValueChange={(value) =>
+                                handleUpdateMemberRole(member.user_id, value)
+                              }
+                              disabled={member.user_id === user.id}
+                            >
+                              <SelectTrigger className="w-[110px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="member">Member</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {member.user_id !== user.id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  handleRemoveMember(member.user_id)
+                                }
+                              >
+                                <XIcon className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

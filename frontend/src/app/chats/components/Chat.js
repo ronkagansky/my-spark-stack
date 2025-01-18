@@ -14,6 +14,8 @@ import {
   Pencil,
   Mic,
   MicOff,
+  Share2,
+  Link,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import rehypeRaw from 'rehype-raw';
@@ -28,6 +30,7 @@ import { useUser } from '@/context/user-context';
 import { api, uploadImage } from '@/lib/api';
 import { resizeImage, captureScreenshot } from '@/lib/image';
 import { components } from '@/app/chats/components/MarkdownComponents';
+import { fixCodeBlocks } from '@/lib/code';
 import { SketchDialog } from './SketchDialog';
 import {
   Tooltip,
@@ -35,10 +38,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
+import { useShareChat } from '@/hooks/use-share-chat';
 
 const STARTER_PROMPTS = [
   'Build a 90s themed cat facts app with catfact.ninja API',
   'Build a modern control panel for a spaceship',
+  'Build a unique p5.js asteroid game',
 ];
 
 const EmptyState = ({
@@ -49,18 +55,18 @@ const EmptyState = ({
   projects,
   onProjectSelect,
 }) => (
-  <div className="flex flex-col items-center justify-center h-full">
-    <div className="max-w-md w-full space-y-4">
+  <div className="flex flex-col items-center justify-center min-h-0 h-full overflow-hidden">
+    <div className="max-w-md w-full space-y-4 p-4">
       <Select
         value={selectedProject}
         onValueChange={(value) => {
           onProjectSelect(value);
         }}
       >
-        <SelectTrigger className="w-full py-10">
+        <SelectTrigger className="w-full py-10 md:py-12">
           <SelectValue placeholder="Select a Project" />
         </SelectTrigger>
-        <SelectContent className="max-h-[500px] w-full">
+        <SelectContent className="max-h-[40vh] w-full overflow-y-auto">
           {[
             {
               id: null,
@@ -91,10 +97,10 @@ const EmptyState = ({
             onStackSelect(value);
           }}
         >
-          <SelectTrigger className="w-full py-10">
+          <SelectTrigger className="w-full py-10 md:py-12">
             <SelectValue placeholder="Select a Stack" />
           </SelectTrigger>
-          <SelectContent className="max-h-[500px] w-full">
+          <SelectContent className="max-h-[40vh] w-full overflow-y-auto">
             {[
               {
                 id: null,
@@ -457,35 +463,6 @@ const ChatInput = ({
   );
 };
 
-const fixCodeBlocks = (content, partial) => {
-  const replaceB64 = (_, filename, content) => {
-    const b64 = Buffer.from(JSON.stringify({ filename, content })).toString(
-      'base64'
-    );
-    return `<file-update>${b64}</file-update>`;
-  };
-
-  content = content.replace(
-    /```[\w.]+\n[#/]+ (\S+)\n([\s\S]+?)```/g,
-    replaceB64
-  );
-  content = content.replace(
-    /```[\w.]+\n[/*]+ (\S+) \*\/\n([\s\S]+?)```/g,
-    replaceB64
-  );
-  content = content.replace(
-    /```[\w.]+\n<!-- (\S+) -->\n([\s\S]+?)```/g,
-    replaceB64
-  );
-  if (partial) {
-    content = content.replace(
-      /```[\s\S]+$/,
-      '<file-loading>...</file-loading>'
-    );
-  }
-  return content;
-};
-
 const statusMap = {
   NEW_CHAT: { status: 'Ready', color: 'bg-gray-500', animate: false },
   DISCONNECTED: {
@@ -528,6 +505,7 @@ export function Chat({
   showStackPacks = false,
   suggestedFollowUps = [],
   onReconnect,
+  chat,
 }) {
   const { projects } = useUser();
   const [message, setMessage] = useState('');
@@ -538,6 +516,8 @@ export function Chat({
   const [stacks, setStackPacks] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const { sharingChatId, handleShare: shareChat } = useShareChat();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchStackPacks = async () => {
@@ -661,20 +641,56 @@ export function Chat({
     }
   };
 
+  const handleShare = () => {
+    if (chat) {
+      shareChat(chat);
+    }
+  };
+
+  console.log(chat);
+
   return (
     <div className="flex-1 flex flex-col md:max-w-[80%] md:mx-auto w-full h-[100dvh]">
       <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 border-b">
         <div className="px-4 py-2.5 pt-16 md:pt-2.5 flex items-center justify-between gap-4">
           <h1 className="text-base font-semibold truncate">{projectTitle}</h1>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div
-              className={`w-2 h-2 rounded-full ${statusMap[status].color} ${
-                statusMap[status].animate ? 'animate-pulse' : ''
-              }`}
-            />
-            <span className="text-sm text-muted-foreground capitalize">
-              {statusMap[status].status}
-            </span>
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {chat?.id && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleShare}
+                      disabled={sharingChatId === chat.id}
+                    >
+                      {sharingChatId === chat.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : chat.is_public ? (
+                        <Link className="h-4 w-4" />
+                      ) : (
+                        <Share2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {chat.is_public ? 'Unshare chat' : 'Share chat'}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-2 h-2 rounded-full ${statusMap[status].color} ${
+                  statusMap[status].animate ? 'animate-pulse' : ''
+                }`}
+              />
+              <span className="text-sm text-muted-foreground capitalize">
+                {statusMap[status].status}
+              </span>
+            </div>
           </div>
         </div>
       </div>

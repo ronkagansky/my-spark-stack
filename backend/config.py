@@ -34,6 +34,9 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME", "prompt-stack")
 
 # Secrets configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
+JWT_EXPIRATION_DAYS = _int_env(
+    "JWT_EXPIRATION_DAYS", 10_000
+)  # We don't have a sign back in feature
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 
 # Modal config
@@ -43,14 +46,15 @@ MODAL_TOKEN_SECRET = os.getenv("MODAL_TOKEN_SECRET")
 # AI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-FAST_PROVIDER = _enum_env("FAST_PROVIDER", ["openai", "anthropic"], default="openai")
+FAST_PROVIDER = _enum_env("FAST_PROVIDER", ["openai", "anthropic"], default="anthropic")
 MAIN_PROVIDER = _enum_env("MAIN_PROVIDER", ["openai", "anthropic"], default="anthropic")
-FAST_MODEL = os.getenv("FAST_MODEL", "gpt-4o-mini")
+FAST_MODEL = os.getenv("FAST_MODEL", "claude-3-5-haiku-20241022")
 MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-3-5-sonnet-20241022")
 
 # Misc configuration
 RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)
 RUN_STACK_SYNC_ON_START = _bool_env("RUN_STACK_SYNC_ON_START", default=True)
+PROJECTS_SET_NEVER_CLEANUP = _bool_env("PROJECTS_SET_NEVER_CLEANUP", default=False)
 TARGET_PREPARED_SANDBOXES_PER_STACK = _int_env("TARGET_PREPARED_SANDBOXES_PER_STACK", 3)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://sparkstack.app")
 

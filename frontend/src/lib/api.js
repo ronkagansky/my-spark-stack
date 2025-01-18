@@ -13,7 +13,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -27,7 +28,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -42,7 +44,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -59,7 +62,8 @@ class ApiClient {
     });
 
     if (!res.ok) {
-      throw new Error(`API error: ${res.statusText}`);
+      const errorData = await res.json();
+      throw new Error(errorData.detail || `API error: ${res.statusText}`);
     }
 
     return res.json();
@@ -87,8 +91,8 @@ class ApiClient {
 
       eventSource.onerror = (error) => {
         eventSource.close();
-        console.error(error);
-        reject(error);
+        console.warning(error);
+        resolve();
       };
 
       eventSource.addEventListener('complete', () => {
@@ -98,10 +102,11 @@ class ApiClient {
     });
   }
 
-  async createAccount(username) {
-    const data = await this._post('/api/auth/create', { username });
-    localStorage.setItem('token', data.token);
-    return data.user;
+  async createAccount(username, email) {
+    const res = await this._post('/api/auth/create', { username, email });
+    localStorage.setItem('token', res.token);
+    localStorage.setItem('username', res.user.username);
+    return res.user;
   }
 
   async getCurrentUser() {
@@ -187,20 +192,65 @@ class ApiClient {
     return this._post(`/api/teams/join/${inviteCode}`);
   }
 
-  async updateUser(userData) {
-    return this._patch('/api/auth/me', userData);
+  async updateUser(updates) {
+    const response = await this._patch('/api/auth/me', updates);
+    return response;
   }
 
   async updateTeam(teamId, teamData) {
     return this._patch(`/api/teams/${teamId}`, teamData);
   }
 
-  async deployNetlify(teamId, projectId, deployData, onMessage) {
+  async getTeamMembers(teamId) {
+    return this._get(`/api/teams/${teamId}/members`);
+  }
+
+  async updateTeamMember(teamId, userId, memberData) {
+    return this._patch(`/api/teams/${teamId}/members/${userId}`, memberData);
+  }
+
+  async removeTeamMember(teamId, userId) {
+    return this._delete(`/api/teams/${teamId}/members/${userId}`);
+  }
+
+  async zipProject(teamId, projectId) {
+    return this._post(`/api/teams/${teamId}/projects/${projectId}/zip`);
+  }
+
+  async deployCreateGithub(teamId, projectId, deployData, onMessage) {
     return this._get_stream(
-      `/api/teams/${teamId}/projects/${projectId}/do-deploy/netlify`,
+      `/api/teams/${teamId}/projects/${projectId}/deploy-create/github`,
       deployData,
       onMessage
     );
+  }
+
+  async deployStatusGithub(teamId, projectId) {
+    return this._get(
+      `/api/teams/${teamId}/projects/${projectId}/deploy-status/github`
+    );
+  }
+
+  async deployPushGithub(teamId, projectId) {
+    return this._post(
+      `/api/teams/${teamId}/projects/${projectId}/deploy-push/github`
+    );
+  }
+
+  async getPublicChat(shareId) {
+    return this._get(`/api/chats/public/${shareId}`);
+  }
+
+  async getPublicChatPreviewUrl(shareId) {
+    return this._get(`/api/chats/public/${shareId}/preview-url`);
+  }
+
+  async shareChat(chatId) {
+    return this._post(`/api/chats/${chatId}/share`);
+  }
+
+  async unshareChat(chatId) {
+    return this._post(`/api/chats/${chatId}/unshare`);
   }
 }
 

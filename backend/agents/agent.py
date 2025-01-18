@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, List, Optional, Dict
 import re
 import json
 
-from db.models import Project, Stack
+from db.models import Project, Stack, User, UserType
 from sandbox.sandbox import DevSandbox
 from agents.prompts import (
     chat_complete,
@@ -11,6 +11,22 @@ from agents.prompts import (
 from config import MAIN_MODEL, MAIN_PROVIDER
 from agents.diff import remove_file_changes
 from agents.providers import AgentTool, LLM_PROVIDERS
+
+
+USER_TYPE_STYLES: Dict[UserType, str] = {
+    UserType.WEB_DESIGNER: """User Type: Web Designer
+Experience: Familiar with web design concepts and basic HTML/CSS
+Communication Style: Use design and UI/UX terminology. Explain technical concepts in terms of visual and user experience impact.
+Code Explanations: Focus on how changes affect the look and feel. Provide context for any backend changes.""",
+    UserType.LEARNING_TO_CODE: """User Type: Learning to Code
+Experience: Basic programming knowledge, learning fundamentals
+Communication Style: Break down complex concepts. Use simple terms and provide explanations for technical decisions.
+Code Explanations: Include brief comments explaining what each major code block does. Point out patterns and best practices.""",
+    UserType.EXPERT_DEVELOPER: """User Type: Expert Developer
+Experience: Proficient in full-stack development
+Communication Style: Use technical terminology freely. Focus on architecture and implementation details.
+Code Explanations: Can skip basic explanations. Highlight advanced patterns and potential edge cases.""",
+}
 
 
 class ChatMessage(BaseModel):
@@ -75,13 +91,17 @@ def build_navigate_to_tool(agent: "Agent"):
 
 
 SYSTEM_PLAN_PROMPT = """
-You are a full-stack export developer on the platform Spark Stack. You are given a project and a sandbox to develop in and are helping PLAN the next steps. You do not write code and only provide advice as a Senior Engineer.
+You are a full-stack expert developer on the platform Spark Stack. You are given a project and a sandbox to develop in and are helping PLAN the next steps. You do not write code and only provide advice as a Senior Engineer.
 
 They will be able to edit files, run arbitrary commands in the sandbox, and navigate the user's browser.
 
 <project>
 {project_text}
 </project>
+
+<user>
+{user_text}
+</user>
 
 <stack>
 {stack_text}
@@ -90,6 +110,10 @@ They will be able to edit files, run arbitrary commands in the sandbox, and navi
 <project-files>
 {files_text}
 </project-files>
+
+<git-log>
+{git_log_text}
+</git-log>
 
 Answer the following questions:
 1. What is being asked by the most recent message?
@@ -102,12 +126,13 @@ Answer the following questions:
 5. Finally, what are the full sequence of steps to take to answer the question? (tools/commands -> generate files -> conclusion)
 5a. What commands should we run?
 5b. What files should we cat to see what we have?
-5c. What high level changes do you need to make to the files?
+5c. What high-level changes do you need to make to the files?
 5d. Be specific about how it should be done based on the stack and project notes.
 5e. Add a reminder they should use the `simple-code-block-template` to format their code.
 6. Verify your plan makes sense given the stack and project. Make any adjustments as needed.
+6a. Verify how you will communicate with the <user> based on their knowledge and experience.
 
-Output you response in markdown (not with code block) using "###" for brief headings and your plan/answers in each section.
+Output your response in markdown (not with code block) using "###" for brief headings and your plan/answers in each section.
 
 <example>
 ### Analyzing your question...
@@ -125,14 +150,14 @@ DO NOT include any code blocks in your response or text outside of the markdown 
 """
 
 SYSTEM_EXEC_PROMPT = """
-You are a full-stack export developer on the platform Spark Stack. You are given a <project> and a <stack> sandbox to develop in and a <plan> from a senior engineer.
+You are a full-stack expert developer on the platform Spark Stack. You are given a <project> and a <stack> sandbox to develop in and a <plan> from a senior engineer.
 
 <commands>
-You are able run shell commands in the sandbox.
+You are able to run shell commands in the sandbox.
 
 - This includes common tools like `npm`, `cat`, `ls`, `git`, etc. avoid any commands that require a GUI or interactivity.
 - DO NOT USE TOOLS to modify the content of files. You also do not need to display the commands you use.
-- DO NOT use `touch`, `vim`, `nano`, etc.
+- DO NOT USE `touch`, `vim`, `nano`, etc.
 
 You must use the proper tool calling syntax to actually execute the command (even if you haven't done this for previous steps).
 </commands>
@@ -158,11 +183,17 @@ YOU must use well formatted simplified code blocks to update files.
 </simple-code-block-template>
 
 You should literally output "... existing code ..." and write actual code in place of the {{ edit_1 }} and {{ edit_2 }} sections.
+
+It is also useful to call out large blocks of code you explicitly removed (e.g. "// ... removed code for xyz ...")
 </formatting-instructions>
 
 <project>
 {project_text}
 </project>
+
+<user>
+{user_text}
+</user>
 
 <stack>
 {stack_text}
@@ -193,20 +224,26 @@ You are given a conversation between the user and the assistant for building <pr
 Your job is to suggest 3 follow up prompts that the user is likely to ask next.
 
 <output-format>
- - ...prompt...
- - ...prompt...
- - ...prompt...
+<follow-ups>
+- ...prompt...
+- ...prompt...
+- ...prompt...
+</follow-ups>
 </output-format>
 
 <example>
- - Add a settings page
- - Improve the styling of the homepage
- - Add more dummy content
+<follow-ups>
+- Add a settings page
+- Improve the styling of the homepage
+- Add more dummy content
+</follow-ups>
 </example>
 
-Notice these are content based and are written as commands. Do not propose questions not related to the "product" being built like devops, etc.
-
-Keep the questions brief (~at most 10 words) and PERSONALIZED to the most recent asks in the conversation. Do not use ANY text formatting and respond in plain text.
+<tips>
+- Keep the questions brief (~at most 10 words) and PERSONALIZED to the most recent asks in the conversation.
+- Do not propose questions not related to the "product" being built like devops, etc.
+- Do not use ANY text formatting and respond in plain text.
+</tips>
 
 <project>
 {project_text}
@@ -215,17 +252,27 @@ Keep the questions brief (~at most 10 words) and PERSONALIZED to the most recent
 <stack>
 {stack_text}
 </stack>
+
+Respond with the <follow-ups> section only. Include the <follow-ups> tags.
 """
 
 
 def _parse_follow_ups(content: str) -> List[str]:
-    return re.findall(r"\s*\-\s*(.+)", content)
+    # Extract content between <follow-ups> tags
+    match = re.search(r"<follow-ups>(.*?)</follow-ups>", content, re.DOTALL)
+    if not match:
+        return []
+
+    # Parse bullet points from the content
+    follow_ups = re.findall(r"\s*\-\s*(.+)", match.group(1))
+    return follow_ups
 
 
 class Agent:
-    def __init__(self, project: Project, stack: Stack):
+    def __init__(self, project: Project, stack: Stack, user: User):
         self.project = project
         self.stack = stack
+        self.user = user
         self.sandbox = None
         self.working_page = None
 
@@ -244,14 +291,21 @@ class Agent:
     def _get_project_text(self) -> str:
         return f"Name: {self.project.name}\nSandbox Status: {'Ready' if self.sandbox else 'Booting...'}\nCustom Instructions: {self.project.custom_instructions}".strip()
 
+    def _get_user_text(self) -> str:
+        """Generate context about the user and how to interact with them based on their user type."""
+        return USER_TYPE_STYLES.get(
+            self.user.user_type, USER_TYPE_STYLES[UserType.WEB_DESIGNER]
+        )
+
     async def suggest_follow_ups(self, messages: List[ChatMessage]) -> List[str]:
         conversation_text = "\n\n".join(
             [f"<{m.role}>{remove_file_changes(m.content)}</{m.role}>" for m in messages]
         )
         project_text = self._get_project_text()
+        stack_text = self.stack.prompt
         system_prompt = SYSTEM_FOLLOW_UP_PROMPT.format(
             project_text=project_text,
-            stack_text=self.stack.prompt,
+            stack_text=stack_text,
         )
         content = await chat_complete(system_prompt, conversation_text[-10000:])
         try:
@@ -264,8 +318,10 @@ class Agent:
         self,
         messages: List[ChatMessage],
         project_text: str,
+        git_log_text: str,
         stack_text: str,
         files_text: str,
+        user_text: str,
     ) -> AsyncGenerator[PartialChatMessage, None]:
         conversation_text = "\n\n".join(
             [f"<msg>{remove_file_changes(m.content)}</msg>" for m in messages]
@@ -278,6 +334,8 @@ class Agent:
             project_text=project_text,
             stack_text=stack_text,
             files_text=files_text,
+            git_log_text=git_log_text,
+            user_text=user_text,
         )
 
         # Convert messages to provider format
@@ -316,42 +374,39 @@ class Agent:
                     role="assistant", delta_thinking_content=chunk["content"]
                 )
 
-    async def _run_command_only_step(self, command: str) -> AsyncGenerator[str, None]:
-        if not self.sandbox:
-            yield PartialChatMessage(
-                role="assistant",
-                delta_content="Sandbox is still booting! Try again later.",
-            )
-            return
-        yield PartialChatMessage(
-            role="assistant", delta_content=f"Running `{command}`...\n```\n"
+    async def _git_log_text(self, git_log: str) -> str:
+        git_text = "\n".join(
+            [
+                f"{items[0]}: {items[1]}"
+                for items in [line.split("|") for line in git_log.split("\n") if line]
+            ]
         )
-        async for chunk in self.sandbox.run_command_stream(command):
-            yield PartialChatMessage(role="assistant", delta_content=chunk)
-        yield PartialChatMessage(role="assistant", delta_content="\n```")
+        return git_text
 
     async def step(
         self,
         messages: List[ChatMessage],
         sandbox_file_paths: Optional[List[str]] = None,
+        sandbox_git_log: Optional[str] = None,
     ) -> AsyncGenerator[PartialChatMessage, None]:
         yield PartialChatMessage(role="assistant", delta_content="")
-
-        # just run the command and return the output
-        if messages[-1].role == "user" and messages[-1].content.startswith("$ "):
-            async for chunk in self._run_command_only_step(messages[-1].content[2:]):
-                yield chunk
-            return
 
         if sandbox_file_paths is not None:
             files_text = "\n".join(sandbox_file_paths)
         else:
             files_text = "Sandbox is still booting..."
+        if sandbox_git_log is not None:
+            git_log_text = await self._git_log_text(sandbox_git_log)
+        else:
+            git_log_text = "Sandbox is still booting..."
         project_text = self._get_project_text()
         stack_text = self.stack.prompt
+        user_text = self._get_user_text()
 
         plan_content = ""
-        async for chunk in self._plan(messages, project_text, stack_text, files_text):
+        async for chunk in self._plan(
+            messages, project_text, git_log_text, stack_text, files_text, user_text
+        ):
             yield chunk
             plan_content += chunk.delta_thinking_content
 
@@ -360,6 +415,7 @@ class Agent:
             stack_text=stack_text,
             files_text=files_text,
             plan_text=plan_content,
+            user_text=user_text,
         )
 
         # Convert messages to provider format

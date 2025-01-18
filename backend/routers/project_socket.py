@@ -11,7 +11,7 @@ from sandbox.sandbox import DevSandbox, SandboxNotReadyException
 from agents.agent import Agent, ChatMessage
 from agents.diff import parse_file_changes
 from db.database import get_db
-from db.models import Project, Message as DbChatMessage, Stack
+from db.models import Project, Message as DbChatMessage, Stack, User, Chat
 from db.queries import get_chat_for_user
 from agents.prompts import write_commit_message
 from routers.auth import get_current_user_from_token
@@ -33,6 +33,7 @@ class ProjectStatusResponse(BaseModel):
     sandbox_status: SandboxStatus
     tunnels: Dict[int, str]
     file_paths: Optional[List[str]] = None
+    git_log: Optional[str] = None
 
 
 class ChatUpdateResponse(BaseModel):
@@ -88,10 +89,12 @@ class ProjectManager:
         self.project_id = project_id
         self.chat_sockets: Dict[int, List[WebSocket]] = {}
         self.chat_agents: Dict[int, Agent] = {}
+        self.chat_users: Dict[int, User] = {}
         self.lock: Lock = Lock()
         self.sandbox_status = SandboxStatus.OFFLINE
         self.sandbox = None
         self.sandbox_file_paths: Optional[List[str]] = None
+        self.sandbox_git_log: Optional[str] = None
         self.tunnels = {}
         self.last_activity = datetime.datetime.now()
 
@@ -118,7 +121,7 @@ class ProjectManager:
         # Clear socket and agent dictionaries
         self.chat_sockets.clear()
         self.chat_agents.clear()
-
+        self.chat_users.clear()
         project = self.db.query(Project).filter(Project.id == self.project_id).first()
         if project and project.modal_volume_label:
             await DevSandbox.terminate_project_resources(project)
@@ -138,7 +141,10 @@ class ProjectManager:
         self.sandbox_status = SandboxStatus.READY
         tunnels = await self.sandbox.sb.tunnels.aio()
         self.tunnels = {port: tunnel.url for port, tunnel in tunnels.items()}
-        self.sandbox_file_paths = await self.sandbox.get_file_paths()
+        self.sandbox_file_paths, self.sandbox_git_log = await asyncio.gather(
+            self.sandbox.get_file_paths(),
+            self.sandbox.read_file_contents("/app/git.log", does_not_exist_ok=True),
+        )
         await self.emit_project(await self._get_project_status())
         for agent in self.chat_agents.values():
             agent.sandbox = self.sandbox
@@ -161,6 +167,7 @@ class ProjectManager:
             sandbox_status=self.sandbox_status,
             tunnels=self.tunnels,
             file_paths=self.sandbox_file_paths,
+            git_log=self.sandbox_git_log,
         )
 
     async def add_chat_socket(self, chat_id: int, websocket: WebSocket):
@@ -170,18 +177,25 @@ class ProjectManager:
                 self.db.query(Project).filter(Project.id == self.project_id).first()
             )
             stack = self.db.query(Stack).filter(Stack.id == project.stack_id).first()
-            agent = Agent(project, stack)
+            chat = self.db.query(Chat).filter(Chat.id == chat_id).first()
+            user = self.db.query(User).filter(User.id == chat.user_id).first()
+            agent = Agent(project, stack, user)
             agent.sandbox = self.sandbox
             self.chat_agents[chat_id] = agent
             self.chat_sockets[chat_id] = []
+            self.chat_users[chat_id] = user
         self.chat_sockets[chat_id].append(websocket)
         await self.emit_project(await self._get_project_status())
 
     def remove_chat_socket(self, chat_id: int, websocket: WebSocket):
-        self.chat_sockets[chat_id].remove(websocket)
+        try:
+            self.chat_sockets[chat_id].remove(websocket)
+        except ValueError:
+            pass
         if len(self.chat_sockets[chat_id]) == 0:
             del self.chat_sockets[chat_id]
             del self.chat_agents[chat_id]
+            del self.chat_users[chat_id]
 
     async def _handle_chat_message(self, chat_id: int, message: ChatMessage):
         self.sandbox_status = SandboxStatus.WORKING
@@ -207,7 +221,9 @@ class ProjectManager:
         )
         messages = [_db_message_to_message(m) for m in db_messages]
         total_content = ""
-        async for partial_message in agent.step(messages, self.sandbox_file_paths):
+        async for partial_message in agent.step(
+            messages, self.sandbox_file_paths, self.sandbox_git_log
+        ):
             total_content += partial_message.delta_content
             await self.emit_chat(
                 chat_id,
@@ -243,7 +259,10 @@ class ProjectManager:
         )
 
         self.sandbox_status = SandboxStatus.READY
-        self.sandbox_file_paths = await self.sandbox.get_file_paths()
+        self.sandbox_file_paths, self.sandbox_git_log = await asyncio.gather(
+            self.sandbox.get_file_paths(),
+            self.sandbox.read_file_contents("/app/git.log", does_not_exist_ok=True),
+        )
         await self.emit_project(await self._get_project_status())
 
     async def _try_handle_chat_message(self, chat_id: int, message: ChatMessage):
@@ -318,8 +337,13 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
             create_task(pm.on_chat_message(chat_id, data))
     except WebSocketDisconnect:
         pass
+    except RuntimeError as e:
+        if "WebSocket is not connected":
+            pass
+        else:
+            print(f"websocket loop RuntimeError: {e}\n{traceback.format_exc()}")
     except Exception as e:
-        print(f"websocket loop error: {e}\n{traceback.format_exc()}")
+        print(f"websocket loop Exception: {e}\n{traceback.format_exc()}")
     finally:
         pm.remove_chat_socket(chat_id, websocket)
         try:

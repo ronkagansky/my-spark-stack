@@ -40,7 +40,12 @@ export function UserProvider({ children }) {
 
   useEffect(() => {
     if (localStorage.getItem('token')) {
-      api.getCurrentUser().then(setUser);
+      api
+        .getCurrentUser()
+        .then(setUser)
+        .catch((e) => {
+          alert(e.message);
+        });
       fetchUserData();
     }
   }, []);
@@ -51,8 +56,8 @@ export function UserProvider({ children }) {
     }
   }, [team?.id]);
 
-  const createAccount = async (username) => {
-    const user = await api.createAccount(username);
+  const createAccount = async (username, email) => {
+    const user = await api.createAccount(username, email);
     setUser(user);
     await fetchUserData();
     return user;

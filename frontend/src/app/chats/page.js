@@ -9,9 +9,10 @@ import { api } from '@/lib/api';
 import { Chat } from './components/Chat';
 import { RightPanel } from './components/RightPanel';
 import { useToast } from '@/hooks/use-toast';
+import Splitter from '@/components/ui/splitter';
 
 export default function WorkspacePage({ chatId }) {
-  const { addChat, team, projects, refreshProjects } = useUser();
+  const { addChat, team, projects, chats, refreshProjects } = useUser();
   const router = useRouter();
   const [projectId, setProjectId] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -26,6 +27,9 @@ export default function WorkspacePage({ chatId }) {
   const [status, setStatus] = useState('NEW_CHAT');
   const webSocketRef = useRef(null);
   const { toast } = useToast();
+  const [isMobile, setIsMobile] = useState(false);
+  const chat = chats?.find((c) => c.id === +chatId);
+
   useEffect(() => {
     if (!localStorage.getItem('token')) {
       router.push('/');
@@ -205,16 +209,13 @@ export default function WorkspacePage({ chatId }) {
           )}`
         );
       } catch (error) {
-        if (error.message.includes('Payment Required')) {
-          toast({
-            title: 'Error',
-            description:
-              'Not enough credits. Please purchase more credits to continue.',
-            variant: 'destructive',
-          });
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+        if (error.message.includes('credits')) {
           router.push('/settings?buy=true');
-        } else {
-          throw error;
         }
       }
     } else {
@@ -283,9 +284,18 @@ export default function WorkspacePage({ chatId }) {
     }
   };
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
     <div className="flex h-screen bg-background">
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 flex flex-col">
         {!isPreviewOpen && (
           <div className="md:hidden fixed top-4 right-4 z-40">
             <Button
@@ -297,31 +307,77 @@ export default function WorkspacePage({ chatId }) {
             </Button>
           </div>
         )}
-        <Chat
-          connected={!!webSocketRef.current}
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          projectTitle={chatTitle}
-          status={status}
-          onProjectSelect={handleProjectSelect}
-          onStackSelect={handleStackPackSelect}
-          showStackPacks={chatId === 'new'}
-          suggestedFollowUps={suggestedFollowUps}
-          onReconnect={handleReconnect}
-        />
-        <RightPanel
-          onSendMessage={handleSendMessage}
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          projectPreviewUrl={projectPreviewUrl}
-          projectPreviewPath={projectPreviewPath}
-          setProjectPreviewPath={setProjectPreviewPath}
-          projectPreviewHash={previewHash}
-          projectFileTree={projectFileTree}
-          project={projects.find((p) => +p.id === +projectId)}
-          chatId={chatId}
-          status={status}
-        />
+
+        {isMobile ? (
+          // Mobile Layout: Stack vertically and show/hide based on isPreviewOpen
+          <div className="flex-1">
+            <div className={`h-full ${isPreviewOpen ? 'hidden' : 'block'}`}>
+              <Chat
+                chat={chat}
+                connected={!!webSocketRef.current}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                projectTitle={chatTitle}
+                status={status}
+                onProjectSelect={handleProjectSelect}
+                onStackSelect={handleStackPackSelect}
+                showStackPacks={chatId === 'new'}
+                suggestedFollowUps={suggestedFollowUps}
+                onReconnect={handleReconnect}
+              />
+            </div>
+            <div className={`h-full ${isPreviewOpen ? 'block' : 'hidden'}`}>
+              <RightPanel
+                onSendMessage={handleSendMessage}
+                isOpen={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                projectPreviewUrl={projectPreviewUrl}
+                projectPreviewPath={projectPreviewPath}
+                setProjectPreviewPath={setProjectPreviewPath}
+                projectPreviewHash={previewHash}
+                projectFileTree={projectFileTree}
+                project={projects.find((p) => +p.id === +projectId)}
+                chatId={chatId}
+                status={status}
+              />
+            </div>
+          </div>
+        ) : (
+          // Desktop Layout: Use Splitter
+          <Splitter
+            defaultLeftWidth="60%"
+            minLeftWidth={400}
+            minRightWidth={400}
+            className="h-full"
+          >
+            <Chat
+              chat={chat}
+              connected={!!webSocketRef.current}
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              projectTitle={chatTitle}
+              status={status}
+              onProjectSelect={handleProjectSelect}
+              onStackSelect={handleStackPackSelect}
+              showStackPacks={chatId === 'new'}
+              suggestedFollowUps={suggestedFollowUps}
+              onReconnect={handleReconnect}
+            />
+            <RightPanel
+              onSendMessage={handleSendMessage}
+              isOpen={isPreviewOpen}
+              onClose={() => setIsPreviewOpen(false)}
+              projectPreviewUrl={projectPreviewUrl}
+              projectPreviewPath={projectPreviewPath}
+              setProjectPreviewPath={setProjectPreviewPath}
+              projectPreviewHash={previewHash}
+              projectFileTree={projectFileTree}
+              project={projects.find((p) => +p.id === +projectId)}
+              chatId={chatId}
+              status={status}
+            />
+          </Splitter>
+        )}
       </div>
     </div>
   );

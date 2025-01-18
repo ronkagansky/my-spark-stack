@@ -3,16 +3,36 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
-from typing import Optional
 
 from db.database import get_db
 from db.models import User, Team, TeamMember, TeamRole
 from schemas.models import UserCreate, UserResponse, AuthResponse, UserUpdate
-from config import JWT_SECRET_KEY, CREDITS_DEFAULT
+from config import JWT_SECRET_KEY, CREDITS_DEFAULT, JWT_EXPIRATION_DAYS
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 API_KEY_HEADER = APIKeyHeader(name="Authorization")
+
+# List of forbidden phrases in usernames
+_FORBIDDEN_USERNAME_PHRASES = [
+    "admin",
+    "root",
+    "system",
+    "superuser",
+    "administrator",
+    "moderator",
+    "support",
+    "security",
+    "promptstack",
+]
+
+
+def _validate_username(username: str) -> None:
+    """Validate username doesn't contain forbidden phrases."""
+    username_lower = username.lower()
+    for phrase in _FORBIDDEN_USERNAME_PHRASES:
+        if phrase in username_lower:
+            raise ValueError(f"Username cannot contain the phrase '{phrase}'")
 
 
 async def get_current_user_from_token(
@@ -35,14 +55,30 @@ async def get_current_user_from_token(
 
 @router.post("/create", response_model=AuthResponse)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.username == user.username).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
+    # Check if email is already taken
+    existing_email = db.query(User).filter(User.email == user.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    # Validate username doesn't contain forbidden phrases
+    try:
+        _validate_username(user.username)
+    except ValueError:
+        user.username = "user"
+
+    # Check if username exists and append number if needed
+    base_username = user.username
+    username = base_username
+    counter = 1
+    while db.query(User).filter(User.username == username).first():
+        username = f"{base_username}{counter}"
+        counter += 1
+    user.username = username
 
     # Start transaction
     try:
         # Create user
-        new_user = User(username=user.username)
+        new_user = User(username=user.username, email=user.email)
         db.add(new_user)
         db.flush()  # Flush to get the user ID
 
@@ -64,7 +100,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         token = jwt.encode(
             {
                 "sub": new_user.username,
-                "exp": datetime.now() + timedelta(days=30),
+                "exp": datetime.now() + timedelta(days=JWT_EXPIRATION_DAYS),
             },
             JWT_SECRET_KEY,
             algorithm="HS256",
@@ -95,6 +131,9 @@ async def update_user(
 
     if user_update.email:
         current_user.email = user_update.email
+
+    if user_update.user_type:
+        current_user.user_type = user_update.user_type
 
     try:
         db.commit()

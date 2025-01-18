@@ -2,14 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from sqlalchemy.orm import joinedload
+import secrets
 
 from db.database import get_db
 from db.models import User, Chat, Team, Project, Stack
 from db.queries import get_chat_for_user
-from agents.prompts import name_chat
+from agents.prompts import name_chat, pick_stack
 from sandbox.sandbox import DevSandbox
-from config import CREDITS_CHAT_COST
-from schemas.models import ChatCreate, ChatUpdate, ChatResponse
+from config import CREDITS_CHAT_COST, PROJECTS_SET_NEVER_CLEANUP
+from schemas.models import ChatCreate, ChatUpdate, ChatResponse, PreviewUrlResponse
 from routers.auth import get_current_user_from_token
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
@@ -47,6 +48,20 @@ async def get_chat(
     return chat
 
 
+async def _pick_stack(db: Session, seed_prompt: str) -> Stack:
+    if "p5" in seed_prompt.lower():
+        title = "p5.js"
+    elif "pixi" in seed_prompt.lower():
+        title = "Pixi.js"
+    else:
+        title = await pick_stack(
+            seed_prompt,
+            [s.title for s in db.query(Stack).all()],
+            default="Next.js Shadcn",
+        )
+    return db.query(Stack).filter(Stack.title == title).first()
+
+
 @router.post("", response_model=ChatResponse)
 async def create_chat(
     chat: ChatCreate,
@@ -63,8 +78,7 @@ async def create_chat(
     team_id = team.id
 
     if chat.stack_id is None:
-        # TODO: AI
-        stack = db.query(Stack).filter(Stack.title == "Next.js Shadcn").first()
+        stack = await _pick_stack(db, chat.seed_prompt)
     else:
         stack = db.query(Stack).filter(Stack.id == chat.stack_id).first()
         if stack is None:
@@ -80,6 +94,7 @@ async def create_chat(
             user_id=current_user.id,
             team_id=team_id,
             stack_id=stack.id,
+            modal_never_cleanup=PROJECTS_SET_NEVER_CLEANUP,
         )
         db.add(project)
         db.commit()
@@ -175,3 +190,80 @@ async def update_chat(
         raise HTTPException(status_code=400, detail=str(e))
 
     return chat
+
+
+@router.get("/public/{share_id}", response_model=ChatResponse)
+async def get_public_chat(
+    share_id: str,
+    db: Session = Depends(get_db),
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.public_share_id == share_id, Chat.is_public)
+        .options(joinedload(Chat.messages), joinedload(Chat.project))
+        .first()
+    )
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    if chat.messages:
+        chat.messages = sorted(chat.messages, key=lambda x: x.created_at)
+    return chat
+
+
+@router.post("/{chat_id}/share", response_model=ChatResponse)
+async def share_chat(
+    chat_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    chat = get_chat_for_user(db, chat_id, current_user)
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    if not chat.is_public:
+        chat.is_public = True
+        if not chat.public_share_id:
+            chat.public_share_id = secrets.token_urlsafe(16)
+        db.commit()
+        db.refresh(chat)
+
+    return chat
+
+
+@router.post("/{chat_id}/unshare", response_model=ChatResponse)
+async def unshare_chat(
+    chat_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    chat = get_chat_for_user(db, chat_id, current_user)
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    chat.is_public = False
+    db.commit()
+    db.refresh(chat)
+
+    return chat
+
+
+@router.get("/public/{share_id}/preview-url", response_model=PreviewUrlResponse)
+async def get_public_chat_preview_url(
+    share_id: str,
+    db: Session = Depends(get_db),
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.public_share_id == share_id, Chat.is_public)
+        .options(joinedload(Chat.project))
+        .first()
+    )
+    if chat is None or not chat.project:
+        raise HTTPException(status_code=404, detail="Chat or project not found")
+
+    sandbox = await DevSandbox.get_or_create(chat.project.id, create_if_missing=True)
+    await sandbox.wait_for_up()
+    tunnels = await sandbox.sb.tunnels.aio()
+    preview_url = tunnels[3000].url
+
+    return {"preview_url": preview_url}

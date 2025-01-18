@@ -2,6 +2,7 @@ import traceback
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import functools
+import modal
 
 from routers.project_socket import project_managers
 from db.models import Project, PreparedSandbox, Stack
@@ -56,9 +57,24 @@ async def maintain_prepared_sandboxes(db: Session):
                     stack_id=stack.id,
                     modal_sandbox_id=sb.object_id,
                     modal_volume_label=vol_id,
+                    pack_hash=stack.pack_hash,
                 )
                 db.add(psbox)
                 db.commit()
+
+    latest_stack_hashes = set(stack.pack_hash for stack in stacks)
+    psboxes_to_delete = db.query(PreparedSandbox).filter(
+        (PreparedSandbox.pack_hash.notin_(latest_stack_hashes)) |
+        (PreparedSandbox.pack_hash.is_(None))
+    ).all()
+    if len(psboxes_to_delete) > 0:
+        print(
+            f"Deleting {len(psboxes_to_delete)} prepared sandboxes with stale hashes"
+        )
+        for psbox in psboxes_to_delete:
+            db.delete(psbox)
+            db.commit()
+            await modal.Volume.delete.aio(label=psbox.modal_volume_label)
 
 
 @task_handler()
@@ -69,6 +85,7 @@ async def clean_up_project_resources(db: Session = None):
             Project.modal_sandbox_id.isnot(None),
             Project.modal_sandbox_last_used_at.isnot(None),
             Project.modal_sandbox_last_used_at < datetime.now() - timedelta(minutes=15),
+            (Project.modal_never_cleanup.is_(None) | ~Project.modal_never_cleanup),
         )
         .all()
     )

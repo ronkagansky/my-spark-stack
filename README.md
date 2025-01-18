@@ -4,18 +4,23 @@
 
 <img width="800" alt="chrome_vMZlrhHm0u" src="https://github.com/user-attachments/assets/4c1912c9-85c9-4169-9d6c-bb5f96edd23e">
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/61t3xx?referralCode=c5mPsy)
+
 ## Features
 
 - 🤖 AI-powered code generation
 - ⚡️ Real-time development environment
 - 🎨 Multiple arbitrary starter templates (see `/images`)
-- 👥 Team collaboration
+- 👥 Team collaboration and management
 - 📝 Git version control
 - 🔄 Live preview
 - 🧠 Chain-of-Thought reasoning for complex asks
 - 🔌 Support for OpenAI and Anthropic models
 - 📱 Multi-page app generation
 - 📸 Sketch and screenshot uploads
+- 🚀 Deployment to GitHub (+ Netlify, Vercel, etc)
+- 🌙 Dark mode support
+- 🔗 Share chats and projects publicly
 
 ## Setup
 
