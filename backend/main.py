@@ -56,6 +56,8 @@ app.add_middleware(
         "http://localhost:8000",
         "https://*.up.railway.app",
         "https://*.sshh.io",
+        "https://sparkstack.app",
+        "https://*.sparkstack.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
