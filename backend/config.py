@@ -42,6 +42,7 @@ UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
 # Modal config
 MODAL_TOKEN_ID = os.getenv("MODAL_TOKEN_ID")
 MODAL_TOKEN_SECRET = os.getenv("MODAL_TOKEN_SECRET")
+MODAL_APP_NAME = os.getenv("MODAL_APP_NAME", "prompt-stack-sandbox")
 
 # AI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

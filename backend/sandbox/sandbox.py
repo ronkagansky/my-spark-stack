@@ -11,8 +11,9 @@ from functools import lru_cache
 
 from db.database import get_db
 from db.models import Project, PreparedSandbox, Stack
+from config import MODAL_APP_NAME
 
-app = modal.App.lookup("prompt-stack-sandbox", create_if_missing=True)
+app = modal.App.lookup(MODAL_APP_NAME, create_if_missing=True)
 
 
 IGNORE_PATHS = ["node_modules", ".git", ".next", "build", "git.log", "tmp"]
@@ -149,7 +150,9 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
         )
         await proc.wait.aio()
 
-    async def read_file_contents(self, path: str, does_not_exist_ok: bool = False) -> str:
+    async def read_file_contents(
+        self, path: str, does_not_exist_ok: bool = False
+    ) -> str:
         path = _strip_app_prefix(path)
         content = []
         try:
@@ -160,8 +163,10 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
                 return ""
             raise e
         return "".join(content)
-    
-    async def stream_file_contents(self, path: str, binary_mode: bool = False) -> AsyncGenerator[Union[str, bytes], None]:
+
+    async def stream_file_contents(
+        self, path: str, binary_mode: bool = False
+    ) -> AsyncGenerator[Union[str, bytes], None]:
         path = _strip_app_prefix(path)
         try:
             async for chunk in self.vol.read_file.aio(path):
