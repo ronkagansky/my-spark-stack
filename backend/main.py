@@ -55,6 +55,7 @@ app.add_middleware(
         "http://localhost:3001",
         "http://localhost:8000",
         "https://*.up.railway.app",
+        "https://*.sshh.io",
     ],
     allow_credentials=True,
     allow_methods=["*"],
