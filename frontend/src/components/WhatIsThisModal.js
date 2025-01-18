@@ -15,8 +15,8 @@ export function WhatIsThisModal({ isOpen, onClose }) {
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            Spark Stack is an experimental tool for building web apps through an
-            AI-powered chat interface. Create quick MVPs with simple prompts.
+            Spark Stack is an tool for building web apps through an AI-powered
+            chat interface. Create quick MVPs with simple prompts.
           </p>
           <div className="relative w-full h-[300px] rounded-lg overflow-hidden">
             <Image

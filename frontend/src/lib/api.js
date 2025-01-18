@@ -252,6 +252,13 @@ class ApiClient {
   async unshareChat(chatId) {
     return this._post(`/api/chats/${chatId}/unshare`);
   }
+
+  async emailLogin(token) {
+    const res = await this._get(`/api/auth/email-login/${token}`);
+    localStorage.setItem('token', res.token);
+    localStorage.setItem('username', res.user.username);
+    return res.user;
+  }
 }
 
 export async function uploadImage(imageData, contentType) {

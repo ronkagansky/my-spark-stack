@@ -8,6 +8,7 @@ from db.database import get_db
 from db.models import User, Team, TeamMember, TeamRole
 from schemas.models import UserCreate, UserResponse, AuthResponse, UserUpdate
 from config import JWT_SECRET_KEY, CREDITS_DEFAULT, JWT_EXPIRATION_DAYS
+from utils.emails import send_login_link
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -58,7 +59,11 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     # Check if email is already taken
     existing_email = db.query(User).filter(User.email == user.email).first()
     if existing_email:
-        raise HTTPException(status_code=400, detail="Email already exists")
+        send_login_link(user.email)
+        raise HTTPException(
+            status_code=409,
+            detail="Account already exists. Check your email for a login link.",
+        )
 
     # Validate username doesn't contain forbidden phrases
     try:
@@ -142,3 +147,33 @@ async def update_user(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/email-login/{token}", response_model=AuthResponse)
+async def email_login(token: str, db: Session = Depends(get_db)):
+    try:
+        # Decode the token
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
+        email = payload.get("email")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        # Get the user
+        user = db.query(User).filter(User.email == email).first()
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+
+        # Generate a new session token
+        session_token = jwt.encode(
+            {
+                "sub": user.username,
+                "exp": datetime.now() + timedelta(days=JWT_EXPIRATION_DAYS),
+            },
+            JWT_SECRET_KEY,
+            algorithm="HS256",
+        )
+
+        return AuthResponse(user=user, token=session_token)
+
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")

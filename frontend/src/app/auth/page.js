@@ -17,7 +17,7 @@ export default function AuthPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const generateTempEmail = (username) => {
-    return `${username}@prompt-stack.sshh.io`;
+    return `${username}@sparkstack.app`;
   };
 
   const isValidEmail = (email) => {
@@ -72,11 +72,18 @@ export default function AuthPage() {
       });
       router.push('/chats/new');
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+      if (error.message.includes('login link')) {
+        toast({
+          title: 'Check Your Email',
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +128,7 @@ export default function AuthPage() {
               onClick={handleCreateRegularAccount}
               disabled={!email.trim() || isLoading}
             >
-              {isLoading ? 'Creating Account...' : 'Create Account'}
+              {isLoading ? 'Creating Account...' : 'Create Account (or login)'}
             </Button>
             <Button
               className="w-full"

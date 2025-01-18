@@ -65,3 +65,7 @@ CREDITS_CHAT_COST = _int_env("CREDITS_CHAT_COST", 10)
 # Stripe configuration
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# Email configuration
+EMAIL_FROM = os.getenv("EMAIL_FROM", "no-reply@sparkstack.app")
+EMAIL_LOGIN_JWT_EXPIRATION_DAYS = _int_env("EMAIL_LOGIN_JWT_EXPIRATION_DAYS", 1)
