@@ -4,6 +4,7 @@ import asyncio
 import base64
 import datetime
 import uuid
+import io
 from typing import List, Optional, Tuple, AsyncGenerator, Union
 from modal.volume import FileEntryType
 from asyncio import Lock
@@ -201,6 +202,17 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
             else:
                 return data
         return None
+
+    @classmethod
+    async def write_project_file(
+        cls, project: Project, path: str, content: str
+    ) -> None:
+        if vol_id := project.modal_volume_label:
+            vol = await modal.Volume.lookup.aio(label=vol_id)
+            path = _strip_app_prefix(path)
+            with io.BytesIO(content.encode("utf-8")) as f:
+                async with vol.batch_upload(force=True) as batch:
+                    batch.put_file(f, path)
 
     @classmethod
     async def destroy_project_resources(cls, project: Project):

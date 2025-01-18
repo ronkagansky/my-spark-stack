@@ -187,7 +187,9 @@ async def generate_project_zip(
     try:
         sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
     except SandboxNotReadyException:
-        raise HTTPException(status_code=400, detail="Sandbox not ready. Project must be running.")
+        raise HTTPException(
+            status_code=400, detail="Sandbox not ready. Project must be running."
+        )
 
     git_sha = await sandbox.run_command("git rev-parse HEAD")
     if not git_sha.strip():
@@ -213,18 +215,23 @@ tmp/
 .git/
 **/.git
 **/.git/
+.env
 """.strip()
     await sandbox.run_command(f"echo '{exclude_content}' > /tmp/zip-exclude.txt")
     await sandbox.run_command("mkdir -p /app/tmp")
-    
+
     # Clean up any tmp directories before zipping
     await sandbox.run_command("find /app -type d -name 'tmp' -exec rm -rf {} +")
-    
-    out = await sandbox.run_command(
+
+    await sandbox.run_command(
         f"cd /app && zip -r /app/tmp/{git_sha_fn} . -x@/tmp/zip-exclude.txt"
     )
 
-    return JSONResponse(content={"url": f"/api/teams/{team_id}/projects/{project_id}/download-zip?path={git_sha_fn}"})
+    return JSONResponse(
+        content={
+            "url": f"/api/teams/{team_id}/projects/{project_id}/download-zip?path={git_sha_fn}"
+        }
+    )
 
 
 @router.get("/{project_id}/download-zip")
@@ -241,10 +248,10 @@ async def get_project_download_zip(
     # Validate path format and prevent directory traversal
     expected_prefix = f"app-{project_id}-"
     if (
-        not path.startswith(expected_prefix) 
+        not path.startswith(expected_prefix)
         or not path.endswith(".zip")
-        or "/" in path 
-        or "\\" in path 
+        or "/" in path
+        or "\\" in path
         or ".." in path
         or not re.match(r"^app-\d+-[a-f0-9]{1,10}\.zip$", path)
     ):
@@ -257,7 +264,9 @@ async def get_project_download_zip(
 
         async def _stream_zip():
             try:
-                async for chunk in sandbox.stream_file_contents(f"/app/tmp/{path}", binary_mode=True):
+                async for chunk in sandbox.stream_file_contents(
+                    f"/app/tmp/{path}", binary_mode=True
+                ):
                     yield chunk
             finally:
                 # Clean up the zip file after streaming
@@ -268,12 +277,15 @@ async def get_project_download_zip(
             media_type="application/zip",
             headers={
                 "Content-Disposition": f'attachment; filename="{path}"',
-                "Content-Length": str(file_size)
-            }
+                "Content-Length": str(file_size),
+            },
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error accessing zip file: {str(e)}")
-    
+        raise HTTPException(
+            status_code=400, detail=f"Error accessing zip file: {str(e)}"
+        )
+
+
 @router.get("/{project_id}/deploy-status/github")
 async def deploy_status_github(
     team_id: int,
@@ -284,7 +296,7 @@ async def deploy_status_github(
     project = get_project_for_user(db, team_id, project_id, current_user)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
     has_origin = "origin" in await sandbox.run_command("git remote -v")
     env_text = await sandbox.run_command("cat /app/.env")
@@ -295,7 +307,10 @@ async def deploy_status_github(
     except Exception:
         repo_name = None
 
-    return JSONResponse(content={"created": has_token and has_origin, "repo_name": repo_name})
+    return JSONResponse(
+        content={"created": has_token and has_origin, "repo_name": repo_name}
+    )
+
 
 @router.post("/{project_id}/deploy-push/github")
 async def deploy_push_github(
@@ -307,7 +322,7 @@ async def deploy_push_github(
     project = get_project_for_user(db, team_id, project_id, current_user)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     sandbox = await DevSandbox.get_or_create(project.id, create_if_missing=False)
 
     out = await sandbox.run_command("git push -u origin main --force")
@@ -332,7 +347,7 @@ async def deploy_create_github(
     github_token = request.query_params.get("githubToken")
     if not github_token:
         raise HTTPException(status_code=400, detail="Missing githubToken")
-    
+
     repo_name = project.name.replace(" ", "-").lower()
 
     async def event_generator():
@@ -345,38 +360,49 @@ async def deploy_create_github(
         }
 
         remotes = await sandbox.run_command("git remote -v")
-        if 'origin' not in remotes:
+        if "origin" not in remotes:
 
-            create_repo_data= requests.post("https://api.github.com/user/repos", headers={
-                "Authorization": f"Bearer {github_token}",
-                "Accept": "application/vnd.github.v3+json",
-            }, json={
-                "name": repo_name,
-            }).json()
+            create_repo_data = requests.post(
+                "https://api.github.com/user/repos",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                },
+                json={
+                    "name": repo_name,
+                },
+            ).json()
 
             yield {
                 "event": "message",
                 "data": json.dumps({"message": "Connecting to repository..."}),
             }
 
-            if 'already exists' in repr(create_repo_data):
-                owner_name = requests.get("https://api.github.com/user", headers={
-                    "Authorization": f"Bearer {github_token}",
-                    "Accept": "application/vnd.github.v3+json",
-                }).json()["login"]
+            if "already exists" in repr(create_repo_data):
+                owner_name = requests.get(
+                    "https://api.github.com/user",
+                    headers={
+                        "Authorization": f"Bearer {github_token}",
+                        "Accept": "application/vnd.github.v3+json",
+                    },
+                ).json()["login"]
                 full_name = f"{owner_name}/{repo_name}"
             else:
                 full_name = create_repo_data["full_name"]
                 owner_name = create_repo_data["owner"]["login"]
 
-            await sandbox.run_command(f"git remote add origin https://{owner_name}:{github_token}@github.com/{full_name}.git")
+            await sandbox.run_command(
+                f"git remote add origin https://{owner_name}:{github_token}@github.com/{full_name}.git"
+            )
             yield {
                 "event": "message",
                 "data": json.dumps({"message": "Pushing to repository..."}),
             }
             await sandbox.run_command("git branch -M main")
             await sandbox.run_command("git push -u origin main")
-            await sandbox.run_command(f"echo -n 'GITHUB_TOKEN={github_token}\nGITHUB_REPO={full_name}\nGITHUB_OWNER={owner_name}\n' >> /app/.env")
+            await sandbox.run_command(
+                f"echo -n 'GITHUB_TOKEN={github_token}\nGITHUB_REPO={full_name}\nGITHUB_OWNER={owner_name}\n' >> /app/.env"
+            )
 
         yield {
             "event": "message",
@@ -384,3 +410,50 @@ async def deploy_create_github(
         }
 
     return EventSourceResponse(event_generator())
+
+
+@router.get("/{project_id}/env-vars")
+async def get_project_env_vars(
+    team_id: int,
+    project_id: int,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = get_project_for_user(db, team_id, project_id, current_user)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    env_text = await DevSandbox.get_project_file_contents(project, "/app/.env")
+    if not env_text:
+        return JSONResponse(content={"env_vars": {}})
+
+    env_vars = {}
+    for line in env_text.decode("utf-8").strip().split("\n"):
+        if "=" in line:
+            key, value = line.split("=", 1)
+            env_vars[key.strip()] = value.strip()
+
+    return JSONResponse(content={"env_vars": env_vars})
+
+
+@router.post("/{project_id}/env-vars")
+async def update_project_env_vars(
+    team_id: int,
+    project_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    project = get_project_for_user(db, team_id, project_id, current_user)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    body = await request.json()
+    env_vars = body.get("env_vars", {})
+
+    env_text = "\n".join(f"{key}={value}" for key, value in env_vars.items())
+    await DevSandbox.write_project_file(project, "/app/.env", env_text)
+
+    return JSONResponse(
+        content={"message": "Environment variables updated successfully"}
+    )

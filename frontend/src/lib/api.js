@@ -259,6 +259,21 @@ class ApiClient {
     localStorage.setItem('username', res.user.username);
     return res.user;
   }
+
+  async getProjectEnvVars(teamId, projectId) {
+    const response = await this._get(
+      `/api/teams/${teamId}/projects/${projectId}/env-vars`
+    );
+    return response;
+  }
+
+  async updateProjectEnvVars(teamId, projectId, data) {
+    const response = await this._post(
+      `/api/teams/${teamId}/projects/${projectId}/env-vars`,
+      data
+    );
+    return response;
+  }
 }
 
 export async function uploadImage(imageData, contentType) {

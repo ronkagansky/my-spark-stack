@@ -56,8 +56,8 @@ EOF
 if [ ! -f '/app/.env' ]; then
     touch /app/.env
 fi
-if ! grep -q "^IS_PROMPT_STACK=" /app/.env; then
-    echo "IS_PROMPT_STACK=true\n" >> /app/.env
+if ! grep -q "^IS_SPARK_STACK=" /app/.env; then
+    echo "IS_SPARK_STACK=true\n" >> /app/.env
 fi
 set -a
 [ -f /app/.env ] && . /app/.env

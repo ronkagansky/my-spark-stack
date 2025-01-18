@@ -27,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { DeployTab } from './DeployTab';
+import { EnvVarsDialog } from './EnvVarsDialog';
 
 function ChatsTab({ chats, isLoadingChats, router }) {
   return (
@@ -250,6 +251,12 @@ export function ProjectTab({ project, onSendMessage }) {
                   rows={4}
                 />
               </Card>
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Environment Variables</h3>
+                  <EnvVarsDialog project={project} team={team} />
+                </div>
+              </Card>
               <div className="space-x-2">
                 <Button onClick={handleSave}>Save</Button>
                 <Button variant="outline" onClick={() => setIsEditing(false)}>
@@ -267,6 +274,12 @@ export function ProjectTab({ project, onSendMessage }) {
                   {project.custom_instructions ||
                     'No custom instructions set for this project.'}
                 </p>
+              </Card>
+              <Card className="p-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Environment Variables</h3>
+                  <EnvVarsDialog project={project} team={team} />
+                </div>
               </Card>
               <TooltipProvider>
                 <Tooltip>
