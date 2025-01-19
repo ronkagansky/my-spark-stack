@@ -112,14 +112,18 @@ export const Sidebar = () => {
     </Button>
   );
 
-  const projectIdToChats = chats.reduce((acc, chat) => {
-    const projectId = chat.project?.id;
-    if (!acc[projectId]) {
-      acc[projectId] = [];
-    }
-    acc[projectId].push(chat);
-    return acc;
-  }, {});
+  const projectIdToChats = chats
+    .filter(
+      (chat) => chat.project && projects.some((p) => p.id === chat.project.id)
+    )
+    .reduce((acc, chat) => {
+      const projectId = chat.project.id;
+      if (!acc[projectId]) {
+        acc[projectId] = [];
+      }
+      acc[projectId].push(chat);
+      return acc;
+    }, {});
   const sortedProjectIdToChats = Object.entries(projectIdToChats).sort(
     ([projectIdA], [projectIdB]) => {
       return (
