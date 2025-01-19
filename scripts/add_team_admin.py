@@ -1,5 +1,5 @@
 """
-python ../scripts/add_team_admin.py <project_name> <username>
+python ../scripts/add_team_admin.py (--project-name <project_name> | --chat-id <chat_id>) <username>
 """
 
 import sys
@@ -11,7 +11,7 @@ import sys
 import argparse
 from sqlalchemy import select
 from backend.db.database import SessionLocal
-from backend.db.models import Project, User, TeamMember, TeamRole
+from backend.db.models import Project, User, TeamMember, TeamRole, Chat
 
 
 def confirm_action(message: str) -> bool:
@@ -44,29 +44,47 @@ def select_project(projects):
             print("Please enter a valid number.")
 
 
-def add_team_admin(project_name: str, username: str):
+def get_project_by_name(db, project_name: str) -> Project:
+    """Get project by name, handling multiple matches."""
+    projects = (
+        db.execute(select(Project).where(Project.name.ilike(project_name)))
+        .scalars()
+        .all()
+    )
+
+    if not projects:
+        print(f"Error: Project '{project_name}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    return projects[0] if len(projects) == 1 else select_project(projects)
+
+
+def get_project_by_chat_id(db, chat_id: int) -> Project:
+    """Get project associated with a chat ID."""
+    chat = db.execute(select(Chat).where(Chat.id == chat_id)).scalar_one_or_none()
+
+    if not chat:
+        print(f"Error: Chat with ID '{chat_id}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    return chat.project
+
+
+def add_team_admin(project_identifier: dict, username: str):
     """Add a user as an admin to the team associated with a project.
 
     Args:
-        project_name: Name of the project (case insensitive)
+        project_identifier: Dict with either 'project_name' or 'chat_id'
         username: Username of the user to add as admin
     """
     db = SessionLocal()
 
     try:
-        # Find project using case-insensitive search
-        projects = (
-            db.execute(select(Project).where(Project.name.ilike(project_name)))
-            .scalars()
-            .all()
-        )
-
-        if not projects:
-            print(f"Error: Project '{project_name}' not found", file=sys.stderr)
-            sys.exit(1)
-
-        # If multiple projects found, let user select
-        project = projects[0] if len(projects) == 1 else select_project(projects)
+        # Get project based on provided identifier
+        if "project_name" in project_identifier:
+            project = get_project_by_name(db, project_identifier["project_name"])
+        else:
+            project = get_project_by_chat_id(db, project_identifier["chat_id"])
 
         # Find user
         user = db.execute(
@@ -120,11 +138,24 @@ def main():
     parser = argparse.ArgumentParser(
         description="Add a user as an admin to the team associated with a project"
     )
-    parser.add_argument("project_name", help="Name of the project (case insensitive)")
+
+    # Create mutually exclusive group for project identification
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--project-name", help="Name of the project (case insensitive)")
+    group.add_argument("--chat-id", type=int, help="ID of the chat")
+
     parser.add_argument("username", help="Username of the user to add as admin")
 
     args = parser.parse_args()
-    add_team_admin(args.project_name, args.username)
+
+    # Create project identifier dict based on provided args
+    project_identifier = {}
+    if args.project_name:
+        project_identifier["project_name"] = args.project_name
+    else:
+        project_identifier["chat_id"] = args.chat_id
+
+    add_team_admin(project_identifier, args.username)
 
 
 if __name__ == "__main__":
