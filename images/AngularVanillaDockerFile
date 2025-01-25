@@ -7,6 +7,7 @@ RUN apt-get update && \
     curl \
     wget \
     zip \
+    tree \
     unzip && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
@@ -15,7 +16,6 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-# Create new Angular project in one command, similar to create-next-app
 RUN npm install -g @angular/cli && \
     ng new frontend \
     --routing=true \
@@ -28,9 +28,7 @@ RUN npm install -g @angular/cli && \
     npm install && \
     ng build
 
-RUN ls -asl /frontend && \
-    ls -asl /frontend/src && \
-    ls -asl /frontend/src/app && \
+RUN tree /frontend && \
     cat /frontend/package.json
 
 EXPOSE 3000

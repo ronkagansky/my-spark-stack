@@ -7,6 +7,7 @@ RUN apt-get update && \
     curl \
     wget \
     zip \
+    tree \
     unzip && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
@@ -22,12 +23,12 @@ RUN npx --yes create-next-app@latest frontend --js --tailwind --src-dir src --ap
     (echo "\n\n\n" | npx shadcn@latest add --yes --all) && \
     npm run build
 
+RUN tree /frontend
+
 RUN curl -o /frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/next.config.mjs.example && \
     curl -o /frontend/.eslintrc.json https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/.eslintrc.json.example
 
-RUN ls -asl /frontend && \
-    ls -asl /frontend/public && \
-    ls -asl /frontend/src/app && \
+RUN tree /frontend && \
     cat /frontend/package.json
 
 EXPOSE 3000
