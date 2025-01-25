@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useShareChat } from '@/hooks/use-share-chat';
+import { Progress } from '@/components/ui/progress';
 
 const STARTER_PROMPTS = [
   'Build a 90s themed cat facts app with catfact.ninja API',
@@ -495,6 +496,37 @@ const statusMap = {
   },
 };
 
+const LoadingState = () => {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const duration = 120000; // 2 minutes in milliseconds
+    const interval = 100; // Update every 100ms
+    const increment = (interval / duration) * 100;
+
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + increment;
+        return next >= 100 ? 100 : next;
+      });
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">
+        Booting up your development environment...
+      </p>
+      <div className="w-64">
+        <Progress value={progress} className="h-2" />
+      </div>
+    </div>
+  );
+};
+
 export function Chat({
   messages,
   onSendMessage,
@@ -701,14 +733,7 @@ export function Chat({
         {!showStackPacks &&
           messages.length <= 1 &&
           ['BUILDING', 'OFFLINE', 'BUILDING_WAITING'].includes(status) && (
-            <>
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  Booting up your development environment...
-                </p>
-              </div>
-            </>
+            <LoadingState />
           )}
         {messages.length === 0 && showStackPacks ? (
           <EmptyState

@@ -15,11 +15,12 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
+RUN npx --yes create-next-app@latest frontend --js --tailwind --src-dir src --app --no-turbopack --yes && \
     cd frontend && \
     npm run build
 
-RUN curl -o /frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/next.config.mjs.example
+RUN curl -o /frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/next.config.mjs.example && \
+    curl -o /frontend/.eslintrc.json https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/.eslintrc.json.example
 
 RUN ls -asl /frontend && \
     ls -asl /frontend/public && \

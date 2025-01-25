@@ -24,6 +24,8 @@ export function getLanguageFromFilename(filename) {
     sh: 'shell',
     bash: 'shell',
     txt: 'plaintext',
+    mjs: 'javascript',
+    json: 'json',
   };
   return languageMap[extension] || 'plaintext';
 }

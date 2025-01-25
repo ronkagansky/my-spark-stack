@@ -139,6 +139,7 @@ const FileContent = ({ selectedFile, isLoading, fileContent }) => {
           <Editor
             height="100%"
             defaultLanguage={getLanguageFromFilename(selectedFile)}
+            language={getLanguageFromFilename(selectedFile)}
             value={isLoading ? 'Loading...' : fileContent}
             theme="vs-dark"
             options={{

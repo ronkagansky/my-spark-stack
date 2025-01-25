@@ -120,6 +120,7 @@ Answer the following questions:
 1a. Is this a general question, command to build something, etc.?
 2. Which files are relevant to the question or would be needed to perform the request?
 2a. What page should the user be navigated to to see/verify the change? (e.g. /settings since we are working on that page)
+2b. If there's weird behavior, what files should we cat to double check on the contents?
 3. What commands might you need to run?
 3a. What packages need to be installed?
 4. For EACH stack-specific tip, what do you need to keep in mind or how does this adjust your plan?
@@ -199,18 +200,11 @@ It is also useful to call out large blocks of code you explicitly removed (e.g. 
 {stack_text}
 </stack>
 
-<project-files>
-{files_text}
-</project-files>
-
-<plan>
-{plan_text}
-</plan>
-
 <tips>
 - When you use these code blocks the system will automatically apply the file changes (do not also use tools to do the same thing).
 - This apply will happen after you've finished your response and automatically include a git commit of all changes.
 - No need to run `npm run dev`, etc since the sandbox will handle that.
+- The Spark Stack UI has built in a "Preview" window of the changes to the right as well as a UI for the user to view/export raw files and config deployment/env variables.
 </tips>
 
 Follow the <plan>.
@@ -266,6 +260,24 @@ def _parse_follow_ups(content: str) -> List[str]:
     # Parse bullet points from the content
     follow_ups = re.findall(r"\s*\-\s*(.+)", match.group(1))
     return follow_ups
+
+
+def _append_last_user_message(messages: List[dict], text: str) -> List[dict]:
+    last_user_message = next(
+        (m for m in reversed(messages) if m.get("role") == "user"), None
+    )
+    if last_user_message:
+        if isinstance(last_user_message["content"], list):
+            if last_user_message["content"] and isinstance(
+                last_user_message["content"][0], dict
+            ):
+                last_user_message["content"][0]["text"] += "\n\n" + text
+            else:
+                last_user_message["content"].append({"type": "text", "text": text})
+        else:
+            last_user_message["content"] += "\n\n" + text
+    else:
+        raise ValueError("No user message found")
 
 
 class Agent:
@@ -413,8 +425,6 @@ class Agent:
         system_prompt = SYSTEM_EXEC_PROMPT.format(
             project_text=project_text,
             stack_text=stack_text,
-            files_text=files_text,
-            plan_text=plan_content,
             user_text=user_text,
         )
 
@@ -437,6 +447,11 @@ class Agent:
                 for message in messages
             ],
         ]
+        _append_last_user_message(
+            exec_messages,
+            f"---\n<project-files>\n{files_text}\n</project-files>\n<plan>\n{plan_content}\n</plan>\n---",
+        )
+        print(exec_messages)
         tools = [build_run_command_tool(self.sandbox), build_navigate_to_tool(self)]
 
         model = LLM_PROVIDERS[MAIN_PROVIDER]()
