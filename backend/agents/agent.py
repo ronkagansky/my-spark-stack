@@ -451,7 +451,6 @@ class Agent:
             exec_messages,
             f"---\n<project-files>\n{files_text}\n</project-files>\n<plan>\n{plan_content}\n</plan>\n---",
         )
-        print(exec_messages)
         tools = [build_run_command_tool(self.sandbox), build_navigate_to_tool(self)]
 
         model = LLM_PROVIDERS[MAIN_PROVIDER]()

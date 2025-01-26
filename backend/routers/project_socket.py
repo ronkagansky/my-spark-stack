@@ -9,7 +9,7 @@ import traceback
 
 from sandbox.sandbox import DevSandbox, SandboxNotReadyException
 from agents.agent import Agent, ChatMessage
-from agents.diff import parse_file_changes
+from agents.diff import DiffApplier
 from db.database import get_db
 from db.models import Project, Message as DbChatMessage, Stack, User, Chat
 from db.queries import get_chat_for_user
@@ -72,17 +72,6 @@ def _db_message_to_message(db_message: DbChatMessage) -> ChatMessage:
 router = APIRouter(tags=["websockets"])
 
 
-async def _apply_file_changes(agent: Agent, total_content: str):
-    if agent.sandbox:
-        changes = await parse_file_changes(agent.sandbox, total_content)
-        if len(changes) > 0:
-            commit_message = await write_commit_message(total_content)
-            print("Applying Changes", [f.path for f in changes], repr(commit_message))
-            await agent.sandbox.write_file_contents_and_commit(
-                [(change.path, change.content) for change in changes], commit_message
-            )
-
-
 class ProjectManager:
     def __init__(self, db: Session, project_id: int):
         self.db = db
@@ -136,7 +125,7 @@ class ProjectManager:
             except SandboxNotReadyException:
                 self.sandbox_status = SandboxStatus.BUILDING_WAITING
                 await self.emit_project(await self._get_project_status())
-            await asyncio.sleep(30)
+                await asyncio.sleep(10)
         await self.sandbox.wait_for_up()
         self.sandbox_status = SandboxStatus.READY
         tunnels = await self.sandbox.sb.tunnels.aio()
@@ -221,10 +210,12 @@ class ProjectManager:
         )
         messages = [_db_message_to_message(m) for m in db_messages]
         total_content = ""
+        diff_applier = DiffApplier(agent.sandbox)
         async for partial_message in agent.step(
             messages, self.sandbox_file_paths, self.sandbox_git_log
         ):
             total_content += partial_message.delta_content
+            diff_applier.ingest(partial_message.delta_content)
             await self.emit_chat(
                 chat_id,
                 ChatChunkResponse(
@@ -244,9 +235,17 @@ class ProjectManager:
         self.sandbox_status = SandboxStatus.WORKING_APPLYING
         _, _, follow_ups = await asyncio.gather(
             self.emit_project(await self._get_project_status()),
-            _apply_file_changes(agent, total_content),
+            diff_applier.apply(),
             agent.suggest_follow_ups(messages + [resp_message]),
         )
+
+        if await agent.sandbox.has_file("/app/frontend/.eslintrc.json"):
+            lint_output = await agent.sandbox.run_command(
+                "npm run lint", workdir="/app/frontend"
+            )
+            print(lint_output)
+
+        await self.sandbox.commit_changes(await write_commit_message(total_content))
 
         await self.emit_chat(
             chat_id,

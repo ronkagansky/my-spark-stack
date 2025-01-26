@@ -119,37 +119,11 @@ class DevSandbox:
         async for chunk in proc.stderr:
             yield chunk
 
-    async def write_file_contents_and_commit(
-        self, files: List[Tuple[str, str]], commit_message: str
-    ):
-        # Create a single Python command that writes all files at once
-        files_data = []
-        for path, content in files:
-            encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
-            files_data.append((path, encoded_content))
-
-        python_cmd = f"""
-import os
-import base64
-
-files = {str(files_data)}
-
-for path, base64_content in files:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        f.write(base64.b64decode(base64_content).decode('utf-8'))
-
-os.system("git add -A")
-os.system("git commit -m '{commit_message}'")
-os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
-"""
-        proc = await self.sb.exec.aio(
-            "python3",
-            "-c",
-            python_cmd,
-            workdir="/app",
+    async def commit_changes(self, commit_message: str):
+        await self.run_command(f"git add -A && git commit -m {repr(commit_message)}")
+        await self.run_command(
+            'git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log'
         )
-        await proc.wait.aio()
 
     async def read_file_contents(
         self, path: str, does_not_exist_ok: bool = False
@@ -164,6 +138,15 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
                 return ""
             raise e
         return "".join(content)
+
+    async def has_file(self, path: str):
+        try:
+            # Attempt to get first chunk of the file
+            async for _ in self.vol.read_file.aio(_strip_app_prefix(path)):
+                return True  # If we can read any chunk, the file exists
+            return True  # Empty file case
+        except FileNotFoundError:
+            return False
 
     async def stream_file_contents(
         self, path: str, binary_mode: bool = False
@@ -202,6 +185,33 @@ os.system('git log --pretty="%h|%s|%aN|%aE|%aD" -n 50 > /app/git.log')
             else:
                 return data
         return None
+
+    async def write_file(self, path: str, content: str):
+        files = [(path, content)]
+        files_data = []
+        for path, content in files:
+            encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+            files_data.append((path, encoded_content))
+
+        # Note: This hacky approach helps with auto-reload which doesn't work with modal.Volume.batch_upload
+        python_cmd = f"""
+import os
+import base64
+
+files = {str(files_data)}
+
+for path, base64_content in files:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as f:
+        f.write(base64.b64decode(base64_content).decode('utf-8'))
+"""
+        proc = await self.sb.exec.aio(
+            "python3",
+            "-c",
+            python_cmd,
+            workdir="/app",
+        )
+        await proc.wait.aio()
 
     @classmethod
     async def write_project_file(

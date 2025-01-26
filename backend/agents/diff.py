@@ -1,16 +1,10 @@
 from pydantic import BaseModel
-from typing import List
 import re
 import asyncio
+import os
 
 from sandbox.sandbox import DevSandbox
 from agents.prompts import chat_complete
-
-
-class FileChange(BaseModel):
-    path: str
-    diff: str
-    content: str
 
 
 def _extract_code_block(content: str) -> str:
@@ -37,8 +31,26 @@ _DIFF_TIPS = {
     "use-toast": 'Ensure the import is from "@/hooks/use-toast" (rather than components)',
 }
 
+_EXT_TO_MARKDOWN_LANGUAGE = {
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".py": "python",
+    ".html": "html",
+    ".css": "css",
+    ".json": "json",
+    ".md": "markdown",
+    ".mjs": "javascript",
+    ".mts": "typescript",
+}
 
-async def _apply_smart_diff(original_content: str, diff: str, tips: str) -> str:
+
+async def _apply_smart_diff(
+    original_content: str, diff: str, tips: str, file_path: str
+) -> str:
+    _, ext = os.path.splitext(file_path)
+    md_lang = _EXT_TO_MARKDOWN_LANGUAGE.get(ext, "")
     output = await chat_complete(
         """
 You are a senior software engineer that applies code changes to a file. Given the <original-content>, the <diff>, and the <adjustments>, apply the changes to the content. 
@@ -52,14 +64,16 @@ You are a senior software engineer that applies code changes to a file. Given th
 Respond ONLY with the updated content in a code block.
 """.strip(),
         f"""
+{file_path}
+
 <original-content>
-```
+```{md_lang}
 {original_content}
 ```
 </original-content>
 
 <diff>
-```
+```{md_lang}
 {diff}
 ```
 </diff>
@@ -72,57 +86,80 @@ Respond ONLY with the updated content in a code block.
     return _extract_code_block(output)
 
 
-async def parse_file_changes(sandbox: DevSandbox, content: str) -> List[FileChange]:
-    changes = []
-
-    for pattern in _CODE_BLOCK_PATTERNS:
-        matches = re.finditer(pattern, content)
-        for match in matches:
-            file_path = match.group(1)
-            diff = match.group(2).strip()
-            changes.append(FileChange(path=file_path, diff=diff, content=diff))
-
-    # Deduplicate changes by file path, keeping the last occurrence
-    seen_paths = {}
-    for change in changes:
-        seen_paths[change.path] = change
-    changes = list(seen_paths.values())
-
-    async def _render_diff(change: FileChange) -> FileChange:
-        tips = []
-        for pattern, tip in _DIFF_TIPS.items():
-            if re.search(pattern, change.diff):
-                tips.append(tip)
-        skip_conditions = [
-            "... (" not in change.diff,
-            "... keep" not in change.diff,
-            "... existing" not in change.diff,
-            "... rest" not in change.diff,
-            "the same..." not in change.diff,
-            len(tips) == 0,
-        ]
-        if all(skip_conditions):
-            return change
-        try:
-            original_content = await sandbox.read_file_contents(change.path)
-        except Exception:
-            original_content = "(file does not yet exist)"
-        new_content = await _apply_smart_diff(
-            original_content, change.diff, "\n".join([f" - {t}" for t in tips])
-        )
-        print(f"Applying smart diff to {change.path}, reasons: {skip_conditions}")
-        return FileChange(
-            path=change.path,
-            diff=change.diff,
-            content=new_content,
-        )
-
-    changes = await asyncio.gather(*[_render_diff(change) for change in changes])
-
-    return changes
-
-
 def remove_file_changes(content: str) -> str:
     for pattern in _CODE_BLOCK_PATTERNS:
         content = re.sub(pattern, "", content)
     return content
+
+
+class DiffApplier:
+    def __init__(self, sandbox: DevSandbox):
+        self.sandbox = sandbox
+        self.total_content = ""
+        self._changed_files = {}  # path -> diff
+        self._pending_tasks = {}  # path -> Task
+        self._processed_positions = set()  # Set of (file_path, start_pos) tuples
+
+    def ingest(self, content: str):
+        self.total_content += content
+
+        for pattern in _CODE_BLOCK_PATTERNS:
+            matches = re.finditer(pattern, self.total_content)
+            for match in matches:
+                file_path = match.group(1)
+                diff = match.group(2).strip()
+                # Calculate absolute position in total content
+                abs_start = match.start()
+
+                # Skip if we've already processed this match
+                if (file_path, abs_start) in self._processed_positions:
+                    continue
+
+                self._processed_positions.add((file_path, abs_start))
+                self._changed_files[file_path] = diff
+                # Kickoff async task to compute the smart diff
+                self._pending_tasks[file_path] = asyncio.create_task(
+                    self._compute_diff(file_path, diff)
+                )
+
+    async def _compute_diff(self, file_path: str, diff: str) -> str:
+        tips = []
+        for pattern, tip in _DIFF_TIPS.items():
+            if re.search(pattern, diff):
+                tips.append(tip)
+
+        try:
+            original_content = await self.sandbox.read_file_contents(file_path)
+        except Exception:
+            original_content = "(file does not yet exist)"
+
+        skip_conditions = [
+            "... (" not in diff,
+            "... keep" not in diff,
+            "... existing" not in diff,
+            "... rest" not in diff,
+            "the same..." not in diff,
+            len(tips) == 0,
+        ]
+        if all(skip_conditions):
+            print(f"Writing {file_path} directly...")
+            full_content = diff
+        else:
+            print(f"Writing {file_path} smart diff...")
+            full_content = await _apply_smart_diff(
+                original_content, diff, "\n".join([f" - {t}" for t in tips]), file_path
+            )
+        await self.sandbox.write_file(file_path, full_content)
+
+    async def apply(self):
+        """Wait for all pending diffs to complete and return the changes."""
+        if not self._pending_tasks:
+            return []
+
+        # Wait for all pending tasks to complete
+        results = await asyncio.gather(
+            *self._pending_tasks.values(), return_exceptions=True
+        )
+        for (file_path, task), result in zip(self._pending_tasks.items(), results):
+            if isinstance(result, Exception):
+                print(f"Error processing {file_path}: {result}")

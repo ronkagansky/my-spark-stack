@@ -500,7 +500,7 @@ const LoadingState = () => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const duration = 120000; // 2 minutes in milliseconds
+    const duration = 60000; // 1 minutes in milliseconds
     const interval = 100; // Update every 100ms
     const increment = (interval / duration) * 100;
 
