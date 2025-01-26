@@ -18,6 +18,7 @@ RUN node --version && npm --version
 
 RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
     cd frontend && \
+    npm install --save-dev eslint eslint-config-next --force && \
     npm run build
 
 RUN tree /frontend
