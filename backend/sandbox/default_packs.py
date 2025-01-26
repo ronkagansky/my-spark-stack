@@ -81,7 +81,7 @@ PACKS = [
     StackPack(
         title="Next.js",
         description="A simple Nextjs App. Best for starting from scratch with minimal components.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-vanilla@sha256:293b552ccb5a72ec6d0f87fa85b7be17c68469991d9fcb4989dce98527bee95d",
+        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-vanilla:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -121,7 +121,7 @@ Code Tips:
     StackPack(
         title="Next.js Shadcn",
         description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-shadcn@sha256:69fb8314ae636edd622cc73242a1d4b5e2846de952849daeb99dd72e48040d49",
+        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-shadcn:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -165,7 +165,7 @@ Code Tips:
     StackPack(
         title="p5.js",
         description="A simple app with p5.js. Best for generative art, games, and simulations.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-p5@sha256:3271b97e3096c0f344758ca0444910116e8d07da61ac70f43639c96d911f1110",
+        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-p5:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -234,7 +234,7 @@ class Ball {
     StackPack(
         title="Pixi.js",
         description="A app with Pixi.js. Best for games and animations.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-nextjs-pixi@sha256:ef2337594f07f1d0da3111640d8988e1416bd4777332e8a6d3ffd54022973c1c",
+        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-pixi:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
@@ -276,7 +276,7 @@ import { Application, Assets, Graphics, MeshRope, Point } from 'pixi.js';
     StackPack(
         title="Angular",
         description="A simple Angular app. Best for starting from scratch with Angular and minimal components.",
-        from_registry="ghcr.io/sshh12/prompt-stack-pack-angular-vanilla@sha256:46a870b62a584712f90749a3adcc9c4496437d2d7130991cee1030eea42bd46c",
+        from_registry="ghcr.io/sshh12/spark-stack-pack-angular-vanilla:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_ANGULAR_CMD,
         prompt="""
