@@ -72,6 +72,24 @@ def _db_message_to_message(db_message: DbChatMessage) -> ChatMessage:
 router = APIRouter(tags=["websockets"])
 
 
+async def _apply_and_lint_and_commit(diff_applier: DiffApplier):
+    _, has_lint_file = await asyncio.gather(
+        diff_applier.apply(),
+        diff_applier.sandbox.has_file("/app/frontend/.eslintrc.json"),
+    )
+    if has_lint_file:
+        lint_output = await diff_applier.sandbox.run_command(
+            "npm run lint", workdir="/app/frontend"
+        )
+        print(lint_output)
+        if "Error:" in lint_output:
+            await diff_applier.apply_eslint(lint_output)
+
+    await diff_applier.sandbox.commit_changes(
+        await write_commit_message(diff_applier.total_content)
+    )
+
+
 class ProjectManager:
     def __init__(self, db: Session, project_id: int):
         self.db = db
@@ -235,17 +253,9 @@ class ProjectManager:
         self.sandbox_status = SandboxStatus.WORKING_APPLYING
         _, _, follow_ups = await asyncio.gather(
             self.emit_project(await self._get_project_status()),
-            diff_applier.apply(),
+            _apply_and_lint_and_commit(diff_applier),
             agent.suggest_follow_ups(messages + [resp_message]),
         )
-
-        if await agent.sandbox.has_file("/app/frontend/.eslintrc.json"):
-            lint_output = await agent.sandbox.run_command(
-                "npm run lint", workdir="/app/frontend"
-            )
-            print(lint_output)
-
-        await self.sandbox.commit_changes(await write_commit_message(total_content))
 
         await self.emit_chat(
             chat_id,

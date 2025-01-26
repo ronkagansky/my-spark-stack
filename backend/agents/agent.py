@@ -183,9 +183,9 @@ YOU must use well formatted simplified code blocks to update files.
 ```
 </simple-code-block-template>
 
-You should literally output "... existing code ..." and write actual code in place of the {{ edit_1 }} and {{ edit_2 }} sections.
-
-It is also useful to call out large blocks of code you explicitly removed (e.g. "// ... removed code for xyz ...")
+- You should literally output "... existing code ..." and write actual code in place of the {{ edit_1 }} and {{ edit_2 }} sections.
+- It is also useful to call out large blocks of code you explicitly removed (e.g. "// ... removed code for xyz ...").
+- If you are debugging an error, it's useful to be more explicit when fixing the files (using less placeholder comments and more code in these cases).
 </formatting-instructions>
 
 <project>

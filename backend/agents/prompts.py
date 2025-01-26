@@ -70,6 +70,7 @@ Given the following changes, write a commit message for the changes.
 - Respond only with the commit message.
 - Do not use quotes or special characters.
 - Do not use markdown formatting, newlines, or other formatting.
+- Start with a verb, e.g. "Fixed", "Added", "Updated", etc.
 """.strip(),
         content[:100000],
     )

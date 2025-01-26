@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from typing import Dict, List, Optional
 import re
 import asyncio
 import os
@@ -47,10 +47,16 @@ _EXT_TO_MARKDOWN_LANGUAGE = {
 
 
 async def _apply_smart_diff(
-    original_content: str, diff: str, tips: str, file_path: str
+    original_content: str,
+    diff: str,
+    tips: str,
+    file_path: str,
+    lint_output: Optional[str] = None,
 ) -> str:
     _, ext = os.path.splitext(file_path)
     md_lang = _EXT_TO_MARKDOWN_LANGUAGE.get(ext, "")
+    if lint_output:
+        tips += f"\n\n<lint-output>Avoid the following errors from a previous attempt. \n```\n{lint_output}\n```</lint-output>"
     output = await chat_complete(
         """
 You are a senior software engineer that applies code changes to a file. Given the <original-content>, the <diff>, and the <adjustments>, apply the changes to the content. 
@@ -92,12 +98,47 @@ def remove_file_changes(content: str) -> str:
     return content
 
 
+def _parse_eslint(
+    lint_output: str, frontend_dir: str = "/app/frontend"
+) -> Dict[str, List[str]]:
+    """Parse ESLint output into a dictionary mapping file paths to their lint errors.
+
+    Args:
+        lint_output: Raw ESLint output string
+        frontend_dir: Base directory to prepend to relative file paths
+
+    Returns:
+        Dict mapping absolute file paths to lists of lint error messages
+    """
+    result = {}
+    current_file = None
+
+    for line in lint_output.strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+
+        # If line starts with ./ or / it's a file path
+        if line.startswith("./") or line.startswith("/"):
+            # Convert relative path to absolute path
+            if line.startswith("./"):
+                current_file = os.path.join(frontend_dir, line[2:])
+            else:
+                current_file = line
+            result[current_file] = []
+        # Otherwise it's an error message for the current file
+        elif current_file is not None:
+            result[current_file].append(line)
+
+    return result
+
+
 class DiffApplier:
     def __init__(self, sandbox: DevSandbox):
         self.sandbox = sandbox
         self.total_content = ""
-        self._changed_files = {}  # path -> diff
-        self._pending_tasks = {}  # path -> Task
+        self._path_to_diff = {}  # path -> diff
+        self._path_to_task = {}  # path -> Task
         self._processed_positions = set()  # Set of (file_path, start_pos) tuples
 
     def ingest(self, content: str):
@@ -116,13 +157,15 @@ class DiffApplier:
                     continue
 
                 self._processed_positions.add((file_path, abs_start))
-                self._changed_files[file_path] = diff
+                self._path_to_diff[file_path] = diff
                 # Kickoff async task to compute the smart diff
-                self._pending_tasks[file_path] = asyncio.create_task(
+                self._path_to_task[file_path] = asyncio.create_task(
                     self._compute_diff(file_path, diff)
                 )
 
-    async def _compute_diff(self, file_path: str, diff: str) -> str:
+    async def _compute_diff(
+        self, file_path: str, diff: str, lint_output: Optional[str] = None
+    ) -> str:
         tips = []
         for pattern, tip in _DIFF_TIPS.items():
             if re.search(pattern, diff):
@@ -138,6 +181,8 @@ class DiffApplier:
             "... keep" not in diff,
             "... existing" not in diff,
             "... rest" not in diff,
+            "... removed" not in diff,
+            "Add this at" in diff,
             "the same..." not in diff,
             len(tips) == 0,
         ]
@@ -145,21 +190,37 @@ class DiffApplier:
             print(f"Writing {file_path} directly...")
             full_content = diff
         else:
-            print(f"Writing {file_path} smart diff...")
+            print(f"Writing {file_path} smart diff...", skip_conditions)
             full_content = await _apply_smart_diff(
-                original_content, diff, "\n".join([f" - {t}" for t in tips]), file_path
+                original_content,
+                diff,
+                "\n".join([f" - {t}" for t in tips]),
+                file_path,
+                lint_output=lint_output,
             )
         await self.sandbox.write_file(file_path, full_content)
 
     async def apply(self):
         """Wait for all pending diffs to complete and return the changes."""
-        if not self._pending_tasks:
+        if not self._path_to_task:
             return []
 
         # Wait for all pending tasks to complete
         results = await asyncio.gather(
-            *self._pending_tasks.values(), return_exceptions=True
+            *self._path_to_task.values(), return_exceptions=True
         )
-        for (file_path, task), result in zip(self._pending_tasks.items(), results):
+        for (file_path, task), result in zip(self._path_to_task.items(), results):
             if isinstance(result, Exception):
                 print(f"Error processing {file_path}: {result}")
+
+    async def apply_eslint(self, lint_output: str):
+        paths_to_errors = _parse_eslint(lint_output)
+
+        for file_path, errors in paths_to_errors.items():
+            self._path_to_task[file_path] = asyncio.create_task(
+                self._compute_diff(
+                    file_path, self._path_to_diff[file_path], "\n".join(errors)
+                )
+            )
+
+        await self.apply()
