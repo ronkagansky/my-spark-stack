@@ -16,7 +16,7 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-RUN npx --yes create-next-app@latest frontend --js --tailwind --src-dir src --app --no-turbopack --yes && \
+RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
     cd frontend && \
     npm install lucide-react axios recharts @radix-ui/react-icons tailwind-merge react-hook-form --force && \
     (echo "\n\n\n" | npx shadcn@latest init --defaults --force --yes) && \
