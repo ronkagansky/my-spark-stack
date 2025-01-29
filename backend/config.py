@@ -72,5 +72,6 @@ STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 # Email configuration
-EMAIL_FROM = os.getenv("EMAIL_FROM", "no-reply@sparkstack.app")
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@sparkstack.app")
 EMAIL_LOGIN_JWT_EXPIRATION_DAYS = _int_env("EMAIL_LOGIN_JWT_EXPIRATION_DAYS", 1)

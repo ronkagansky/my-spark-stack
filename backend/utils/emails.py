@@ -1,18 +1,14 @@
 from datetime import datetime, timedelta
 from jose import jwt
-import boto3
-from botocore.exceptions import ClientError
-import sys
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Email, To, Content, HtmlContent
 
 from config import (
     JWT_SECRET_KEY,
-    JWT_EXPIRATION_DAYS,
     EMAIL_LOGIN_JWT_EXPIRATION_DAYS,
     FRONTEND_URL,
     EMAIL_FROM,
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
-    AWS_REGION,
+    SENDGRID_API_KEY,
 )
 
 
@@ -47,27 +43,12 @@ def send_login_link(email: str) -> None:
 def _send_email(
     recipient_email: str, subject: str, html_content: str, text_content: str
 ):
-    # Create a new SES resource
-    client = boto3.client(
-        "ses",
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION,
+    sg = SendGridAPIClient(SENDGRID_API_KEY)
+    message = Mail(
+        from_email=Email(EMAIL_FROM),
+        to_emails=To(recipient_email),
+        subject=subject,
+        plain_text_content=Content("text/plain", text_content),
+        html_content=HtmlContent(html_content),
     )
-
-    try:
-        response = client.send_email(
-            Source=EMAIL_FROM,
-            Destination={"ToAddresses": [recipient_email]},
-            Message={
-                "Subject": {"Data": subject, "Charset": "UTF-8"},
-                "Body": {
-                    "Text": {"Data": text_content, "Charset": "UTF-8"},
-                    "Html": {"Data": html_content, "Charset": "UTF-8"},
-                },
-            },
-        )
-        print(f"Email sent! Message ID: {response['MessageId']}")
-    except ClientError as e:
-        print(f"Error sending email: {e.response['Error']['Message']}")
-        sys.exit(1)
+    sg.send(message)
