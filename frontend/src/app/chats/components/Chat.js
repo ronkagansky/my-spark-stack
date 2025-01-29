@@ -57,7 +57,7 @@ const EmptyState = ({
   onProjectSelect,
 }) => (
   <div className="flex flex-col items-center justify-center min-h-0 h-full overflow-hidden">
-    <div className="max-w-md w-full space-y-4 p-4">
+    <div className="max-w-md w-full space-y-4 px-4 sm:px-6">
       <Select
         value={selectedProject}
         onValueChange={(value) => {
@@ -114,7 +114,12 @@ const EmptyState = ({
               .map((pack) => (
                 <SelectItem key={pack.id} value={pack.id} className="py-2">
                   <div className="flex flex-col gap-1 max-w-[calc(100vw-4rem)]">
-                    <span className="font-medium truncate">{pack.title}</span>
+                    <span className="font-medium truncate">
+                      {pack.title}
+                      {(pack.title === 'Next.js Shadcn' ||
+                        pack.title === 'p5.js') &&
+                        ' ⭐'}
+                    </span>
                     <p className="text-sm text-muted-foreground break-words whitespace-normal max-w-full">
                       {pack.description}
                     </p>
@@ -679,12 +684,10 @@ export function Chat({
     }
   };
 
-  console.log(chat);
-
   return (
     <div className="flex-1 flex flex-col md:max-w-[80%] md:mx-auto w-full h-[100dvh]">
       <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 border-b">
-        <div className="px-4 py-2.5 pt-16 md:pt-2.5 flex items-center justify-between gap-4">
+        <div className="px-8 py-2.5 pt-16 md:pt-2.5 flex items-center justify-between gap-4">
           <h1 className="text-base font-semibold truncate">{projectTitle}</h1>
           <div className="flex items-center gap-4 flex-shrink-0">
             {chat?.id && (
