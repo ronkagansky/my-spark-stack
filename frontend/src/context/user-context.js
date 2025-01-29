@@ -25,7 +25,22 @@ export function UserProvider({ children }) {
   const [projects, setProjects] = useState([]);
 
   const fetchUserData = async () => {
-    const [chats, teams] = await Promise.all([api.getChats(), api.getTeams()]);
+    try {
+      const [chats, teams] = await Promise.all([
+        api.getChats(),
+        api.getTeams(),
+      ]);
+    } catch (e) {
+      if (
+        window.confirm(
+          `Failed to login: ${e.message}, do you want to just use a new account?`
+        )
+      ) {
+        localStorage.removeItem('token');
+        window.location.href = '/';
+      }
+      return;
+    }
 
     setChats(chats);
     setTeams(teams);
