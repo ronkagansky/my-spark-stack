@@ -22,8 +22,6 @@ RUN npx --yes create-next-app@15.1.6 frontend --js --tailwind --no-eslint --src-
     npm install --save-dev eslint eslint-config-next --force && \
     npm run build
 
-RUN tree /frontend
-
 RUN curl -o /frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/next.config.mjs.example && \
     curl -o /frontend/.eslintrc.json https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/.eslintrc.json.example && \
     curl -o /frontend/src/app/layout.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/pixi/src/app/layout.js && \
@@ -32,7 +30,6 @@ RUN curl -o /frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/p
     curl -o /frontend/src/app/pixi/app.js https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/pixi/src/app/pixi/app.js && \
     rm -rf /frontend/public/*.svg
 
-RUN tree /frontend && \
-    cat /frontend/package.json
+RUN cat /frontend/package.json
 
 EXPOSE 3000
