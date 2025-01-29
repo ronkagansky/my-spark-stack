@@ -16,7 +16,7 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
+RUN npx --yes create-next-app@latest frontend -e with-supabase --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes  && \
     cd frontend && \
     npm install lucide-react axios recharts @radix-ui/react-icons tailwind-merge react-hook-form --force && \
     npm install --save-dev eslint eslint-config-next --force && \
