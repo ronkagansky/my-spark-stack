@@ -16,7 +16,7 @@ RUN apt-get update && \
 
 RUN node --version && npm --version
 
-RUN npx --yes create-next-app@latest frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
+RUN npx --yes create-next-app@15.1.6 frontend --js --tailwind --no-eslint --src-dir src --app --no-turbopack --yes && \
     cd frontend && \
     npm install --save-dev eslint eslint-config-next --force && \
     npm run build
