@@ -120,21 +120,20 @@ Code Tips:
     ),
     StackPack(
         title="Next.js Shadcn",
-        description="A Next.js app with Shadcn and Supabase. Best for building a modern web app with a clean UI.",
+        description="A Next.js app with Shadcn. Best for building a modern web app with a clean UI.",
         from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-shadcn@sha256:02b155fdb407deef0fd089cf574a0297658d724656e61c2802aab1dad27b9213",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
-You are building a Next.js app with Shadcn and Supabase.
+You are building a Next.js app with Shadcn.
 
-The user chose to use a Next.js app with Shadcn and Supabase so avoid adding any additional dependencies unless they are explicitly asked for.
+The user chose to use a Next.js app with Shadcn so avoid adding any additional dependencies unless they are explicitly asked for.
 
 Already included:
 - Next.js v15 (app already created)
 - lucide-react v0.460
 - axios v1.7
 - recharts v2.13
-- Supabase v1.13
 - All shadcn components (import them like `@/components/ui/button`)
 - `npm install` done
 - /app/.env, /app/.git
