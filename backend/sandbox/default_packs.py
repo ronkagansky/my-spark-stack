@@ -121,7 +121,7 @@ Code Tips:
     StackPack(
         title="Next.js Shadcn",
         description="A Next.js app with Shadcn and Supabase. Best for building a modern web app with a clean UI.",
-        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-shadcn@sha256:781248fc6c7745dc2657679a79e9226f3f680fd89388564883d33c39f1a4ff32",
+        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-shadcn@sha256:02b155fdb407deef0fd089cf574a0297658d724656e61c2802aab1dad27b9213",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
