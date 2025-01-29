@@ -25,11 +25,10 @@ export function UserProvider({ children }) {
   const [projects, setProjects] = useState([]);
 
   const fetchUserData = async () => {
+    let chats = [];
+    let teams = [];
     try {
-      const [chats, teams] = await Promise.all([
-        api.getChats(),
-        api.getTeams(),
-      ]);
+      [chats, teams] = await Promise.all([api.getChats(), api.getTeams()]);
     } catch (e) {
       if (
         window.confirm(
