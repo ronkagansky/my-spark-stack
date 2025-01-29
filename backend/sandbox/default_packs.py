@@ -80,7 +80,7 @@ npm run start -- --host 0.0.0.0 --port 3000
 PACKS = [
     StackPack(
         title="Next.js",
-        description="A simple Nextjs App. Best for starting from scratch with minimal components.",
+        description="A simple Next.js app. Best for starting from scratch with minimal components.",
         from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-vanilla:latest",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
@@ -92,7 +92,7 @@ The user chose to use a "vanilla" app so avoid adding any additional dependencie
 Already included:
 - Next.js v15 (app already created)
 - tailwindcss
-- `npm install` already run for these
+- `npm install` done
 - /app/.env, /app/.git
 
 Style Tips:
@@ -120,22 +120,23 @@ Code Tips:
     ),
     StackPack(
         title="Next.js Shadcn",
-        description="A Nextjs app with Shadcn UI. Best for building a modern web app with a modern UI.",
-        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-shadcn:latest",
+        description="A Next.js app with Shadcn and Supabase. Best for building a modern web app with a clean UI.",
+        from_registry="ghcr.io/sshh12/spark-stack-pack-nextjs-shadcn:781248fc6c7745dc2657679a79e9226f3f680fd89388564883d33c39f1a4ff32",
         sandbox_init_cmd=_SETUP_COMMON_CMD,
         sandbox_start_cmd=_START_NEXT_JS_CMD,
         prompt="""
-You are building a Next.js app with Shadcn UI.
+You are building a Next.js app with Shadcn and Supabase.
 
-The user chose to use a Next.js app with Shadcn UI so avoid adding any additional dependencies unless they are explicitly asked for.
+The user chose to use a Next.js app with Shadcn and Supabase so avoid adding any additional dependencies unless they are explicitly asked for.
 
 Already included:
 - Next.js v15 (app already created)
 - lucide-react v0.460
 - axios v1.7
 - recharts v2.13
-- All shadcn components are already installed (import them like `@/components/ui/button`)
-- `npm install` already run for these
+- Supabase v1.13
+- All shadcn components (import them like `@/components/ui/button`)
+- `npm install` done
 - /app/.env, /app/.git
 
 Style Tips:
@@ -148,7 +149,7 @@ Style Tips:
 Structure Tips:
 - Always use Next.js app router for new pages, creating /src/app/<page>/page.js
 - Always ensure new pages are somehow accessible from the main index page
-- Always include "use client" unless otherwise specified
+- Prefer "use client" unless otherwise specified
 - NEVER modify layout.js and use page.js files for layouts
 
 Code Tips:
@@ -286,7 +287,7 @@ The user chose to use a "vanilla" app so avoid adding any additional dependencie
 
 Already included:
 - Angular v19 (app already created)
-- `npm install` already run for these
+- `npm install` done
 - /app/.env, /app/.git
 
 Style Tips:

@@ -29,7 +29,6 @@ RUN tree /frontend
 RUN curl -o /frontend/next.config.mjs https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/next.config.mjs.example && \
     curl -o /frontend/.eslintrc.json https://raw.githubusercontent.com/sshh12/prompt-stack/refs/heads/main/images/nextjs/.eslintrc.json.example
 
-RUN tree /frontend && \
-    cat /frontend/package.json
+RUN cat /frontend/package.json
 
 EXPOSE 3000
