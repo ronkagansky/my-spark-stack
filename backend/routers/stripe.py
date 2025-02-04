@@ -19,6 +19,10 @@ CREDITS_PER_PURCHASE = 300
 async def on_session_completed(session: stripe.checkout.Session, db: Session):
     """Handle successful checkout session completion"""
     try:
+        if "sparkstack" not in session.client_reference_id:
+            print(f"stripe: Invalid client reference id: {session.client_reference_id}")
+            return
+
         team_id = int(session.client_reference_id.split("___")[1].replace("team_", ""))
 
         # Find the team

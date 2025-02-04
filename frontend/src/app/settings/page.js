@@ -229,7 +229,7 @@ function SettingsContent() {
     window.location.href = `${
       process.env.NEXT_PUBLIC_STRIPE_LINK ||
       'https://buy.stripe.com/28odUpcNb0Xm4ww8wz'
-    }?client_reference_id=promptstack___team_${team.id}`;
+    }?client_reference_id=sparkstack___team_${team.id}`;
   };
 
   return (
