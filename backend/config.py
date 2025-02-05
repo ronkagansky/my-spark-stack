@@ -45,8 +45,10 @@ MODAL_TOKEN_SECRET = os.getenv("MODAL_TOKEN_SECRET")
 MODAL_APP_NAME = os.getenv("MODAL_APP_NAME", "prompt-stack-sandbox")
 
 # AI configuration
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+ANTHROPIC_BASE_URL = os.getenv("ANTHROPIC_BASE_URL")
 FAST_PROVIDER = _enum_env("FAST_PROVIDER", ["openai", "anthropic"], default="anthropic")
 MAIN_PROVIDER = _enum_env("MAIN_PROVIDER", ["openai", "anthropic"], default="anthropic")
 FAST_MODEL = os.getenv("FAST_MODEL", "claude-3-5-haiku-20241022")

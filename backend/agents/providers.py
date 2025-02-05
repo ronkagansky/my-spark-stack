@@ -4,7 +4,12 @@ from pydantic import BaseModel
 import json
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
-from config import OPENAI_API_KEY, ANTHROPIC_API_KEY
+from config import (
+    OPENAI_API_KEY,
+    ANTHROPIC_API_KEY,
+    OPENAI_BASE_URL,
+    ANTHROPIC_BASE_URL,
+)
 import base64
 import httpx
 
@@ -57,7 +62,7 @@ class LLMProvider(ABC):
 
 class OpenAILLMProvider(LLMProvider):
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        self.client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
 
     async def chat_complete(
         self, system_prompt: str, user_prompt: str, model: str, temperature: float = 0.0
@@ -167,7 +172,9 @@ class OpenAILLMProvider(LLMProvider):
 
 class AnthropicLLMProvider(LLMProvider):
     def __init__(self):
-        self.client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+        self.client = AsyncAnthropic(
+            api_key=ANTHROPIC_API_KEY, base_url=ANTHROPIC_BASE_URL
+        )
         # Create a shared httpx client for image fetching
         self.http_client = httpx.AsyncClient()
 
