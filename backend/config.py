@@ -52,7 +52,7 @@ ANTHROPIC_BASE_URL = os.getenv("ANTHROPIC_BASE_URL")
 FAST_PROVIDER = _enum_env("FAST_PROVIDER", ["openai", "anthropic"], default="anthropic")
 MAIN_PROVIDER = _enum_env("MAIN_PROVIDER", ["openai", "anthropic"], default="anthropic")
 FAST_MODEL = os.getenv("FAST_MODEL", "claude-3-5-haiku-20241022")
-MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-3-5-sonnet-20241022")
+MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-3-7-sonnet-20250219")
 
 # Misc configuration
 RUN_PERIODIC_CLEANUP = _bool_env("RUN_PERIODIC_CLEANUP", default=True)
