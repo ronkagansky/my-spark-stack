@@ -139,29 +139,37 @@ def build_apply_changes_tool(
         processed_files, has_lint_file = await asyncio.gather(
             diff_applier.apply(), agent.sandbox.has_file("/app/frontend/.eslintrc.json")
         )
-        lint_result = "Lint successful!"
-        if has_lint_file:
+
+        # Prepare the lint check task
+        async def run_lint_check():
+            if not has_lint_file:
+                return "No lint configuration found"
             lint_output = await agent.sandbox.run_command(
                 "npm run lint", workdir="/app/frontend"
             )
-            if "Error:" in lint_output:
-                lint_result = lint_output
+            return (
+                "Error: " + lint_output
+                if "Error:" in lint_output
+                else "Lint successful!"
+            )
 
-        # Check browser for errors if requested
-        browser_result = "Browser logs look good!"
-        browser_screenshot = None
-        if agent.app_temp_url:
+        # Prepare the browser check task
+        async def run_browser_check():
+            if not agent.app_temp_url:
+                return "Browser check skipped - no preview URL available", None
+
             browser = BrowserMonitor.get_instance()
             page_status = await browser.check_page(
                 f"{agent.app_temp_url}{agent.working_page or '/'}"
             )
+
+            browser_result = "Browser logs look good!"
+            browser_screenshot = None
+
             if page_status:
                 if page_status.errors or page_status.console:
-                    # If we found errors, let's have the agent try to fix them
                     browser_result = "\n".join(
-                        [
-                            *[f"Error: {err}" for err in page_status.errors],
-                        ]
+                        [f"Error: {err}" for err in page_status.errors]
                     )
                 if page_status.screenshot:
                     browser_screenshot = {
@@ -172,6 +180,12 @@ def build_apply_changes_tool(
                             "data": page_status.screenshot,
                         },
                     }
+            return browser_result, browser_screenshot
+
+        # Run lint and browser checks in parallel
+        lint_result, (browser_result, browser_screenshot) = await asyncio.gather(
+            run_lint_check(), run_browser_check()
+        )
 
         # Commit the changes
         await agent.sandbox.commit_changes(commit_message)

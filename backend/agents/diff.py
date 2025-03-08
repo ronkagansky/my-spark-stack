@@ -163,7 +163,7 @@ class AsyncArtifactDiffApplier:
             "... existing" not in diff,
             "... rest" not in diff,
             "... removed" not in diff,
-            "Add this at" in diff,
+            "Add this at" not in diff,
             "the same..." not in diff,
             len(tips) == 0,
         ]
