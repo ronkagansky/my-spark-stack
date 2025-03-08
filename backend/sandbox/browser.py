@@ -108,7 +108,7 @@ class BrowserMonitor:
         self._page_errors = []
 
     async def check_page(
-        self, url: str, wait_time: int = 2, lock_timeout: float = 5.0
+        self, url: str, wait_time: int = 3, lock_timeout: float = 5.0
     ) -> Optional[PageCheckResult]:
         """Navigate to the URL and check for errors/messages.
 

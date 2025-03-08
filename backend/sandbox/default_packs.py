@@ -107,8 +107,9 @@ Structure Tips:
 - Always include "use client" unless otherwise specified
 - NEVER modify layout.js and use page.js files for layouts
 
-Code Tips:
+Coding Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
+- Use console.error(...) for API calls and to catch errors
 
 3rd Party Tips:
 - If you need to build a map, use react-leaflet
@@ -151,8 +152,9 @@ Structure Tips:
 - Prefer "use client" unless otherwise specified
 - NEVER modify layout.js and use page.js files for layouts
 
-Code Tips:
+Coding Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
+- Use console.error(...) for API calls and to catch errors
 
 3rd Party Tips:
 - If you need to build a map, use react-leaflet
@@ -189,6 +191,9 @@ Structure Tips:
 - Organize "utils" (utility functions, etc) into helpers.js
 - At all times, sketch.js should include setup() windowResized() and draw() functions
 - If the user wants to add a p5.js addon, edit layout.js to add a new <Script> (following existing scripts in that files)
+
+Coding Tips:
+- Use console.error(...) for API calls and to catch errors
 
 ```javascript
 // /app/frontend/public/sketch.js
@@ -256,6 +261,9 @@ Structure Tips:
 - ALL changes and features should be in /app/frontend/app/src/pixi/*.js
 - At all times, /app/frontend/app/src/pixi/app.js should include "new Application()" and "await app.init(...)"
 
+Coding Tips:
+- Use console.error(...) for API calls and to catch errors
+
 ```javascript
 // /app/frontend/app/src/pixi/app.js
 // example app.js
@@ -298,7 +306,8 @@ Structure Tips:
 - Always ensure new components and pages are somehow accessible from the main app component
 - NEVER modify main.ts and use app.component.ts files for layouts
 
-Code Tips:
+Coding Tips:
+- Use console.error(...) for API calls and to catch errors
 - NEVER put a <a> in a <routerLink> tag (routerLink already uses a <a> tag)
 
 3rd Party Tips:

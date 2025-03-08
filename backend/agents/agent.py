@@ -78,7 +78,7 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
     )
 
 
-def build_screenshot_tool(agent: "Agent"):
+def build_screenshot_and_get_logs_tool(agent: "Agent"):
     async def func(path: str) -> str:
         """Take a screenshot of the specified path."""
         if not agent.sandbox or not agent.app_temp_url:
@@ -96,7 +96,13 @@ def build_screenshot_tool(agent: "Agent"):
         return [
             {
                 "type": "text",
-                "text": f"Screenshot captured of {path}",
+                "text": f"""Screenshot captured of {path}
+                
+Error Logs:
+{NL.join(page_status.errors) if page_status.errors else "No errors found"}
+
+Console Messages:
+{NL.join(page_status.console) if page_status.console else "No console messages found"}""",
             },
             {
                 "type": "image",
@@ -109,14 +115,14 @@ def build_screenshot_tool(agent: "Agent"):
         ]
 
     return AgentTool(
-        name="take_screenshot",
-        description="Take a screenshot of the specified path in the web app. Useful for debugging visual issues.",
+        name="screenshot_and_get_logs",
+        description="Take a screenshot of the specified path in the web app and capture browser logs. Returns both the screenshot image and any error/console logs found. Useful for debugging visual and runtime issues.",
         parameters={
             "type": "object",
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "The path to take a screenshot of (e.g. /, /settings, /dashboard)",
+                    "description": "The path to take a screenshot of and capture logs from (e.g. /, /settings, /dashboard)",
                 },
             },
             "required": ["path"],
@@ -265,17 +271,24 @@ They will be able to edit files, run arbitrary commands in the sandbox, and navi
 {git_log_text}
 </git-log>
 
+<tools>
+The engineer will have these tools available to them:
+- run shell commands (run_shell_cmd)
+- take a screenshot and gather logs (screenshot_and_get_logs)
+- apply changes and commit them (apply_changes)
+</tools>
+
 Answer the following questions:
 1. What is being asked by the most recent message?
 1a. Is this a general question, command to build something, etc.?
 2. Which files are relevant to the question or would be needed to perform the request?
 2a. What page should the user be navigated to to see/verify the change? (e.g. /settings since we are working on that page)
 2b. If there's weird behavior, what files should we cat to double check on the contents?
-3. What commands might you need to run?
+3. What commands or other tools might you need to run?
 3a. What packages need to be installed?
 4. For EACH stack-specific tip, what do you need to keep in mind or how does this adjust your plan?
 5. Finally, what are the full sequence of steps to take to answer the question? (tools/commands -> generate files -> conclusion)
-5a. What commands should we run?
+5a. What commands or other tools should we run?
 5b. What files should we cat to see what we have?
 5c. What high-level changes do you need to make to the files?
 5d. Be specific about how it should be done based on the stack and project notes.
@@ -617,11 +630,11 @@ class Agent:
 
         tool_cmd = build_run_command_tool(self.sandbox)
         tool_apply = build_apply_changes_tool(self, diff_applier, apply_cnt)
-        tool_screenshot = build_screenshot_tool(self)
+        tool_screenshot_and_get_logs = build_screenshot_and_get_logs_tool(self)
         tools = [
             tool_cmd,
             tool_apply,
-            tool_screenshot,
+            tool_screenshot_and_get_logs,
         ]
 
         model = LLM_PROVIDERS[MAIN_PROVIDER]()
