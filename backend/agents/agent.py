@@ -78,6 +78,53 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
     )
 
 
+def build_screenshot_tool(agent: "Agent"):
+    async def func(path: str) -> str:
+        """Take a screenshot of the specified path."""
+        if not agent.sandbox or not agent.app_temp_url:
+            return "Sandbox or preview URL is not yet ready. Try again in a minute."
+
+        browser = BrowserMonitor.get_instance()
+        page_status = await browser.check_page(
+            f"{agent.app_temp_url}{path}",
+            wait_time=3,  # Wait a bit longer for page to fully load
+        )
+
+        if not page_status or not page_status.screenshot:
+            return "Failed to capture screenshot"
+
+        return [
+            {
+                "type": "text",
+                "text": f"Screenshot captured of {path}",
+            },
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/jpeg",
+                    "data": page_status.screenshot,
+                },
+            },
+        ]
+
+    return AgentTool(
+        name="take_screenshot",
+        description="Take a screenshot of the specified path in the web app. Useful for debugging visual issues.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "The path to take a screenshot of (e.g. /, /settings, /dashboard)",
+                },
+            },
+            "required": ["path"],
+        },
+        func=func,
+    )
+
+
 def build_apply_changes_tool(
     agent: "Agent", diff_applier: AsyncArtifactDiffApplier, apply_cnt: Dict[str, int]
 ):
@@ -114,7 +161,6 @@ def build_apply_changes_tool(
                     browser_result = "\n".join(
                         [
                             *[f"Error: {err}" for err in page_status.errors],
-                            *[f"Console: {msg}" for msg in page_status.console][:10],
                         ]
                     )
                 if page_status.screenshot:
@@ -137,7 +183,7 @@ def build_apply_changes_tool(
 Changes applied successfully. All changes live at {agent.app_temp_url}!
 
 <updated-files>
-The codeblocks you provided have been applied. Do not provide any more codeblocks unless you intentionally want to update and apply more changes.
+The codeblocks you provided have been applied. Do not provide any more codeblocks unless you intentionally want to update and and later re-apply more changes.
 {NL.join(processed_files)}
 </updated-files>
 
@@ -155,11 +201,13 @@ The codeblocks you provided have been applied. Do not provide any more codeblock
         if browser_screenshot:
             result.append(browser_screenshot)
 
+        apply_cnt["cnt"] += 1
+
         return result
 
     return AgentTool(
         name="apply_changes",
-        description="Apply code changes. Runs linting and checks browser logs. Uses git to commit all changes.",
+        description="Apply code changes. Runs linting, checks browser logs, git commits all changes. Returns logs and a screenshot of the changes.",
         parameters={
             "type": "object",
             "properties": {
@@ -555,9 +603,11 @@ class Agent:
 
         tool_cmd = build_run_command_tool(self.sandbox)
         tool_apply = build_apply_changes_tool(self, diff_applier, apply_cnt)
+        tool_screenshot = build_screenshot_tool(self)
         tools = [
             tool_cmd,
             tool_apply,
+            tool_screenshot,
         ]
 
         model = LLM_PROVIDERS[MAIN_PROVIDER]()
@@ -582,4 +632,4 @@ class Agent:
 
         # manually apply if agent forgot to
         if apply_cnt["cnt"] == 0:
-            tool_apply.func("Several changes made.")
+            await tool_apply.func(navigate_to="/", commit_message="Several changes")
