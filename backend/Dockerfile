@@ -26,7 +26,8 @@ RUN apt-get update && apt-get install -y \
 # Copy backend requirements and install dependencies
 COPY backend/requirements.txt .
 RUN pip install -r requirements.txt
-RUN playwright install-deps
+RUN playwright install-deps \
+    && playwright install
 
 # Copy backend code
 COPY backend/ .

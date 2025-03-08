@@ -135,19 +135,16 @@ function ShellCommand({ children }) {
     </>
   );
 }
-
 function ApplyChanges({ children }) {
-  const [visible, setVisible] = useState(true);
+  const [progressVisible, setProgressVisible] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setVisible(false);
+      setProgressVisible(false);
     }, 60000); // 1 minute in milliseconds
 
     return () => clearTimeout(timer);
   }, []);
-
-  if (!visible) return null;
 
   return (
     <div className="w-full mt-2 mb-2">
@@ -155,16 +152,18 @@ function ApplyChanges({ children }) {
         <span className="inline-block px-2 py-1 bg-blue-500 text-white rounded-t-md">
           Applying...
         </span>
-        <div className="h-2 bg-gray-200 rounded-b-full overflow-hidden">
-          <div
-            className="h-full bg-blue-500 animate-[indeterminate_3s_ease-in-out_infinite]"
-            style={{
-              width: '50%',
-              backgroundImage:
-                'linear-gradient(to right, transparent 0%, #3B82F6 50%, transparent 100%)',
-            }}
-          />
-        </div>
+        {progressVisible && (
+          <div className="h-2 bg-gray-200 rounded-b-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 animate-[indeterminate_3s_ease-in-out_infinite]"
+              style={{
+                width: '50%',
+                backgroundImage:
+                  'linear-gradient(to right, transparent 0%, #3B82F6 50%, transparent 100%)',
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
