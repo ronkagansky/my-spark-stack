@@ -135,6 +135,7 @@ function ShellCommand({ children }) {
     </>
   );
 }
+
 function ApplyChanges({ children }) {
   const [progressVisible, setProgressVisible] = useState(true);
 
@@ -150,7 +151,7 @@ function ApplyChanges({ children }) {
     <div className="w-full mt-2 mb-2">
       <div className="relative">
         <span className="inline-block px-2 py-1 bg-blue-500 text-white rounded-t-md">
-          Applying...
+          {progressVisible ? 'Applying...' : 'Applied'}
         </span>
         {progressVisible && (
           <div className="h-2 bg-gray-200 rounded-b-full overflow-hidden">
