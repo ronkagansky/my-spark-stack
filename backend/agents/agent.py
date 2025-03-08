@@ -18,15 +18,15 @@ from agents.providers import AgentTool, LLM_PROVIDERS
 USER_TYPE_STYLES: Dict[UserType, str] = {
     UserType.WEB_DESIGNER: """User Type: Web Designer
 Experience: Familiar with web design concepts and basic HTML/CSS
-Communication Style: Use design/UI/UX terminology. Explain technical concepts visually. Be concise.
+Communication Style: Use design/UI/UX terminology. Explain technical concepts visually. Be concise. Do not walkthrough all the changes.
 Code Explanations: Focus on visual impact and provide context for backend changes. Keep explanations brief.""",
     UserType.LEARNING_TO_CODE: """User Type: Learning to Code
 Experience: Basic programming knowledge, learning fundamentals
-Communication Style: Break down complex concepts with simple terms. Keep explanations concise.
-Code Explanations: Include brief comments for major code blocks. Highlight patterns and practices.""",
+Communication Style: Break down complex concepts with simple terms. Keep explanations concise. Do not walkthrough all the changes.
+Code Explanations: Include brief instructional commentary. Highlight patterns and practices.""",
     UserType.EXPERT_DEVELOPER: """User Type: Expert Developer
 Experience: Proficient in full-stack development
-Communication Style: Use technical terminology. Focus on architecture and implementation details. Be concise.
+Communication Style: Use technical terminology. Focus on architecture and implementation details. Be concise. Do not walkthrough all the changes.
 Code Explanations: Skip basics. Highlight advanced patterns and potential edge cases. Keep explanations brief.""",
 }
 
@@ -78,33 +78,15 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
     )
 
 
-def build_navigate_to_tool(agent: "Agent"):
-    async def func(path: str):
-        agent.working_page = path
-        print(f"Navigating user to {path}")
-        return "Navigating user to " + path
-
-    return AgentTool(
-        name="navigate_to",
-        description="Trigger the user's browser to navigate to the given path (e.g. /settings)",
-        parameters={
-            "type": "object",
-            "properties": {
-                "path": {"type": "string"},
-            },
-            "required": ["path"],
-        },
-        func=func,
-    )
-
-
 def build_apply_changes_tool(
     agent: "Agent", diff_applier: AsyncArtifactDiffApplier, apply_cnt: Dict[str, int]
 ):
-    async def func(commit_message: str) -> str:
+    async def func(navigate_to: str, commit_message: str) -> str:
         """Apply changes, run linting, and check browser for errors."""
         if not agent.sandbox:
             return "Sandbox is not yet ready. Stop and try again after a minute."
+
+        agent.working_page = navigate_to
 
         # Run these tasks in parallel with gather
         processed_files, has_lint_file = await asyncio.gather(
@@ -121,21 +103,18 @@ def build_apply_changes_tool(
         # Check browser for errors if requested
         browser_result = "Browser logs look good!"
         if agent.app_temp_url:
-            print("starting browser check")
             browser = BrowserMonitor.get_instance()
-            result = await browser.check_page(
+            page_status = await browser.check_page(
                 f"{agent.app_temp_url}{agent.working_page or '/'}"
             )
-            if result and (result.errors or result.console):
+            if page_status and (page_status.errors or page_status.console):
                 # If we found errors, let's have the agent try to fix them
-                error_text = "\n".join(
+                browser_result = "\n".join(
                     [
-                        *[f"Error: {err}" for err in result.errors],
-                        *[f"Console: {msg}" for msg in result.console],
+                        *[f"Error: {err}" for err in page_status.errors],
+                        *[f"Console: {msg}" for msg in page_status.console],
                     ]
                 )
-                return f"Found browser errors:\n{error_text}"
-        print("browser check done")
 
         # Commit the changes
         await agent.sandbox.commit_changes(commit_message)
@@ -144,6 +123,7 @@ def build_apply_changes_tool(
 Changes applied successfully. All changes live at {agent.app_temp_url}!
 
 <updated-files>
+The codeblocks you provided have been applied. Do not provide any more codeblocks unless you intentionally want to update and apply more changes.
 {NL.join(processed_files)}
 </updated-files>
 
@@ -168,6 +148,10 @@ Changes applied successfully. All changes live at {agent.app_temp_url}!
         parameters={
             "type": "object",
             "properties": {
+                "navigate_to": {
+                    "type": "string",
+                    "description": "The page path most relevant to the changes. E.g. /, /settings, /dashboard, etc.",
+                },
                 "commit_message": {
                     "type": "string",
                     "description": "The commit message to use for the changes. Do not use quotes or special characters. Do not use markdown formatting, newlines, or other formatting. Start with a verb, e.g. 'Fixed', 'Added', 'Updated', etc.",
@@ -553,10 +537,10 @@ class Agent:
         diff_applier = AsyncArtifactDiffApplier(self.sandbox)
         apply_cnt = {"cnt": 0}
 
+        tool_cmd = build_run_command_tool(self.sandbox)
         tool_apply = build_apply_changes_tool(self, diff_applier, apply_cnt)
         tools = [
-            build_run_command_tool(self.sandbox),
-            build_navigate_to_tool(self),
+            tool_cmd,
             tool_apply,
         ]
 

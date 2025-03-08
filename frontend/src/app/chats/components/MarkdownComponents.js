@@ -10,6 +10,27 @@ import {
 } from '@/components/ui/dialog';
 import { getLanguageFromFilename } from '@/lib/utils';
 
+const indeterminateAnimation = `
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-200%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+`;
+
+// Add the styles to the document
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = indeterminateAnimation;
+  document.head.appendChild(style);
+}
+
 export function FileUpdate({ children }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -70,6 +91,8 @@ function ShellCommand({ children }) {
   let shownCommand = command;
   if (command.startsWith('cat ')) {
     shownCommand = `Reading ${command.slice(4)}...`;
+  } else if (command.startsWith('ls ')) {
+    shownCommand = `Listing ${command.slice(3)}...`;
   }
 
   const handleClick = () => {
@@ -112,26 +135,20 @@ function ShellCommand({ children }) {
     </>
   );
 }
+
 function ApplyChanges({ children }) {
-  const [progress, setProgress] = useState(0);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const startTime = Date.now();
-    const duration = 30000; // 30 seconds
+    const timer = setTimeout(() => {
+      setVisible(false);
+    }, 60000); // 1 minute in milliseconds
 
-    const intervalId = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / duration) * 100, 100);
-
-      setProgress(newProgress);
-
-      if (newProgress >= 100) {
-        clearInterval(intervalId);
-      }
-    }, 250); // Update every 0.25 seconds
-
-    return () => clearInterval(intervalId);
+    return () => clearTimeout(timer);
   }, []);
+
+  if (!visible) return null;
+
   return (
     <div className="w-full mt-2 mb-2">
       <div className="relative">
@@ -140,8 +157,12 @@ function ApplyChanges({ children }) {
         </span>
         <div className="h-2 bg-gray-200 rounded-b-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 transition-all duration-100 ease-linear"
-            style={{ width: `${progress}%` }}
+            className="h-full bg-blue-500 animate-[indeterminate_3s_ease-in-out_infinite]"
+            style={{
+              width: '50%',
+              backgroundImage:
+                'linear-gradient(to right, transparent 0%, #3B82F6 50%, transparent 100%)',
+            }}
           />
         </div>
       </div>

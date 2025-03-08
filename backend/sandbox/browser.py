@@ -115,17 +115,19 @@ class BrowserMonitor:
             wait_time: Time to wait after page load to capture errors
             lock_timeout: Maximum time to wait for lock acquisition in seconds
         """
-        await self._ensure_setup()
         try:
             # Try to acquire the lock with timeout
-            if not await self._lock.acquire(timeout=lock_timeout):
-                print("Failed to acquire browser lock!")
+            try:
+                await asyncio.wait_for(self._lock.acquire(), timeout=lock_timeout)
+            except asyncio.TimeoutError:
                 return PageCheckResult(
                     errors=[],
                     console=[
                         f"Browser status not currently available. This is not an error."
                     ],
                 )
+
+            await self._ensure_setup()
 
             try:
                 # Clear memory before loading new page
