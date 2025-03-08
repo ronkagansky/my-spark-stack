@@ -85,7 +85,20 @@ class OpenAILLMProvider(LLMProvider):
         tool = next((tool for tool in tools if tool.name == tool_name), None)
         if not tool:
             raise ValueError(f"Unknown tool: {tool_name}")
-        return await tool.func(**arguments)
+        result = await tool.func(**arguments)
+
+        # For OpenAI, we only return text content
+        if isinstance(result, str):
+            return result
+        elif isinstance(result, list):
+            # Extract only text content from the list
+            text_parts = []
+            for item in result:
+                if item.get("type") == "text":
+                    text_parts.append(item["text"])
+            return "\n".join(text_parts)
+        else:
+            return str(result)
 
     async def chat_complete_with_tools(
         self,
@@ -343,7 +356,16 @@ class AnthropicLLMProvider(LLMProvider):
                                         {
                                             "type": "tool_result",
                                             "tool_use_id": tool_call["id"],
-                                            "content": tool_result,
+                                            "content": (
+                                                tool_result
+                                                if isinstance(tool_result, list)
+                                                else [
+                                                    {
+                                                        "type": "text",
+                                                        "text": tool_result,
+                                                    }
+                                                ]
+                                            ),
                                         }
                                     ],
                                 }
@@ -374,7 +396,15 @@ class AnthropicLLMProvider(LLMProvider):
         tool = next((tool for tool in tools if tool.name == tool_name), None)
         if not tool:
             raise ValueError(f"Unknown tool: {tool_name}")
-        return await tool.func(**arguments)
+        result = await tool.func(**arguments)
+
+        # Handle both string and list results (for images)
+        if isinstance(result, str):
+            return result
+        elif isinstance(result, list):
+            return result
+        else:
+            return str(result)
 
 
 LLM_PROVIDERS: Dict[str, Type[LLMProvider]] = {

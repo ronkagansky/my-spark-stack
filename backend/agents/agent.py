@@ -102,24 +102,38 @@ def build_apply_changes_tool(
 
         # Check browser for errors if requested
         browser_result = "Browser logs look good!"
+        browser_screenshot = None
         if agent.app_temp_url:
             browser = BrowserMonitor.get_instance()
             page_status = await browser.check_page(
                 f"{agent.app_temp_url}{agent.working_page or '/'}"
             )
-            if page_status and (page_status.errors or page_status.console):
-                # If we found errors, let's have the agent try to fix them
-                browser_result = "\n".join(
-                    [
-                        *[f"Error: {err}" for err in page_status.errors],
-                        *[f"Console: {msg}" for msg in page_status.console],
-                    ]
-                )
+            if page_status:
+                if page_status.errors or page_status.console:
+                    # If we found errors, let's have the agent try to fix them
+                    browser_result = "\n".join(
+                        [
+                            *[f"Error: {err}" for err in page_status.errors],
+                            *[f"Console: {msg}" for msg in page_status.console][:10],
+                        ]
+                    )
+                if page_status.screenshot:
+                    browser_screenshot = {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/jpeg",
+                            "data": page_status.screenshot,
+                        },
+                    }
 
         # Commit the changes
         await agent.sandbox.commit_changes(commit_message)
 
-        result = f"""
+        result = [
+            {
+                "type": "text",
+                "text": f"""
 Changes applied successfully. All changes live at {agent.app_temp_url}!
 
 <updated-files>
@@ -134,11 +148,12 @@ The codeblocks you provided have been applied. Do not provide any more codeblock
 <browser-result>
 {browser_result}
 </browser-result>
-""".strip()
+""".strip(),
+            }
+        ]
 
-        print("apply_changes", repr(result))
-
-        apply_cnt["cnt"] += 1
+        if browser_screenshot:
+            result.append(browser_screenshot)
 
         return result
 
@@ -157,7 +172,7 @@ The codeblocks you provided have been applied. Do not provide any more codeblock
                     "description": "The commit message to use for the changes. Do not use quotes or special characters. Do not use markdown formatting, newlines, or other formatting. Start with a verb, e.g. 'Fixed', 'Added', 'Updated', etc.",
                 },
             },
-            "required": ["commit_message"],
+            "required": ["navigate_to", "commit_message"],
         },
         func=func,
     )
@@ -274,6 +289,7 @@ Special code block syntax (note absolute path and placeholder comments):
 - This apply will happen after you've finished your response and automatically include a git commit of all changes.
 - No need to run `npm run dev`, etc since the sandbox will handle that.
 - The Spark Stack UI has built in a "Preview" window of the changes to the right as well as a UI for the user to view/export raw files and config deployment/env variables.
+- When providing explanations, do not walkthrough all the changes. Be concise and to the point.
 </tips>
 
 Follow the <plan>. End after commiting changes with `apply_changes` tool.

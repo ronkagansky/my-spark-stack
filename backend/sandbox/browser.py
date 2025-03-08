@@ -2,6 +2,7 @@ from playwright.async_api import async_playwright, Browser, Page
 from typing import List, Optional
 import asyncio
 import gc
+import base64
 from dataclasses import dataclass
 
 
@@ -11,6 +12,7 @@ class PageCheckResult:
 
     errors: List[str]
     console: List[str]
+    screenshot: Optional[str] = None  # Base64 encoded screenshot
 
 
 class BrowserMonitor:
@@ -133,6 +135,7 @@ class BrowserMonitor:
                 # Clear memory before loading new page
                 await self._maybe_run_gc()
 
+                print(f"Navigating browser to {url}")
                 await self._page.goto(url, wait_until="networkidle")
                 # Clear previous errors/messages
                 self._clear_state()
@@ -140,9 +143,14 @@ class BrowserMonitor:
                 # Wait for specified time to capture any errors
                 await asyncio.sleep(wait_time)
 
+                # Capture screenshot
+                screenshot_bytes = await self._page.screenshot(type="jpeg", quality=80)
+                screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+
                 return PageCheckResult(
                     errors=self._page_errors.copy(),
                     console=self._console_messages.copy(),
+                    screenshot=screenshot_base64,
                 )
             except Exception as e:
                 print(f"Error checking page: {e}")
