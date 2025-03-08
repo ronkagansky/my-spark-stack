@@ -15,6 +15,8 @@ import {
   Share2,
   Link,
   Loader2,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from 'lucide-react';
 import { useUser } from '@/context/user-context';
 import { useRouter } from 'next/navigation';
@@ -30,6 +32,7 @@ import { useShareChat } from '@/hooks/use-share-chat';
 
 export const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
   const { user, chats, refreshChats, refreshProjects, team, projects } =
     useUser();
   const router = useRouter();
@@ -139,34 +142,52 @@ export const Sidebar = () => {
       <div
         className={`${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 fixed md:static w-48 h-screen bg-background border-r transition-transform duration-200 ease-in-out z-40`}
+        } md:translate-x-0 fixed md:static ${
+          isCollapsed ? 'w-16' : 'w-48'
+        } h-screen bg-background border-r transition-all duration-200 ease-in-out z-40`}
       >
         <div className="flex flex-col h-full">
-          <div className="p-3 border-b md:pl-3 pl-16">
+          <div
+            className={`p-3 border-b md:pl-3 pl-16 ${
+              isCollapsed ? 'items-center' : ''
+            }`}
+          >
             <Button
               variant="outline"
-              className="w-full justify-start"
+              className={`${
+                isCollapsed ? 'w-10 p-0 justify-center' : 'w-full justify-start'
+              }`}
               size="sm"
               onClick={handleNewChat}
+              title={isCollapsed ? 'New Chat' : undefined}
             >
-              <PlusIcon className="mr-2 h-4 w-4" />
-              New Chat
+              <PlusIcon className={`${isCollapsed ? '' : 'mr-2'} h-4 w-4`} />
+              {!isCollapsed && 'New Chat'}
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start mt-2"
+              className={`mt-2 ${
+                isCollapsed ? 'w-10 p-0 justify-center' : 'w-full justify-start'
+              }`}
               size="sm"
               onClick={() =>
                 window.open('https://forms.gle/VHkpxFnQXVxTqhaJ7', '_blank')
               }
+              title={isCollapsed ? 'Feedback' : undefined}
             >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Feedback
+              <MessageCircle
+                className={`${isCollapsed ? '' : 'mr-2'} h-4 w-4`}
+              />
+              {!isCollapsed && 'Feedback'}
             </Button>
             {process.env.NEXT_PUBLIC_HIDE_BLOG_BUTTON !== 'true' && (
               <Button
                 variant="outline"
-                className="w-full justify-start mt-2"
+                className={`mt-2 ${
+                  isCollapsed
+                    ? 'w-10 p-0 justify-center'
+                    : 'w-full justify-start'
+                }`}
                 size="sm"
                 onClick={() =>
                   window.open(
@@ -174,9 +195,10 @@ export const Sidebar = () => {
                     '_blank'
                   )
                 }
+                title={isCollapsed ? 'Dev Blog' : undefined}
               >
-                <BookOpen className="mr-2 h-4 w-4" />
-                Dev Blog
+                <BookOpen className={`${isCollapsed ? '' : 'mr-2'} h-4 w-4`} />
+                {!isCollapsed && 'Dev Blog'}
               </Button>
             )}
           </div>
@@ -184,18 +206,21 @@ export const Sidebar = () => {
             <div className="space-y-4">
               {sortedProjectIdToChats.map(([projectId, projectChats]) => (
                 <div key={projectId}>
-                  <div className="text-sm text-muted-foreground font-medium px-2 mb-2">
-                    {projects.find((p) => p.id === +projectId)?.name}
-                  </div>
+                  {!isCollapsed && (
+                    <div className="text-sm text-muted-foreground font-medium px-2 mb-2">
+                      {projects.find((p) => p.id === +projectId)?.name}
+                    </div>
+                  )}
                   <div className="space-y-1">
                     {projectChats.map((chat) => (
                       <div
                         key={chat.id}
                         className="py-1 px-2 hover:bg-accent rounded-md cursor-pointer group relative"
                         onClick={() => handleChatClick(chat.id)}
+                        title={isCollapsed ? chat.name : undefined}
                       >
                         <div className="flex justify-between items-center">
-                          {editingChatId === chat.id ? (
+                          {editingChatId === chat.id && !isCollapsed ? (
                             <form
                               onSubmit={(e) => handleRenameSubmit(chat.id, e)}
                               className="flex-1 mr-2"
@@ -211,50 +236,56 @@ export const Sidebar = () => {
                               />
                             </form>
                           ) : (
-                            <span className="truncate pr-2 text-sm">
+                            <span
+                              className={`truncate ${
+                                isCollapsed ? 'w-6 overflow-hidden' : 'pr-2'
+                              } text-sm`}
+                            >
                               {chat.name}
                             </span>
                           )}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem
-                                onClick={(e) => handleShareClick(chat.id, e)}
-                                disabled={sharingChatId === chat.id}
-                              >
-                                {sharingChatId === chat.id ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : chat.is_public ? (
-                                  <Link className="mr-2 h-4 w-4" />
-                                ) : (
-                                  <Share2 className="mr-2 h-4 w-4" />
-                                )}
-                                {chat.is_public ? 'Unshare' : 'Share'}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => handleRename(chat.id, e)}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => handleDelete(chat.id, e)}
-                                className="text-red-600 focus:text-red-600 focus:bg-red-100"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {!isCollapsed && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleShareClick(chat.id, e)}
+                                  disabled={sharingChatId === chat.id}
+                                >
+                                  {sharingChatId === chat.id ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : chat.is_public ? (
+                                    <Link className="mr-2 h-4 w-4" />
+                                  ) : (
+                                    <Share2 className="mr-2 h-4 w-4" />
+                                  )}
+                                  {chat.is_public ? 'Unshare' : 'Share'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleRename(chat.id, e)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleDelete(chat.id, e)}
+                                  className="text-red-600 focus:text-red-600 focus:bg-red-100"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -270,19 +301,36 @@ export const Sidebar = () => {
             >
               <div className="flex flex-col gap-0.5 min-w-0">
                 <div className="flex items-center space-x-3 min-w-0">
-                  <Avatar>
+                  <Avatar className={isCollapsed ? 'h-8 w-8' : ''}>
                     <AvatarImage src="" />
                     <AvatarFallback>{user.username[0]}</AvatarFallback>
                   </Avatar>
-                  <span className="font-medium truncate">{user.username}</span>
+                  {!isCollapsed && (
+                    <span className="font-medium truncate">
+                      {user.username}
+                    </span>
+                  )}
                 </div>
-                {team && (
+                {team && !isCollapsed && (
                   <span className="text-sm text-muted-foreground ml-[3.25rem] truncate">
                     {team.name}
                   </span>
                 )}
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-2 justify-center"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? (
+                <ChevronRightIcon className="h-4 w-4" />
+              ) : (
+                <ChevronLeftIcon className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </div>

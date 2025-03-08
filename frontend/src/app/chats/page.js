@@ -28,6 +28,7 @@ export default function WorkspacePage({ chatId }) {
   const webSocketRef = useRef(null);
   const { toast } = useToast();
   const [isMobile, setIsMobile] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const chat = chats?.find((c) => c.id === +chatId);
 
   useEffect(() => {
@@ -188,7 +189,13 @@ export default function WorkspacePage({ chatId }) {
       content: message.content,
       images: message.images || [],
     };
+
     if (chatId === 'new') {
+      // Show immediate feedback
+      setIsSubmitting(true);
+      setMessages([userMessage]);
+      setStatus('CONNECTING');
+
       try {
         const chat = await api.createChat({
           name: message.content,
@@ -197,10 +204,7 @@ export default function WorkspacePage({ chatId }) {
           team_id: team.id,
           seed_prompt: message.content,
         });
-        toast({
-          title: 'Chat created',
-          description: 'Setting things up...',
-        });
+
         await refreshProjects();
         addChat(chat);
         router.push(
@@ -209,11 +213,16 @@ export default function WorkspacePage({ chatId }) {
           )}`
         );
       } catch (error) {
+        setIsSubmitting(false);
+        setStatus('NEW_CHAT');
+        setMessages([]);
+
         toast({
           title: 'Error',
           description: error.message,
           variant: 'destructive',
         });
+
         if (error.message.includes('credits')) {
           router.push('/settings?buy=true');
         }
@@ -324,6 +333,7 @@ export default function WorkspacePage({ chatId }) {
                 showStackPacks={chatId === 'new'}
                 suggestedFollowUps={suggestedFollowUps}
                 onReconnect={handleReconnect}
+                isSubmitting={isSubmitting}
               />
             </div>
             <div className={`h-full ${isPreviewOpen ? 'block' : 'hidden'}`}>
@@ -362,6 +372,7 @@ export default function WorkspacePage({ chatId }) {
               showStackPacks={chatId === 'new'}
               suggestedFollowUps={suggestedFollowUps}
               onReconnect={handleReconnect}
+              isSubmitting={isSubmitting}
             />
             <RightPanel
               onSendMessage={handleSendMessage}

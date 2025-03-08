@@ -271,7 +271,7 @@ for path, base64_content in files:
                     f"Using existing prepared sandbox for project (psb={existing_psb.id}, vol={project.modal_volume_label}) -> (project={project_id})"
                 )
 
-            vol = await modal.Volume.lookup.aio(label=project.modal_volume_label)
+            vol = modal.Volume.from_name(name=project.modal_volume_label)
 
             if project.modal_sandbox_id:
                 sb = await modal.Sandbox.from_id.aio(project.modal_sandbox_id)

@@ -4,20 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
-import {
-  SendIcon,
-  Loader2,
-  ImageIcon,
-  X,
-  Scan,
-  RefreshCw,
-  Pencil,
-  Mic,
-  MicOff,
-  Share2,
-  Link,
-} from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
+import { Loader2, X, Share2, Link } from 'lucide-react';
 import rehypeRaw from 'rehype-raw';
 import {
   Select,
@@ -31,7 +18,6 @@ import { api, uploadImage } from '@/lib/api';
 import { resizeImage, captureScreenshot } from '@/lib/image';
 import { components } from '@/app/chats/components/MarkdownComponents';
 import { fixCodeBlocks } from '@/lib/code';
-import { SketchDialog } from './SketchDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -41,6 +27,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useShareChat } from '@/hooks/use-share-chat';
 import { Progress } from '@/components/ui/progress';
+import { ChatInput } from './ChatInput';
 
 const STARTER_PROMPTS = [
   'Build a 90s themed cat facts app with catfact.ninja API',
@@ -105,9 +92,9 @@ const EmptyState = ({
             {[
               {
                 id: null,
-                title: 'Auto Stack',
+                title: 'Auto',
                 description:
-                  'Let AI choose the best stack based on your first prompt in the current chat.',
+                  'Let AI choose the best set of tools based on your first prompt in the current chat.',
               },
             ]
               .concat(stacks ?? [])
@@ -152,9 +139,9 @@ const MessageList = ({ messages, status }) => (
       <div key={index} className="flex items-start gap-4">
         <div
           className={`w-8 h-8 rounded ${
-            msg.role === 'user' ? 'bg-blue-500/10' : 'bg-primary/10'
+            msg.role === 'user' ? 'bg-orange-500/10' : 'bg-primary/10'
           } flex-shrink-0 flex items-center justify-center text-sm font-medium ${
-            msg.role === 'user' ? 'text-blue-500' : 'text-primary'
+            msg.role === 'user' ? 'text-orange-500' : 'text-primary'
           }`}
         >
           {msg.role === 'user' ? 'H' : 'AI'}
@@ -190,284 +177,6 @@ const MessageList = ({ messages, status }) => (
     ))}
   </div>
 );
-
-const ImageAttachments = ({ attachments, onRemove }) => (
-  <div className="flex flex-wrap gap-2">
-    {attachments.map((img, index) => (
-      <div key={index} className="relative inline-block">
-        <img
-          src={img}
-          alt={`attachment ${index + 1}`}
-          className="max-h-32 max-w-[200px] object-contain rounded-lg"
-        />
-        <Button
-          type="button"
-          size="icon"
-          variant="secondary"
-          className="absolute top-1 right-1 h-6 w-6"
-          onClick={() => onRemove(index)}
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
-    ))}
-  </div>
-);
-
-const ChatInput = ({
-  disabled,
-  message,
-  setMessage,
-  handleSubmit,
-  handleKeyDown,
-  handleChipClick,
-  suggestedFollowUps,
-  chatPlaceholder,
-  onImageAttach,
-  imageAttachments,
-  onRemoveImage,
-  onScreenshot,
-  uploadingImages,
-  status,
-  onReconnect,
-  onSketchSubmit,
-  messages,
-}) => {
-  const [sketchOpen, setSketchOpen] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const recognition = useRef(null);
-
-  useEffect(() => {
-    if (window.webkitSpeechRecognition) {
-      recognition.current = new window.webkitSpeechRecognition();
-      recognition.current.continuous = true;
-      recognition.current.interimResults = true;
-
-      recognition.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0].transcript)
-          .join('');
-        setMessage(transcript);
-      };
-
-      recognition.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.current.onend = () => {
-        setIsListening(false);
-      };
-    }
-
-    return () => {
-      if (recognition.current) {
-        recognition.current.stop();
-      }
-    };
-  }, []);
-
-  const toggleListening = () => {
-    if (!recognition.current) {
-      alert('Speech recognition is not supported in your browser');
-      return;
-    }
-
-    if (isListening) {
-      recognition.current.stop();
-      setIsListening(false);
-    } else {
-      recognition.current.start();
-      setIsListening(true);
-    }
-  };
-
-  const getDisabledReason = () => {
-    if (uploadingImages) {
-      return 'Uploading images...';
-    } else if (status === 'WORKING') {
-      return 'Please wait for the AI to finish...';
-    } else if (status === 'WORKING_APPLYING') {
-      return 'Please wait for the changes to be applied...';
-    } else if (disabled) {
-      if (status === 'BUILDING' || status === 'BUILDING_WAITING') {
-        return 'Please wait while the development environment is being set up...';
-      }
-      return 'Chat is temporarily unavailable';
-    }
-    return null;
-  };
-
-  const isLongConversation = messages.length > 40;
-
-  return (
-    <>
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        {disabled ||
-        uploadingImages ||
-        ['WORKING', 'WORKING_APPLYING'].includes(status) ? (
-          <p className="text-sm text-muted-foreground">{getDisabledReason()}</p>
-        ) : (
-          <div className="flex flex-col md:flex-row flex-wrap gap-2">
-            {suggestedFollowUps.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                disabled={disabled}
-                onClick={() => handleChipClick(prompt)}
-                className="w-10/12 md:w-auto px-3 py-1.5 text-sm rounded-full bg-secondary hover:bg-secondary/80 transition-colors text-left"
-              >
-                <span className="block truncate md:truncate-none">
-                  {prompt}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="flex flex-col gap-4">
-          {imageAttachments.length > 0 && (
-            <ImageAttachments
-              attachments={imageAttachments}
-              onRemove={onRemoveImage}
-            />
-          )}
-          <div className="flex gap-4">
-            <Textarea
-              placeholder={chatPlaceholder}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 min-h-[40px] max-h-[200px] resize-none"
-              rows={Math.min(message.split('\n').length, 5)}
-            />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2">
-          <input
-            type="file"
-            id="imageInput"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={onImageAttach}
-          />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  disabled={disabled}
-                  onClick={onScreenshot}
-                >
-                  <Scan className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Take screenshot</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  disabled={disabled}
-                  onClick={() => document.getElementById('imageInput').click()}
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Upload image</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  disabled={disabled}
-                  onClick={() => setSketchOpen(true)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Draw sketch</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isListening ? 'destructive' : 'outline'}
-                  disabled={disabled}
-                  onClick={toggleListening}
-                >
-                  {isListening ? (
-                    <MicOff className="h-4 w-4" />
-                  ) : (
-                    <Mic className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isListening ? 'Stop recording' : 'Start recording'}
-              </TooltipContent>
-            </Tooltip>
-
-            {status === 'DISCONNECTED' ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    onClick={onReconnect}
-                    variant="destructive"
-                    className="flex items-center gap-2"
-                  >
-                    <span>Reconnect</span>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Reconnect to server</TooltipContent>
-              </Tooltip>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="submit"
-                    size="icon"
-                    disabled={disabled || uploadingImages}
-                    variant={isLongConversation ? 'destructive' : 'default'}
-                  >
-                    {uploadingImages ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <SendIcon className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isLongConversation
-                    ? 'Warning: Long conversations may be less effective. Consider starting a new chat in the same project.'
-                    : 'Send message'}
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </TooltipProvider>
-        </div>
-      </form>
-
-      <SketchDialog
-        open={sketchOpen}
-        onOpenChange={setSketchOpen}
-        onSave={onSketchSubmit}
-      />
-    </>
-  );
-};
 
 const statusMap = {
   NEW_CHAT: { status: 'Ready', color: 'bg-gray-500', animate: false },
@@ -522,9 +231,7 @@ const LoadingState = () => {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-sm text-muted-foreground">
-        Booting up your development environment...
-      </p>
+      <p className="text-sm text-muted-foreground">Setting things up...</p>
       <div className="w-64">
         <Progress value={progress} className="h-2" />
       </div>
@@ -543,6 +250,7 @@ export function Chat({
   suggestedFollowUps = [],
   onReconnect,
   chat,
+  isSubmitting,
 }) {
   const { projects } = useUser();
   const [message, setMessage] = useState('');
@@ -554,7 +262,6 @@ export function Chat({
   const [selectedProject, setSelectedProject] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
   const { sharingChatId, handleShare: shareChat } = useShareChat();
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchStackPacks = async () => {
@@ -754,7 +461,7 @@ export function Chat({
       </div>
       <div className="border-t p-4">
         <ChatInput
-          disabled={!['NEW_CHAT', 'READY'].includes(status)}
+          disabled={!['NEW_CHAT', 'READY'].includes(status) || isSubmitting}
           message={message}
           setMessage={setMessage}
           handleSubmit={handleSubmit}
@@ -783,6 +490,7 @@ export function Chat({
           uploadingImages={uploadingImages}
           onSketchSubmit={handleSketchSubmit}
           messages={messages}
+          isSubmitting={isSubmitting}
         />
       </div>
     </div>
