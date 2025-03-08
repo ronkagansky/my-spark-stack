@@ -14,6 +14,7 @@ Backend (/backend):
   - Use alembic for generating migrations. You may modify the migration after it is created.
 - Use backend/schemas/models.py for all routes input/output pydantic models
 - Use backend/routers/{table}.py for all routes for that table/model
+- Must use type hints
 
 Scripts (/scripts):
 

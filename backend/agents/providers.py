@@ -307,6 +307,11 @@ class AnthropicLLMProvider(LLMProvider):
 
                 elif chunk.type == "content_block_stop":
                     if tool_calls_buffer:
+                        # Yield all tool calls at once
+                        yield {
+                            "type": "tool_calls",
+                            "tool_calls": tool_calls_buffer,
+                        }
                         # Process all tool calls in buffer
                         for tool_call in tool_calls_buffer:
 
@@ -343,12 +348,6 @@ class AnthropicLLMProvider(LLMProvider):
                                     ],
                                 }
                             )
-
-                        # Yield all tool calls at once
-                        yield {
-                            "type": "tool_calls",
-                            "tool_calls": tool_calls_buffer,
-                        }
                         tool_calls_buffer = []
                         content_buffer = ""
                 elif (

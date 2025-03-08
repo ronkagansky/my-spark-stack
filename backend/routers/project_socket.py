@@ -9,11 +9,9 @@ import traceback
 
 from sandbox.sandbox import DevSandbox, SandboxNotReadyException
 from agents.agent import Agent, ChatMessage
-from agents.diff import DiffApplier
 from db.database import get_db
 from db.models import Project, Message as DbChatMessage, Stack, User, Chat
 from db.queries import get_chat_for_user
-from agents.prompts import write_commit_message
 from routers.auth import get_current_user_from_token
 from sqlalchemy.orm import Session
 
@@ -70,24 +68,6 @@ def _db_message_to_message(db_message: DbChatMessage) -> ChatMessage:
 
 
 router = APIRouter(tags=["websockets"])
-
-
-async def _apply_and_lint_and_commit(diff_applier: DiffApplier):
-    _, has_lint_file = await asyncio.gather(
-        diff_applier.apply(),
-        diff_applier.sandbox.has_file("/app/frontend/.eslintrc.json"),
-    )
-    if has_lint_file:
-        lint_output = await diff_applier.sandbox.run_command(
-            "npm run lint", workdir="/app/frontend"
-        )
-        print(lint_output)
-        if "Error:" in lint_output:
-            await diff_applier.apply_eslint(lint_output)
-
-    await diff_applier.sandbox.commit_changes(
-        await write_commit_message(diff_applier.total_content)
-    )
 
 
 class ProjectManager:
@@ -154,7 +134,8 @@ class ProjectManager:
         )
         await self.emit_project(await self._get_project_status())
         for agent in self.chat_agents.values():
-            agent.sandbox = self.sandbox
+            agent.set_sandbox(self.sandbox)
+            agent.set_app_temp_url(self.tunnels[3000])
 
     async def _try_manage_sandbox(self):
         while True:
@@ -228,12 +209,11 @@ class ProjectManager:
         )
         messages = [_db_message_to_message(m) for m in db_messages]
         total_content = ""
-        diff_applier = DiffApplier(agent.sandbox)
         async for partial_message in agent.step(
             messages, self.sandbox_file_paths, self.sandbox_git_log
         ):
-            total_content += partial_message.delta_content
-            diff_applier.ingest(partial_message.delta_content)
+            if partial_message.persist:
+                total_content += partial_message.delta_content
             await self.emit_chat(
                 chat_id,
                 ChatChunkResponse(
@@ -250,12 +230,7 @@ class ProjectManager:
         self.db.add(db_resp_message)
         self.db.commit()
 
-        self.sandbox_status = SandboxStatus.WORKING_APPLYING
-        _, _, follow_ups = await asyncio.gather(
-            self.emit_project(await self._get_project_status()),
-            _apply_and_lint_and_commit(diff_applier),
-            agent.suggest_follow_ups(messages + [resp_message]),
-        )
+        follow_ups = await agent.suggest_follow_ups(messages + [resp_message])
 
         await self.emit_chat(
             chat_id,

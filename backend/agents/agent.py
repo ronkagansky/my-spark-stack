@@ -2,31 +2,35 @@ from pydantic import BaseModel
 from typing import AsyncGenerator, List, Optional, Dict
 import re
 import json
+import asyncio
 
 from db.models import Project, Stack, User, UserType
 from sandbox.sandbox import DevSandbox
+from sandbox.browser import BrowserMonitor
 from agents.prompts import (
     chat_complete,
 )
 from config import MAIN_MODEL, MAIN_PROVIDER
-from agents.diff import remove_file_changes
+from agents.diff import remove_file_changes, AsyncArtifactDiffApplier
 from agents.providers import AgentTool, LLM_PROVIDERS
 
 
 USER_TYPE_STYLES: Dict[UserType, str] = {
     UserType.WEB_DESIGNER: """User Type: Web Designer
 Experience: Familiar with web design concepts and basic HTML/CSS
-Communication Style: Use design and UI/UX terminology. Explain technical concepts in terms of visual and user experience impact.
-Code Explanations: Focus on how changes affect the look and feel. Provide context for any backend changes.""",
+Communication Style: Use design/UI/UX terminology. Explain technical concepts visually. Be concise.
+Code Explanations: Focus on visual impact and provide context for backend changes. Keep explanations brief.""",
     UserType.LEARNING_TO_CODE: """User Type: Learning to Code
 Experience: Basic programming knowledge, learning fundamentals
-Communication Style: Break down complex concepts. Use simple terms and provide explanations for technical decisions.
-Code Explanations: Include brief comments explaining what each major code block does. Point out patterns and best practices.""",
+Communication Style: Break down complex concepts with simple terms. Keep explanations concise.
+Code Explanations: Include brief comments for major code blocks. Highlight patterns and practices.""",
     UserType.EXPERT_DEVELOPER: """User Type: Expert Developer
 Experience: Proficient in full-stack development
-Communication Style: Use technical terminology freely. Focus on architecture and implementation details.
-Code Explanations: Can skip basic explanations. Highlight advanced patterns and potential edge cases.""",
+Communication Style: Use technical terminology. Focus on architecture and implementation details. Be concise.
+Code Explanations: Skip basics. Highlight advanced patterns and potential edge cases. Keep explanations brief.""",
 }
+
+NL = "\n"
 
 
 class ChatMessage(BaseModel):
@@ -40,6 +44,7 @@ class PartialChatMessage(BaseModel):
     role: str
     delta_content: str = ""
     delta_thinking_content: str = ""
+    persist: bool = True
 
 
 def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
@@ -53,12 +58,15 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
         return result
 
     return AgentTool(
-        name="run_command",
-        description="Run a shell command in the project sandbox. Use for installing packages or reading the content of files. NEVER use to modify the content of files.",
+        name="run_shell_cmd",
+        description="Run a shell command in the project sandbox. Use for installing packages or reading the content of files. NEVER use to modify the content of files (`touch`, `vim`, `nano`, etc.).",
         parameters={
             "type": "object",
             "properties": {
-                "command": {"type": "string"},
+                "command": {
+                    "type": "string",
+                    "description": "The command to run.",
+                },
                 "workdir": {
                     "type": "string",
                     "description": "The directory to run the command in. Defaults to /app and most of the time that's what you want.",
@@ -90,8 +98,89 @@ def build_navigate_to_tool(agent: "Agent"):
     )
 
 
+def build_apply_changes_tool(
+    agent: "Agent", diff_applier: AsyncArtifactDiffApplier, apply_cnt: Dict[str, int]
+):
+    async def func(commit_message: str) -> str:
+        """Apply changes, run linting, and check browser for errors."""
+        if not agent.sandbox:
+            return "Sandbox is not yet ready. Stop and try again after a minute."
+
+        # Run these tasks in parallel with gather
+        processed_files, has_lint_file = await asyncio.gather(
+            diff_applier.apply(), agent.sandbox.has_file("/app/frontend/.eslintrc.json")
+        )
+        lint_result = "Lint successful!"
+        if has_lint_file:
+            lint_output = await agent.sandbox.run_command(
+                "npm run lint", workdir="/app/frontend"
+            )
+            if "Error:" in lint_output:
+                lint_result = lint_output
+
+        # Check browser for errors if requested
+        browser_result = "Browser logs look good!"
+        if agent.app_temp_url:
+            print("starting browser check")
+            browser = BrowserMonitor.get_instance()
+            result = await browser.check_page(
+                f"{agent.app_temp_url}{agent.working_page or '/'}"
+            )
+            if result and (result.errors or result.console):
+                # If we found errors, let's have the agent try to fix them
+                error_text = "\n".join(
+                    [
+                        *[f"Error: {err}" for err in result.errors],
+                        *[f"Console: {msg}" for msg in result.console],
+                    ]
+                )
+                return f"Found browser errors:\n{error_text}"
+        print("browser check done")
+
+        # Commit the changes
+        await agent.sandbox.commit_changes(commit_message)
+
+        result = f"""
+Changes applied successfully. All changes live at {agent.app_temp_url}!
+
+<updated-files>
+{NL.join(processed_files)}
+</updated-files>
+
+<lint-result>
+{lint_result}
+</lint-result>
+
+<browser-result>
+{browser_result}
+</browser-result>
+""".strip()
+
+        print("apply_changes", repr(result))
+
+        apply_cnt["cnt"] += 1
+
+        return result
+
+    return AgentTool(
+        name="apply_changes",
+        description="Apply code changes. Runs linting and checks browser logs. Uses git to commit all changes.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "commit_message": {
+                    "type": "string",
+                    "description": "The commit message to use for the changes. Do not use quotes or special characters. Do not use markdown formatting, newlines, or other formatting. Start with a verb, e.g. 'Fixed', 'Added', 'Updated', etc.",
+                },
+            },
+            "required": ["commit_message"],
+        },
+        func=func,
+    )
+
+
 SYSTEM_PLAN_PROMPT = """
-You are a full-stack expert developer on the platform Spark Stack. You are given a project and a sandbox to develop in and are helping PLAN the next steps. You do not write code and only provide advice as a Senior Engineer.
+You are a full-stack world class developer on the platform Spark Stack. You are given a project and a sandbox to develop in and are helping PLAN the next steps. You do not write code and only provide advice as a Staff Engineer.
 
 They will be able to edit files, run arbitrary commands in the sandbox, and navigate the user's browser.
 
@@ -129,7 +218,7 @@ Answer the following questions:
 5b. What files should we cat to see what we have?
 5c. What high-level changes do you need to make to the files?
 5d. Be specific about how it should be done based on the stack and project notes.
-5e. Add a reminder they should use the `simple-code-block-template` to format their code.
+5e. Add a reminder they should use the right code block format to format their code and end with `apply_changes` tool.
 6. Verify your plan makes sense given the stack and project. Make any adjustments as needed.
 6a. Verify how you will communicate with the <user> based on their knowledge and experience.
 
@@ -151,42 +240,7 @@ DO NOT include any code blocks in your response or text outside of the markdown 
 """
 
 SYSTEM_EXEC_PROMPT = """
-You are a full-stack expert developer on the platform Spark Stack. You are given a <project> and a <stack> sandbox to develop in and a <plan> from a senior engineer.
-
-<commands>
-You are able to run shell commands in the sandbox.
-
-- This includes common tools like `npm`, `cat`, `ls`, `git`, etc. avoid any commands that require a GUI or interactivity.
-- DO NOT USE TOOLS to modify the content of files. You also do not need to display the commands you use.
-- DO NOT USE `touch`, `vim`, `nano`, etc.
-
-You must use the proper tool calling syntax to actually execute the command (even if you haven't done this for previous steps).
-</commands>
-
-<formatting-instructions>
-You'll respond in plain markdown for a chat interface and use special codeblocks for coding and updating files. Generally keep things brief.
-
-YOU must use well formatted simplified code blocks to update files.
-- The first line of the code block MUST be a comment with only the full path to the file
-- ONLY put code and comments within code blocks. Do not add additional indentation to the code blocks (``` should be at the start of the line).
-- Please output a version of the code block that highlights the changes necessary and adds comments to indicate where unchanged code has been skipped.
-- Keep in mind the project, stack, and plan instructions as you write the code.
-
-<simple-code-block-template>
-```language
-// /path/to/file.ext
-// ... existing code ...
-{{ edit_1 }}
-// ... existing code ...
-{{ edit_2 }}
-// ... existing code ...
-```
-</simple-code-block-template>
-
-- You should literally output "... existing code ..." and write actual code in place of the {{ edit_1 }} and {{ edit_2 }} sections.
-- It is also useful to call out large blocks of code you explicitly removed (e.g. "// ... removed code for xyz ...").
-- If you are debugging an error, it's useful to be more explicit when fixing the files (using less placeholder comments and more code in these cases).
-</formatting-instructions>
+You are a full-stack world class developer on the platform Spark Stack. You are given a <project> and a <stack> sandbox to develop in and a <plan> from a Staff Engineer.
 
 <project>
 {project_text}
@@ -200,14 +254,45 @@ YOU must use well formatted simplified code blocks to update files.
 {stack_text}
 </stack>
 
+<shell-commands>
+You are able to run shell commands in the sandbox.
+- This includes common tools like `npm`, `cat`, `ls`, `git`, etc. avoid any commands that require a GUI or interactivity.
+- You must use the proper tool calling syntax to actually execute the command (even if you haven't done this for previous steps).
+</shell-commands>
+
+<formatting>
+You'll respond in plain markdown for a chat interface and use special codeblocks for coding and updating files. Generally keep things brief.
+
+YOU must use well formatted simplified code blocks to update files.
+- The first line of the code block MUST be a comment with only the full path to the file
+- ONLY put code and comments within code blocks. Do not add additional indentation to the code blocks (``` should be at the start of the line).
+- Please output a version of the code block that highlights the changes necessary and adds comments to indicate where unchanged code has been skipped.
+- Keep in mind the project, stack, and plan instructions as you write the code.
+
+Special code block syntax (note absolute path and placeholder comments):
+```language
+// /path/to/file.ext
+// ... existing code ...
+{{ edit_1 }}
+// ... existing code ...
+{{ edit_2 }}
+// ... existing code ...
+```
+
+- You should literally output comments like "... existing code ..." and write actual code in place of the {{ edit_1 }} and {{ edit_2 }} sections.
+- It is also useful to call out large blocks of code you explicitly removed (e.g. "// ... removed code for xyz ...").
+- If you are debugging an error, it's useful to be more explicit when fixing the files (using less placeholder comments and more code in these cases).
+</formatting>
+
 <tips>
-- When you use these code blocks the system will automatically apply the file changes (do not also use tools to do the same thing).
+- After you've written our the code changes, you must use the `apply_changes` tool to apply the changes. 
+- Do not provide codeblocks after applying changes unless you intentionally want to update the file again.
 - This apply will happen after you've finished your response and automatically include a git commit of all changes.
 - No need to run `npm run dev`, etc since the sandbox will handle that.
 - The Spark Stack UI has built in a "Preview" window of the changes to the right as well as a UI for the user to view/export raw files and config deployment/env variables.
 </tips>
 
-Follow the <plan>.
+Follow the <plan>. End after commiting changes with `apply_changes` tool.
 """
 
 SYSTEM_FOLLOW_UP_PROMPT = """
@@ -280,6 +365,15 @@ def _append_last_user_message(messages: List[dict], text: str) -> List[dict]:
         raise ValueError("No user message found")
 
 
+def _trim_user_messages(messages: List[ChatMessage]) -> List[ChatMessage]:
+    # if more than 10 messages, pop the 2nd one
+    new_messages = list(messages)
+    while len(new_messages) > 10:
+        new_messages.pop(2)  # 2nd user
+        new_messages.pop(3)  # 2nd assistant
+    return new_messages
+
+
 class Agent:
     def __init__(self, project: Project, stack: Stack, user: User):
         self.project = project
@@ -287,9 +381,13 @@ class Agent:
         self.user = user
         self.sandbox = None
         self.working_page = None
+        self.app_temp_url = None
 
     def set_sandbox(self, sandbox: DevSandbox):
         self.sandbox = sandbox
+
+    def set_app_temp_url(self, url: str):
+        self.app_temp_url = url
 
     async def _handle_tool_call(self, tools: List[AgentTool], tool_call) -> str:
         tool_name = tool_call.function.name
@@ -406,11 +504,11 @@ class Agent:
         if sandbox_file_paths is not None:
             files_text = "\n".join(sandbox_file_paths)
         else:
-            files_text = "Sandbox is still booting..."
+            files_text = "Sandbox is still booting."
         if sandbox_git_log is not None:
             git_log_text = await self._git_log_text(sandbox_git_log)
         else:
-            git_log_text = "Sandbox is still booting..."
+            git_log_text = "Git log not yet available."
         project_text = self._get_project_text()
         stack_text = self.stack.prompt
         user_text = self._get_user_text()
@@ -444,14 +542,23 @@ class Agent:
                         ]
                     ),
                 }
-                for message in messages
+                for message in _trim_user_messages(messages)
             ],
         ]
         _append_last_user_message(
             exec_messages,
             f"---\n<project-files>\n{files_text}\n</project-files>\n<plan>\n{plan_content}\n</plan>\n---",
         )
-        tools = [build_run_command_tool(self.sandbox), build_navigate_to_tool(self)]
+
+        diff_applier = AsyncArtifactDiffApplier(self.sandbox)
+        apply_cnt = {"cnt": 0}
+
+        tool_apply = build_apply_changes_tool(self, diff_applier, apply_cnt)
+        tools = [
+            build_run_command_tool(self.sandbox),
+            build_navigate_to_tool(self),
+            tool_apply,
+        ]
 
         model = LLM_PROVIDERS[MAIN_PROVIDER]()
         async for chunk in model.chat_complete_with_tools(
@@ -464,5 +571,15 @@ class Agent:
                 yield PartialChatMessage(
                     role="assistant", delta_content=chunk["content"]
                 )
+                diff_applier.ingest(chunk["content"])
             elif chunk["type"] == "tool_calls":
-                yield PartialChatMessage(role="assistant", delta_content="\n\n")
+                for tool_call in chunk["tool_calls"]:
+                    yield PartialChatMessage(
+                        role="assistant",
+                        persist=False,  # HACK: Show tool calls on UI w/confusing Claude
+                        delta_content=f"\n\n```{tool_call['function']['name']}\n# {tool_call['function']['name']}\n{tool_call['function']['arguments']}\n```\n\n",
+                    )
+
+        # manually apply if agent forgot to
+        if apply_cnt["cnt"] == 0:
+            tool_apply.func("Several changes made.")

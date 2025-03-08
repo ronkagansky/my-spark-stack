@@ -118,7 +118,7 @@ export function ChatInput({
     if (uploadingImages) {
       return 'Uploading images...';
     } else if (isSubmitting) {
-      return 'Creating your new chat...';
+      return 'Please wait while the project is being set up...';
     } else if (status === 'WORKING') {
       return 'Please wait for the AI to finish...';
     } else if (status === 'WORKING_APPLYING') {

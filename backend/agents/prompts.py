@@ -60,23 +60,6 @@ session: Build the UI for Astro App
     return project, project_description, session
 
 
-async def write_commit_message(content: str) -> str:
-    msg = await chat_complete(
-        """
-You are a helpful assistant that writes commit messages for git. 
-
-Given the following changes, write a commit message for the changes. 
-
-- Respond only with the commit message.
-- Do not use quotes or special characters.
-- Do not use markdown formatting, newlines, or other formatting.
-- Start with a verb, e.g. "Fixed", "Added", "Updated", etc.
-""".strip(),
-        content[:100000],
-    )
-    return re.sub(r"[^\w\s]+", "", msg)
-
-
 async def pick_stack(seed_prompt: str, stack_titles: List[str], default: str) -> str:
     system_prompt = f"""
 You are a helpful full-stack developer helping advise a user on which stack to use.

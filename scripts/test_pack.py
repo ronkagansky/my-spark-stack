@@ -91,7 +91,7 @@ async def main():
         if sb:
             await sb.terminate.aio()
         if vol_id:
-            await modal.Volume.delete.aio(label=vol_id)
+            await modal.Volume.delete.aio(name=vol_id)
         print("Done!")
 
 

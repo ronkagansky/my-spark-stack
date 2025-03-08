@@ -24,7 +24,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useToast } from '@/hooks/use-toast';
 import { useShareChat } from '@/hooks/use-share-chat';
 import { Progress } from '@/components/ui/progress';
 import { ChatInput } from './ChatInput';

@@ -7,10 +7,18 @@
 export const fixCodeBlocks = (content, partial) => {
   if (!content) return content;
 
+  const customTags = {
+    run_shell_cmd: 'tool-run-shell-cmd',
+    apply_changes: 'tool-apply-changes',
+  };
+
   const replaceB64 = (_, filename, content) => {
     const b64 = Buffer.from(JSON.stringify({ filename, content })).toString(
       'base64'
     );
+    if (customTags[filename]) {
+      return `<${customTags[filename]}>${b64}</${customTags[filename]}>`;
+    }
     return `<file-update>${b64}</file-update>`;
   };
 

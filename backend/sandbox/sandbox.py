@@ -175,7 +175,7 @@ class DevSandbox:
         cls, project: Project, path: str
     ) -> Optional[bytes]:
         if vol_id := project.modal_volume_label:
-            vol = await modal.Volume.lookup.aio(label=vol_id)
+            vol = modal.Volume.from_name(name=vol_id)
             try:
                 data = b""
                 async for chunk in vol.read_file.aio(_strip_app_prefix(path)):
@@ -218,7 +218,7 @@ for path, base64_content in files:
         cls, project: Project, path: str, content: str
     ) -> None:
         if vol_id := project.modal_volume_label:
-            vol = await modal.Volume.lookup.aio(label=vol_id)
+            vol = modal.Volume.from_name(name=vol_id)
             path = _strip_app_prefix(path)
             with io.BytesIO(content.encode("utf-8")) as f:
                 async with vol.batch_upload(force=True) as batch:
@@ -234,7 +234,7 @@ for path, base64_content in files:
                 print("Error terminating sandbox", e)
         if project.modal_volume_label:
             try:
-                await modal.Volume.delete.aio(label=project.modal_volume_label)
+                await modal.Volume.delete.aio(name=project.modal_volume_label)
             except Exception as e:
                 print("Error deleting volume", e)
 
