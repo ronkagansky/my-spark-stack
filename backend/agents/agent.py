@@ -7,6 +7,7 @@ import asyncio
 from db.models import Project, Stack, User, UserType
 from sandbox.sandbox import DevSandbox
 from sandbox.browser import BrowserMonitor
+from agents.third_party_docs import DOCS
 from agents.prompts import (
     chat_complete,
 )
@@ -246,6 +247,30 @@ The codeblocks you provided have been applied. Do not provide any more codeblock
     )
 
 
+def build_read_docs_tool():
+    async def func(page: str) -> str:
+        """Read documentation for a specific page."""
+        if page not in DOCS:
+            return f"Documentation not found for {page}. Available pages: {', '.join(DOCS.keys())}"
+        return DOCS[page]
+
+    return AgentTool(
+        name="read_docs",
+        description="Read documentation for a specific page from the third party docs.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "string",
+                    "description": f"The page to read documentation for. Available pages: {', '.join(DOCS.keys())}",
+                },
+            },
+            "required": ["page"],
+        },
+        func=func,
+    )
+
+
 SYSTEM_PLAN_PROMPT = """
 You are a full-stack world class developer on the platform Spark Stack. You are given a project and a sandbox to develop in and are helping PLAN the next steps. You do not write code and only provide advice as a Staff Engineer.
 
@@ -276,6 +301,7 @@ The engineer will have these tools available to them:
 - run shell commands (run_shell_cmd)
 - take a screenshot and gather logs (screenshot_and_get_logs)
 - apply changes and commit them (apply_changes)
+- read third party documentation (read_docs, e.g. {docs_text})
 </tools>
 
 Answer the following questions:
@@ -284,11 +310,11 @@ Answer the following questions:
 2. Which files are relevant to the question or would be needed to perform the request?
 2a. What page should the user be navigated to to see/verify the change? (e.g. /settings since we are working on that page)
 2b. If there's weird behavior, what files should we cat to double check on the contents?
-3. What commands or other tools might you need to run?
+3. What commands, read docs, or other tools might you need to run?
 3a. What packages need to be installed?
 4. For EACH stack-specific tip, what do you need to keep in mind or how does this adjust your plan?
 5. Finally, what are the full sequence of steps to take to answer the question? (tools/commands -> generate files -> conclusion)
-5a. What commands or other tools should we run?
+5a. What commands, read docs, or other tools should we run?
 5b. What files should we cat to see what we have?
 5c. What high-level changes do you need to make to the files?
 5d. Be specific about how it should be done based on the stack and project notes.
@@ -440,15 +466,6 @@ def _append_last_user_message(messages: List[dict], text: str) -> List[dict]:
         raise ValueError("No user message found")
 
 
-def _trim_user_messages(messages: List[ChatMessage]) -> List[ChatMessage]:
-    # if more than 10 messages, pop the 2nd one
-    new_messages = list(messages)
-    while len(new_messages) > 10:
-        new_messages.pop(2)  # 2nd user
-        new_messages.pop(3)  # 2nd assistant
-    return new_messages
-
-
 class Agent:
     def __init__(self, project: Project, stack: Stack, user: User):
         self.project = project
@@ -515,12 +532,15 @@ class Agent:
         for m in messages[:-2]:
             if m.images:
                 images.extend(m.images)
+
+        docs_text = ", ".join(page for page in DOCS.keys())
         system_prompt = SYSTEM_PLAN_PROMPT.format(
             project_text=project_text,
             stack_text=stack_text,
             files_text=files_text,
             git_log_text=git_log_text,
             user_text=user_text,
+            docs_text=docs_text,
         )
 
         # Convert messages to provider format
@@ -617,7 +637,7 @@ class Agent:
                         ]
                     ),
                 }
-                for message in _trim_user_messages(messages)
+                for message in messages
             ],
         ]
         _append_last_user_message(
@@ -631,10 +651,12 @@ class Agent:
         tool_cmd = build_run_command_tool(self.sandbox)
         tool_apply = build_apply_changes_tool(self, diff_applier, apply_cnt)
         tool_screenshot_and_get_logs = build_screenshot_and_get_logs_tool(self)
+        tool_read_docs = build_read_docs_tool()
         tools = [
             tool_cmd,
             tool_apply,
             tool_screenshot_and_get_logs,
+            tool_read_docs,
         ]
 
         model = LLM_PROVIDERS[MAIN_PROVIDER]()

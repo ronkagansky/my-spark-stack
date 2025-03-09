@@ -104,18 +104,13 @@ Style Tips:
 Structure Tips:
 - Always use Next.js app router for new pages, creating /src/app/<page>/page.js
 - Always ensure new pages are somehow accessible from the main index page
-- Always include "use client" unless otherwise specified
+- Prefer "use client" unless otherwise specified
 - NEVER modify layout.js and use page.js files for layouts
 
 Coding Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
 - Use console.error(...) for API calls and to catch errors
-
-3rd Party Tips:
-- If you need to build a map, use react-leaflet
-    1. $ npm install react-leaflet leaflet
-    2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
-- If you need placeholder images, use https://prompt-stack.sshh.io/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a rand image)
+- Use read docs for 3rd party libraries
 """.strip(),
         setup_time_seconds=60,
     ),
@@ -155,12 +150,7 @@ Structure Tips:
 Coding Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
 - Use console.error(...) for API calls and to catch errors
-
-3rd Party Tips:
-- If you need to build a map, use react-leaflet
-    1. $ npm install react-leaflet leaflet
-    2. `import { MapContainer, TileLayer, useMap } from 'react-leaflet'` (you do not need css imports)
-- If you need placeholder images, use https://sparkstack.app/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a rand image)
+- Use read docs for 3rd party libraries
 """.strip(),
         setup_time_seconds=60,
     ),
@@ -194,6 +184,7 @@ Structure Tips:
 
 Coding Tips:
 - Use console.error(...) for API calls and to catch errors
+- Use read docs for 3rd party libraries
 
 ```javascript
 // /app/frontend/public/sketch.js
@@ -263,6 +254,7 @@ Structure Tips:
 
 Coding Tips:
 - Use console.error(...) for API calls and to catch errors
+- Use read docs for 3rd party libraries
 
 ```javascript
 // /app/frontend/app/src/pixi/app.js
@@ -309,12 +301,7 @@ Structure Tips:
 Coding Tips:
 - Use console.error(...) for API calls and to catch errors
 - NEVER put a <a> in a <routerLink> tag (routerLink already uses a <a> tag)
-
-3rd Party Tips:
-- If you need to build a map, use @angular/google-maps
-    1. $ npm install @angular/google-maps
-    2. `import { GoogleMapsModule } from '@angular/google-maps'` (you do not need css imports)
-- If you need placeholder images, use https://prompt-stack.sshh.io/api/mocks/images[?orientation=landscape&query=topic] (this will redirect to a random image)
+- Use read docs for 3rd party libraries
 """.strip(),
         setup_time_seconds=60,
     ),

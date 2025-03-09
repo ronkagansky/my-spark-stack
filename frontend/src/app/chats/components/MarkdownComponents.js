@@ -92,7 +92,7 @@ function ShellCommand({ children }) {
   if (command.startsWith('cat ')) {
     shownCommand = `Reading ${command.slice(4)}...`;
   } else if (command.startsWith('ls ')) {
-    shownCommand = `Listing ${command.slice(3)}...`;
+    shownCommand = `Listing files...`;
   }
 
   const handleClick = () => {
@@ -170,9 +170,21 @@ function ApplyChanges({ children }) {
   );
 }
 
+function ReadDocs({ children }) {
+  const data = JSON.parse(atob(children));
+  const content = JSON.parse(data.content);
+
+  return (
+    <span className="inline-block max-w-[75vw] truncate px-2 py-1 mt-2 mb-2 bg-gradient-to-r from-emerald-400 to-teal-400 text-white rounded-md">
+      Reading {content?.page || ''} docs...
+    </span>
+  );
+}
+
 export const components = {
   'file-update': FileUpdate,
   'file-loading': FileLoading,
   'tool-run-shell-cmd': ShellCommand,
   'tool-apply-changes': ApplyChanges,
+  'tool-read-docs': ReadDocs,
 };

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, AsyncGenerator, Callable, Type
 from pydantic import BaseModel
 import json
+import copy
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 from config import (
@@ -183,6 +184,16 @@ class OpenAILLMProvider(LLMProvider):
                     yield {"type": "content", "content": delta.content}
 
 
+def _guess_cache_anthropic_cache_control(params: Dict[str, Any]) -> Dict[str, Any]:
+    new_params = copy.deepcopy(params)
+    last_message = new_params["messages"][-1]
+    if isinstance(last_message["content"], list):
+        last_message["content"][0]["cache_control"] = {
+            "type": "ephemeral",
+        }
+    return new_params
+
+
 class AnthropicLLMProvider(LLMProvider):
     def __init__(self):
         self.client = AsyncAnthropic(
@@ -281,6 +292,7 @@ class AnthropicLLMProvider(LLMProvider):
                     {"tools": anthropic_tools, "tool_choice": {"type": "auto"}}
                 )
 
+            create_params = _guess_cache_anthropic_cache_control(create_params)
             stream = await self.client.messages.create(**create_params)
 
             tool_calls_buffer = []

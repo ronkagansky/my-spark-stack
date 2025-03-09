@@ -10,6 +10,7 @@ export const fixCodeBlocks = (content, partial) => {
   const customTags = {
     run_shell_cmd: 'tool-run-shell-cmd',
     apply_changes: 'tool-apply-changes',
+    read_docs: 'tool-read-docs',
   };
 
   const replaceB64 = (_, filename, content) => {
