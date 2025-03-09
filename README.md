@@ -21,6 +21,8 @@
 - 🚀 Deployment to GitHub (+ Netlify, Vercel, etc)
 - 🌙 Dark mode support
 - 🔗 Share chats and projects publicly
+- 💾 Prompt caching for cheaper responses
+- 🖥️ Virtual browser logs and screenshots for debugging
 
 ## Setup
 
