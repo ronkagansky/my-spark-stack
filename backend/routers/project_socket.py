@@ -84,13 +84,18 @@ class ProjectManager:
         self.sandbox_git_log: Optional[str] = None
         self.tunnels = {}
         self.last_activity = datetime.datetime.now()
+        self.killed = False
 
-    def is_inactive(self, timeout_minutes: int = 30) -> bool:
-        return len(self.chat_sockets) == 0 and (
+    def is_inactive(self) -> bool:
+        old = len(self.chat_sockets) == 0 and (
             datetime.datetime.now() - self.last_activity
-        ) > datetime.timedelta(minutes=timeout_minutes)
+        ) > datetime.timedelta(minutes=30)
+        return old or self.killed
 
     async def kill(self):
+        if self.killed:
+            return
+        self.killed = True
         self.sandbox_status = SandboxStatus.BUILDING
         await self.emit_project(await self._get_project_status())
 
@@ -136,6 +141,10 @@ class ProjectManager:
         for agent in self.chat_agents.values():
             agent.set_sandbox(self.sandbox)
             agent.set_app_temp_url(self.tunnels[3000])
+
+        while await self.sandbox.is_up():
+            await asyncio.sleep(30)
+        await self.kill()
 
     async def _try_manage_sandbox(self):
         while True:
@@ -304,7 +313,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
     if project is None:
         raise WebSocketException(code=404, reason="Project not found")
 
-    if project.id not in project_managers:
+    if project.id not in project_managers or project_managers[project.id].killed:
         pm = ProjectManager(db, project.id)
         pm.start()
         project_managers[project.id] = pm
@@ -315,7 +324,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
     await pm.add_chat_socket(chat_id, websocket)
 
     try:
-        while True:
+        while not pm.killed:
             raw_data = await websocket.receive_text()
             data = ChatMessage.model_validate_json(raw_data)
             create_task(pm.on_chat_message(chat_id, data))
@@ -329,6 +338,8 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int):
     except Exception as e:
         print(f"websocket loop Exception: {e}\n{traceback.format_exc()}")
     finally:
+        if pm.killed and project.id in project_managers:
+            del project_managers[project.id]
         pm.remove_chat_socket(chat_id, websocket)
         try:
             await websocket.close()

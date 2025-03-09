@@ -185,7 +185,15 @@ class OpenAILLMProvider(LLMProvider):
 
 
 def _guess_cache_anthropic_cache_control(params: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    We get up to 4 guesses at cache writes.
+    """
     new_params = copy.deepcopy(params)
+    first_message = new_params["messages"][0]
+    if isinstance(first_message["content"], list):
+        first_message["content"][0]["cache_control"] = {
+            "type": "ephemeral",
+        }
     last_message = new_params["messages"][-1]
     if isinstance(last_message["content"], list):
         last_message["content"][0]["cache_control"] = {

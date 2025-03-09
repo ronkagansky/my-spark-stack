@@ -30,14 +30,7 @@ export function UserProvider({ children }) {
     try {
       [chats, teams] = await Promise.all([api.getChats(), api.getTeams()]);
     } catch (e) {
-      if (
-        window.confirm(
-          `Failed to login: ${e.message}, do you want to just use a new account?`
-        )
-      ) {
-        localStorage.removeItem('token');
-        window.location.href = '/';
-      }
+      setTimeout(() => (window.location.href = '/'), 1000);
       return;
     }
 

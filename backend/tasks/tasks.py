@@ -7,7 +7,7 @@ import modal
 from routers.project_socket import project_managers
 from db.models import Project, PreparedSandbox, Stack
 from sandbox.sandbox import DevSandbox
-from config import TARGET_PREPARED_SANDBOXES_PER_STACK
+from config import TARGET_PREPARED_SANDBOXES_PER_STACK, PROJECT_RESOURCE_TIMEOUT_SECONDS
 
 
 def task_handler():
@@ -86,7 +86,8 @@ async def clean_up_project_resources(db: Session = None):
         .filter(
             Project.modal_sandbox_id.isnot(None),
             Project.modal_sandbox_last_used_at.isnot(None),
-            Project.modal_sandbox_last_used_at < datetime.now() - timedelta(minutes=15),
+            Project.modal_sandbox_last_used_at
+            < datetime.now() - timedelta(seconds=PROJECT_RESOURCE_TIMEOUT_SECONDS),
             (Project.modal_never_cleanup.is_(None) | ~Project.modal_never_cleanup),
         )
         .all()
