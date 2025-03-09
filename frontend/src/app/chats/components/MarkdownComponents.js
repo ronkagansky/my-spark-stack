@@ -142,7 +142,7 @@ function ApplyChanges({ children }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setProgressVisible(false);
-    }, 60000); // 1 minute in milliseconds
+    }, 60000 * 2); // 2 minutes in milliseconds
 
     return () => clearTimeout(timer);
   }, []);

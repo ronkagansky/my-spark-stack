@@ -171,7 +171,7 @@ class AsyncArtifactDiffApplier:
             print(f"Writing {file_path} directly...")
             full_content = diff
         else:
-            print(f"Writing {file_path} smart diff...", skip_conditions)
+            print(f"Writing {file_path} smart diff...", skip_conditions, tips)
             full_content = await _apply_smart_diff(
                 original_content,
                 diff,

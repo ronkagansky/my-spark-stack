@@ -106,6 +106,7 @@ Structure Tips:
 - Always ensure new pages are somehow accessible from the main index page
 - Prefer "use client" unless otherwise specified
 - NEVER modify layout.js and use page.js files for layouts
+- Put all backend code (and code that reference env vars) in api/.../route.js files
 
 Coding Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
@@ -146,6 +147,7 @@ Structure Tips:
 - Always ensure new pages are somehow accessible from the main index page
 - Prefer "use client" unless otherwise specified
 - NEVER modify layout.js and use page.js files for layouts
+- Put all backend code (and code that reference env vars) in api/.../route.js files
 
 Coding Tips:
 - NEVER put a <a> in a <Link> tag (Link already uses a <a> tag)
