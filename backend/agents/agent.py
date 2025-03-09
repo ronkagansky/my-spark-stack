@@ -300,7 +300,7 @@ They will be able to edit files, run arbitrary commands in the sandbox, and navi
 The engineer will have these tools available to them:
 - run shell commands (run_shell_cmd)
 - take a screenshot and gather logs (screenshot_and_get_logs)
-- apply changes and commit them (apply_changes)
+- apply changes, commit them, and gather post-commit logs (apply_changes)
 - read third party documentation (read_docs, e.g. {docs_text})
 </tools>
 
