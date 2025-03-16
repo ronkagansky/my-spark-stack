@@ -188,17 +188,25 @@ def _guess_cache_anthropic_cache_control(params: Dict[str, Any]) -> Dict[str, An
     """
     We get up to 4 guesses at cache writes.
     """
+
+    def _set_cache_control(message: Dict[str, Any]):
+        if isinstance(message["content"], list):
+            message["content"][0]["cache_control"] = {
+                "type": "ephemeral",
+            }
+
     new_params = copy.deepcopy(params)
     first_message = new_params["messages"][0]
-    if isinstance(first_message["content"], list):
-        first_message["content"][0]["cache_control"] = {
-            "type": "ephemeral",
-        }
-    last_message = new_params["messages"][-1]
-    if isinstance(last_message["content"], list):
-        last_message["content"][0]["cache_control"] = {
-            "type": "ephemeral",
-        }
+    _set_cache_control(first_message)
+    if len(new_params["messages"]) > 1:
+        last_message = new_params["messages"][-1]
+        _set_cache_control(last_message)
+    if len(new_params["messages"]) > 2:
+        second_to_last_message = new_params["messages"][-2]
+        _set_cache_control(second_to_last_message)
+    if len(new_params["messages"]) > 3:
+        third_to_last_message = new_params["messages"][-3]
+        _set_cache_control(third_to_last_message)
     return new_params
 
 

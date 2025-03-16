@@ -66,7 +66,7 @@ def build_run_command_tool(sandbox: Optional[DevSandbox] = None):
             "properties": {
                 "command": {
                     "type": "string",
-                    "description": "The command to run.",
+                    "description": "The command to run. Note some commands like `cat` can take multiple files as arguments and this is more efficient.",
                 },
                 "workdir": {
                     "type": "string",
@@ -117,7 +117,7 @@ Console Messages:
 
     return AgentTool(
         name="screenshot_and_get_logs",
-        description="Take a screenshot of the specified path in the web app and capture browser logs. Returns both the screenshot image and any error/console logs found. Useful for debugging visual and runtime issues.",
+        description="Take a screenshot of the specified path in the web app and capture browser logs. Returns both the screenshot image and any error/console logs found. Useful for debugging visual and runtime issues. There is no need to run this tool directly after applying changes as this does the same thing.",
         parameters={
             "type": "object",
             "properties": {
@@ -135,7 +135,9 @@ Console Messages:
 def build_apply_changes_tool(
     agent: "Agent", diff_applier: AsyncArtifactDiffApplier, apply_cnt: Dict[str, int]
 ):
-    async def func(navigate_to: str, commit_message: str) -> str:
+    async def func(
+        navigate_to: str, commit_message: str, include_screenshot: bool = False
+    ) -> str:
         """Apply changes, run linting, and check browser for errors."""
         if not agent.sandbox:
             return "Sandbox is not yet ready. Stop and try again after a minute."
@@ -163,7 +165,10 @@ def build_apply_changes_tool(
         # Prepare the browser check task
         async def run_browser_check():
             if not agent.app_temp_url:
-                return "Browser check skipped - no preview URL available", None
+                return (
+                    "Browser check skipped - no preview URL available or screenshot disabled",
+                    None,
+                )
 
             browser = BrowserMonitor.get_instance()
             page_status = await browser.check_page(
@@ -178,7 +183,7 @@ def build_apply_changes_tool(
                     browser_result = "\n".join(
                         [f"Error: {err}" for err in page_status.errors]
                     )
-                if page_status.screenshot:
+                if page_status.screenshot and include_screenshot:
                     browser_screenshot = {
                         "type": "image",
                         "source": {
@@ -228,17 +233,21 @@ The codeblocks you provided have been applied. Do not provide any more codeblock
 
     return AgentTool(
         name="apply_changes",
-        description="Apply code changes. Runs linting, checks browser logs, git commits all changes. Returns logs and a screenshot of the changes.",
+        description="Apply code changes. Runs linting, checks browser logs, git commits all changes. Optionally returns a screenshot of the changes.",
         parameters={
             "type": "object",
             "properties": {
                 "navigate_to": {
                     "type": "string",
-                    "description": "The page path most relevant to the changes. E.g. /, /settings, /dashboard, etc.",
+                    "description": "The page path most relevant to the changes. E.g. /, /settings, /dashboard, etc. This will impact which page the screenshot and console logs are taken from and where the user will be navigated to.",
                 },
                 "commit_message": {
                     "type": "string",
                     "description": "The commit message to use for the changes. Do not use quotes or special characters. Do not use markdown formatting, newlines, or other formatting. Start with a verb, e.g. 'Fixed', 'Added', 'Updated', etc.",
+                },
+                "include_screenshot": {
+                    "type": "boolean",
+                    "description": "Whether to include a screenshot of the site (after changes are applied) in the response. Useful for debugging visual issues but more expensive. Defaults to false.",
                 },
             },
             "required": ["navigate_to", "commit_message"],
@@ -682,4 +691,8 @@ class Agent:
 
         # manually apply if agent forgot to
         if apply_cnt["cnt"] == 0:
-            await tool_apply.func(navigate_to="/", commit_message="Several changes")
+            await tool_apply.func(
+                navigate_to="/",
+                commit_message="Several changes",
+                include_screenshot=True,
+            )
