@@ -2,6 +2,8 @@
 
 > Spark Stack is an tool for building web applications through an AI-powered chat interface. Create quick MVPs and prototypes using natural language prompts. [[Blog Post]](https://blog.sshh.io/p/building-v0-in-a-weekend)
 
+> _Update: Jun 1, 2025: Took down the demo instance and have effectively archived the project. Afaik it still works but have moved on to other projects._
+
 <img width="800" alt="chrome_vMZlrhHm0u" src="https://github.com/user-attachments/assets/4c1912c9-85c9-4169-9d6c-bb5f96edd23e">
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/61t3xx?referralCode=c5mPsy)
